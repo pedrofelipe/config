@@ -12,7 +12,7 @@
 
 ## Checklist
 
-### 1. Prep OS X
+### 1. Prep macOS
 
 - Download and install latest version of Xcode from the Mac App Store.
 - Download and install Xcode Command Line Tools from <https://developer.apple.com/downloads>.
@@ -46,6 +46,7 @@
 
 ### 7. Additional dependencies
 
+- Override Git from macOS: `brew install git`
 - Install bash-completion: `brew install bash-completion`
 - Install [Gulp](http://gulpjs.com): `npm install -g gulp`
 - Install [Sass](http://sass-lang.com): `gem install sass`
@@ -59,6 +60,22 @@
   - [merge-conflicts](https://atom.io/packages/merge-conflicts)
   - [pigments](https://atom.io/packages/pigments)
   - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
+
+### 9. Install apps
+
+- [Google Chrome](https://www.google.com/chrome/browser/desktop)
+- [Slack](https://slack.com/downloads)
+- [Spotify](https://www.spotify.com/download/mac)
+- [1Password](https://1password.com)
+- [Dropbox](https://www.dropbox.com)
+- [Little Snitch](https://www.obdev.at/products/littlesnitch)
+- [iStat Menus](https://bjango.com/mac/istatmenus)
+- [Tweetbot](http://tapbots.com/tweetbot/mac)
+- [Alfred](https://www.alfredapp.com)
+- [Boom](http://www.globaldelight.com/boom)
+- [Moom](https://manytricks.com/moom)
+- [CleanMyMac](http://cleanmymac.com)
+- [DaisyDisk](https://daisydiskapp.com)
 
 ## Use it yourself
 
