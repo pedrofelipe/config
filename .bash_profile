@@ -3,15 +3,6 @@ parse_git_branch() {
   git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
 }
 
-# Custom bash prompt
-#
-# Includes custom character for the prompt, path, and Git branch name.
-#
-# Source: kirsle.net/wizards/ps1.html
-export PS1="\n\[$(tput bold)\]\[$(tput setaf 5)\]➜ \[$(tput setaf 6)\]\w\[$(tput setaf 3)\]\$(parse_git_branch) \[$(tput sgr0)\]"
-
-export PATH=/opt/local/bin:/opt/local/sbin:${PATH}
-
 # Quicker navigation
 alias ..="cd .."
 alias ...="cd ../.."
@@ -76,3 +67,11 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" # This loads nvm
 
 export PATH="$HOME/.rbenv/bin:$PATH" # This loads rbenv
+
+# bash-completion
+if [ -f $(brew --prefix)/etc/bash_completion ]; then
+    . $(brew --prefix)/etc/bash_completion
+fi
+
+# git prompt
+export PS1='\[\033[01;32m\]\u@\h\[\033[01;34m\] \w\[\033[1;31m\]$(__git_ps1)\[\033[01;34m\] \$\[\033[00m\] '
