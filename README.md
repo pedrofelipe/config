@@ -15,7 +15,7 @@
 ### 1. Prep OS X
 
 - Download and install latest version of Xcode from the Mac App Store.
-- Download and install Xcode Command Line Tools from <https://developer.apple.com/downloads/>.
+- Download and install Xcode Command Line Tools from <https://developer.apple.com/downloads>.
 
 ### 2. Prep Terminal.app
 
@@ -46,12 +46,13 @@
 
 ### 7. Additional dependencies
 
-- Install Gulp: `npm install -g gulp`
-- Install Sass: `gem install sass`
+- Install bash-completion: `brew install bash-completion`
+- Install [Gulp](http://gulpjs.com): `npm install -g gulp`
+- Install [Sass](http://sass-lang.com): `gem install sass`
 
 ### 8. Setup Atom
 
-- Set theme: `One Dark`
+- Set theme: [One Dark](https://github.com/atom/one-dark-ui)
 - Install favorite packages
   - [file-icons](https://atom.io/packages/file-icons)
   - [highlight-selected](https://atom.io/packages/highlight-selected)
