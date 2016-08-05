@@ -22,7 +22,10 @@
 - Load [`.bash_profile`](/.bash_profile)
 - Load [`.gitconfig`](/.gitconfig) contents into the global `~/.gitconfig`
 - Load [`.inputrc`](/.inputrc)
+- Load [`.git-prompt.sh`](https://github.com/git/git/blob/master/contrib/completion/git-prompt.sh)
 - Load up the Ocean theme from <https://github.com/mdo/ocean-terminal>
+
+TO-DO: Complete git-prompt.sh info
 
 ### 3. Secure Git(Hub) access
 
@@ -34,15 +37,19 @@
 
 ### 5. Setup Node.js and npm
 
-- Install [nvm](https://github.com/creationix/nvm): `curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.1/install.sh | bash`
-- Install [Node.js](https://nodejs.org/en) via nvm: `nvm install 6.2.2`
-- Make it global version of Node.js: `nvm use 6.2.2`
+- Install [nvm](https://github.com/creationix/nvm): `curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.4/install.sh | bash`
+- Install [Node.js](https://nodejs.org/en) via nvm: `nvm install 6.3.1`
+- Make it global version of Node.js: `nvm alias default 6.3.1`
 
-### 6. Setup Ruby
+### 6. Setup Ruby and RubyGems
 
-- Install [rbenv](https://github.com/rbenv/rbenv) via Homebrew: `brew install rbenv`
+- Install [rbenv](https://github.com/rbenv/rbenv) via Homebrew: `brew install rbenv ruby-build`
+- Add rbenv to bash so that it loads every time you open a terminal `echo 'if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi' >> ~/.bash_profile`
+`source ~/.bash_profile`
 - Download a version of Ruby via rbenv (e.g., `rbenv install 2.3.1`). See <https://gorails.com/setup/osx/10.11-el-capitan>
 - Make it the global version of Ruby: `rbenv global 2.3.1`
+
+TO-DO: Complete here
 
 ### 7. Additional dependencies
 
@@ -61,6 +68,8 @@
   - [pigments](https://atom.io/packages/pigments)
   - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
 
+TO-DO: Theme customizations
+
 ### 9. Install apps
 
 - [Google Chrome](https://www.google.com/chrome/browser/desktop)
@@ -76,6 +85,7 @@
 - [Moom](https://manytricks.com/moom)
 - [CleanMyMac](http://cleanmymac.com)
 - [DaisyDisk](https://daisydiskapp.com)
+- VPN App
 
 ## Use it yourself
 
