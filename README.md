@@ -57,7 +57,6 @@ See <https://gorails.com/setup/osx/10.11-el-capitan>
 - [ ] Make it the global version of Ruby
 - [ ] Check Ruby version
 
-<https://gorails.com/setup/osx/10.11-el-capitan>
 ```
 brew install rbenv ruby-build
 rbenv install 2.3.1
