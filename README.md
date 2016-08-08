@@ -33,30 +33,55 @@ TO-DO: Complete git-prompt.sh info
 
 ### 4. Setup Homebrew
 
-- Install [Homebrew](http://brew.sh): `/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"`
+- Install [Homebrew](http://brew.sh):
+```
+/usr/bin/ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+```
 
-### 5. Setup Node.js and npm
+### 5. Setup nvm, Node.js and npm
+- [ ] Install [nvm](https://github.com/creationix/nvm)
+- [ ] Install [Node.js](https://nodejs.org/en) via nvm
+- [ ] Make it global version of Node.js
 
-- Install [nvm](https://github.com/creationix/nvm): `curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.4/install.sh | bash`
-- Install [Node.js](https://nodejs.org/en) via nvm: `nvm install 6.3.1`
-- Make it global version of Node.js: `nvm alias default 6.3.1`
+```
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.4/install.sh | bash
+nvm install 6.3.1
+nvm alias default 6.3.1
+```
 
-### 6. Setup Ruby and RubyGems
+### 6. Setup rbenv, Ruby and Rails
+See <https://gorails.com/setup/osx/10.11-el-capitan>
 
-- Install [rbenv](https://github.com/rbenv/rbenv) via Homebrew: `brew install rbenv ruby-build`
-- Add rbenv to bash so that it loads every time you open a terminal `echo 'if which rbenv > /dev/null; then eval "$(rbenv init -)"; fi' >> ~/.bash_profile`
-`source ~/.bash_profile`
-- Download a version of Ruby via rbenv (e.g., `rbenv install 2.3.1`). See <https://gorails.com/setup/osx/10.11-el-capitan>
-- Make it the global version of Ruby: `rbenv global 2.3.1`
+- [ ] Install [rbenv](https://github.com/rbenv/rbenv) via Homebrew
+- [ ] Download a version of Ruby via rbenv
+- [ ] Make it the global version of Ruby
+- [ ] Check Ruby version
 
-TO-DO: Complete here
+<https://gorails.com/setup/osx/10.11-el-capitan>
+```
+brew install rbenv ruby-build
+rbenv install 2.3.1
+rbenv global 2.3.1
+ruby -v
+```
 
 ### 7. Additional dependencies
 
-- Override Git from macOS: `brew install git`
-- Install bash-completion: `brew install bash-completion`
-- Install [Gulp](http://gulpjs.com): `npm install -g gulp`
-- Install [Sass](http://sass-lang.com): `gem install sass`
+- [ ] Override Git from macOS
+- [ ] Install MySQL
+- [ ] Install PostgreSQL
+- [ ] Install bash-completion
+- [ ] Install [Gulp](http://gulpjs.com)
+- [ ] Install [Sass](http://sass-lang.com)
+
+```
+brew install git
+brew install mysql
+brew install postgresql
+brew install bash-completion
+npm install -g gulp
+gem install sass
+```
 
 ### 8. Setup Atom
 
