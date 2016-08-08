@@ -22,10 +22,7 @@
 - Load [`.bash_profile`](/.bash_profile)
 - Load [`.gitconfig`](/.gitconfig) contents into the global `~/.gitconfig`
 - Load [`.inputrc`](/.inputrc)
-- Load [`.git-prompt.sh`](https://github.com/git/git/blob/master/contrib/completion/git-prompt.sh)
 - Load up the Ocean theme from <https://github.com/mdo/ocean-terminal>
-
-TO-DO: Complete git-prompt.sh info
 
 ### 3. Secure Git(Hub) access
 
@@ -91,8 +88,6 @@ gem install sass
   - [merge-conflicts](https://atom.io/packages/merge-conflicts)
   - [pigments](https://atom.io/packages/pigments)
   - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
-
-TO-DO: Theme customizations
 
 ### 9. Install apps
 
