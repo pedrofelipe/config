@@ -104,6 +104,10 @@ gem install sass
 - [Moom](https://manytricks.com/moom)
 - [CleanMyMac](http://cleanmymac.com)
 - [DaisyDisk](https://daisydiskapp.com)
+- [Arq](https://www.arqbackup.com)
+- [OverSight](https://objective-see.com/products/oversight.html)
+- [WhatsApp](https://www.whatsapp.com/download)
+- [Telegram](https://macos.telegram.org)
 - VPN App
 
 ## Use it yourself
