@@ -88,6 +88,7 @@ gem install sass
   - [merge-conflicts](https://atom.io/packages/merge-conflicts)
   - [pigments](https://atom.io/packages/pigments)
   - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
+  - [editorconfig](https://atom.io/packages/editorconfig)
 
 ### 9. Install apps
 
