@@ -41,13 +41,13 @@
 - [ ] Make it global version of Node.js
 
 ```
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.31.4/install.sh | bash
-nvm install 6.3.1
-nvm alias default 6.3.1
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.1/install.sh | bash
+nvm install 7.6.0
+nvm alias default 7.6.0
 ```
 
 ### 6. Setup rbenv, Ruby and Rails
-See <https://gorails.com/setup/osx/10.11-el-capitan>
+See <https://gorails.com/setup/osx/10.12-sierra>
 
 - [ ] Install [rbenv](https://github.com/rbenv/rbenv) via Homebrew
 - [ ] Download a version of Ruby via rbenv
@@ -56,31 +56,26 @@ See <https://gorails.com/setup/osx/10.11-el-capitan>
 
 ```
 brew install rbenv ruby-build
-rbenv install 2.3.1
-rbenv global 2.3.1
+rbenv install 2.4.0
+rbenv global 2.4.0
 ruby -v
 ```
 
 ### 7. Additional dependencies
 
 - [ ] Override Git from macOS
-- [ ] Install MySQL
-- [ ] Install PostgreSQL
 - [ ] Install bash-completion
-- [ ] Install [Gulp](http://gulpjs.com)
 - [ ] Install [Sass](http://sass-lang.com)
 
 ```
 brew install git
-brew install mysql
-brew install postgresql
 brew install bash-completion
-npm install -g gulp
 gem install sass
 ```
 
 ### 8. Setup Atom
 
+- Install Atom: [Atom](https://atom.io)
 - Set theme: [One Dark](https://github.com/atom/one-dark-ui)
 - Install favorite packages
   - [file-icons](https://atom.io/packages/file-icons)
@@ -92,24 +87,39 @@ gem install sass
 
 ### 9. Install apps
 
+- [1Password](https://1password.com/downloads)
+- [Alfred](https://www.alfredapp.com)
+- [Arq](https://www.arqbackup.com)
+- [Blackmagic Disk Speed Test](https://itunes.apple.com/us/app/blackmagic-disk-speed-test/id425264550)
+- [Boom](http://www.globaldelight.com/boom)
+- [Caffeine](http://lightheadsw.com/caffeine)
+- [CleanMyMac](http://cleanmymac.com)
+- [coconutBattery](http://www.coconut-flavour.com/coconutbattery)
+- [DaisyDisk](https://daisydiskapp.com)
+- [Dropbox](https://www.dropbox.com)
+- [GIPHY CAPTURE](https://giphy.com/apps/giphycapture)
 - [Google Chrome](https://www.google.com/chrome/browser/desktop)
+- [iBoostUp](https://itunes.apple.com/us/app/iboostup/id484829041)
+- [iStat Menus](https://bjango.com/mac/istatmenus)
+- [Little Snitch](https://www.obdev.at/products/littlesnitch)
+- [Malwarebytes Anti-Malware](https://www.malwarebytes.com)
+- [Moom](https://manytricks.com/moom)
+- [OverSight](https://objective-see.com/products/oversight.html)
+- [Popcorn Time](https://popcorntime.sh)
+- [Postgres.app](https://postgresapp.com)
+- [Postman](https://www.getpostman.com)
+- [Sequel Pro](https://www.sequelpro.com)
 - [Slack](https://slack.com/downloads)
 - [Spotify](https://www.spotify.com/download/mac)
-- [1Password](https://1password.com)
-- [Dropbox](https://www.dropbox.com)
-- [Little Snitch](https://www.obdev.at/products/littlesnitch)
-- [iStat Menus](https://bjango.com/mac/istatmenus)
-- [Tweetbot](http://tapbots.com/tweetbot/mac)
-- [Alfred](https://www.alfredapp.com)
-- [Boom](http://www.globaldelight.com/boom)
-- [Moom](https://manytricks.com/moom)
-- [CleanMyMac](http://cleanmymac.com)
-- [DaisyDisk](https://daisydiskapp.com)
-- [Arq](https://www.arqbackup.com)
-- [OverSight](https://objective-see.com/products/oversight.html)
-- [WhatsApp](https://www.whatsapp.com/download)
 - [Telegram](https://macos.telegram.org)
+- [Tweetbot](http://tapbots.com/tweetbot/mac)
+- [VLC](http://www.videolan.org/vlc)
 - VPN App
+- [WhatsApp](https://www.whatsapp.com/download)
+
+
+## 10. Fira Code
+Install (Fira Code)[https://github.com/tonsky/FiraCode] font and set to use it on Atom.
 
 ## Use it yourself
 
