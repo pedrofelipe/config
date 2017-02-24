@@ -119,7 +119,7 @@ gem install sass
 
 
 ## 10. Fira Code
-Install (Fira Code)[https://github.com/tonsky/FiraCode] font and set to use it on Atom.
+Install [Fira Code](https://github.com/tonsky/FiraCode) font and set to use it on Atom.
 
 ## Use it yourself
 
