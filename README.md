@@ -41,9 +41,9 @@
 - [ ] Make it global version of Node.js
 
 ```
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.1/install.sh | bash
-nvm install 7.6.0
-nvm alias default 7.6.0
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
+nvm install 8.1.3
+nvm alias default 8.1.3
 ```
 
 ### 6. Setup rbenv, Ruby and Rails
@@ -56,8 +56,8 @@ See <https://gorails.com/setup/osx/10.12-sierra>
 
 ```
 brew install rbenv ruby-build
-rbenv install 2.4.0
-rbenv global 2.4.0
+rbenv install 2.4.1
+rbenv global 2.4.1
 ruby -v
 ```
 
@@ -84,6 +84,7 @@ gem install sass
   - [pigments](https://atom.io/packages/pigments)
   - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
   - [editorconfig](https://atom.io/packages/editorconfig)
+  - [tablr](https://atom.io/packages/tablr)
 
 ### 9. Install apps
 
