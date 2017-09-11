@@ -41,9 +41,9 @@
 - [ ] Make it global version of Node.js
 
 ```
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.2/install.sh | bash
-nvm install 8.1.3
-nvm alias default 8.1.3
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.4/install.sh | bash
+nvm install 8.4.0
+nvm alias default 8.4.0
 ```
 
 ### 6. Setup rbenv, Ruby and Rails
@@ -73,7 +73,25 @@ brew install bash-completion
 gem install sass
 ```
 
-### 8. Setup Atom
+### 8. Setup Hyper
+
+- Install Hyper: [Hyper](https://hyper.is/)
+- Set theme and plugins:
+```javascript
+plugins: [
+  'hyperline',
+  'hypercwd',
+  'hyperterm-alternatescroll',
+  'hyper-sierra-vibrancy',
+  'hyperterm-paste',
+  'hyperlinks',
+  'hyper-search',
+  'hyper-confirm',
+  'hyper-john',
+],
+```
+
+### 9. Setup Atom
 
 - Install Atom: [Atom](https://atom.io)
 - Set theme: [One Dark](https://github.com/atom/one-dark-ui)
@@ -86,20 +104,20 @@ gem install sass
   - [editorconfig](https://atom.io/packages/editorconfig)
   - [tablr](https://atom.io/packages/tablr)
 
-### 9. Install apps
+### 10. Install apps
 
 - [1Password](https://1password.com/downloads)
 - [Alfred](https://www.alfredapp.com)
 - [Arq](https://www.arqbackup.com)
 - [Blackmagic Disk Speed Test](https://itunes.apple.com/us/app/blackmagic-disk-speed-test/id425264550)
-- [Boom](http://www.globaldelight.com/boom)
+- [Boom 3D](http://www.globaldelight.com/boom)
 - [Caffeine](http://lightheadsw.com/caffeine)
 - [CleanMyMac](http://cleanmymac.com)
 - [coconutBattery](http://www.coconut-flavour.com/coconutbattery)
 - [DaisyDisk](https://daisydiskapp.com)
 - [Dropbox](https://www.dropbox.com)
-- [GIPHY CAPTURE](https://giphy.com/apps/giphycapture)
 - [Google Chrome](https://www.google.com/chrome/browser/desktop)
+- [Firefox](https://www.mozilla.org/pt-BR/firefox)
 - [iBoostUp](https://itunes.apple.com/us/app/iboostup/id484829041)
 - [iStat Menus](https://bjango.com/mac/istatmenus)
 - [Little Snitch](https://www.obdev.at/products/littlesnitch)
@@ -110,16 +128,18 @@ gem install sass
 - [Postgres.app](https://postgresapp.com)
 - [Postman](https://www.getpostman.com)
 - [Sequel Pro](https://www.sequelpro.com)
-- [Slack](https://slack.com/downloads)
-- [Spotify](https://www.spotify.com/download/mac)
+- [Slack](https://slack.com)
+- [Spotify](https://www.spotify.com)
 - [Telegram](https://macos.telegram.org)
-- [Tweetbot](http://tapbots.com/tweetbot/mac)
+- [Transmit](https://panic.com/transmit)
 - [VLC](http://www.videolan.org/vlc)
+- [The Unarchiver](https://theunarchiver.com)
+- [Steam](http://store.steampowered.com/about)
 - VPN App
 - [WhatsApp](https://www.whatsapp.com/download)
+- [qBittorrent](https://www.qbittorrent.org)
 
-
-## 10. Fira Code
+## 11. Fira Code
 Install [Fira Code](https://github.com/tonsky/FiraCode) font and set to use it on Atom.
 
 ## Use it yourself
