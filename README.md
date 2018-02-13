@@ -1,6 +1,6 @@
 # Config
 
-**Config** is a basic checklist I follow to set up a new Mac's development environment.
+**Config** is a basic checklist I follow to set up a new Mac development environment.
 
 ## Contents
 
@@ -41,13 +41,13 @@
 - [ ] Make it global version of Node.js
 
 ```
-curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.4/install.sh | bash
-nvm install 8.4.0
-nvm alias default 8.4.0
+curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.33.8/install.sh | bash
+nvm install 8.9.4
+nvm alias default 8.9.4
 ```
 
 ### 6. Setup rbenv, Ruby and Rails
-See <https://gorails.com/setup/osx/10.12-sierra>
+See <https://gorails.com/setup/osx/10.13-high-sierra>
 
 - [ ] Install [rbenv](https://github.com/rbenv/rbenv) via Homebrew
 - [ ] Download a version of Ruby via rbenv
@@ -56,8 +56,8 @@ See <https://gorails.com/setup/osx/10.12-sierra>
 
 ```
 brew install rbenv ruby-build
-rbenv install 2.4.1
-rbenv global 2.4.1
+rbenv install 2.5.0
+rbenv global 2.5.0
 ruby -v
 ```
 
@@ -75,7 +75,7 @@ gem install sass
 
 ### 8. Setup Hyper
 
-- Install Hyper: [Hyper](https://hyper.is/)
+- Install Hyper: [Hyper](https://hyper.is)
 - Set theme and plugins:
 ```javascript
 plugins: [
@@ -87,29 +87,35 @@ plugins: [
   'hyperlinks',
   'hyper-search',
   'hyper-confirm',
-  'hyper-john',
 ],
 ```
 
 ### 9. Setup Atom
 
 - Install Atom: [Atom](https://atom.io)
-- Set theme: [One Dark](https://github.com/atom/one-dark-ui)
+- Set UI Theme: [City Lights](http://citylights.xyz)
+- Set Syntax Theme: One Dark
 - Install favorite packages
+  - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
+  - [city-lights-icons](https://atom.io/packages/city-lights-icons)
+  - [editorconfig](https://atom.io/packages/editorconfig)
   - [file-icons](https://atom.io/packages/file-icons)
   - [highlight-selected](https://atom.io/packages/highlight-selected)
+  - [language-javascript-jsx](https://atom.io/packages/language-javascript-jsx)
+  - [linter-ui-default](https://atom.io/packages/linter-ui-default)
+  - [linter](https://atom.io/packages/linter)
   - [merge-conflicts](https://atom.io/packages/merge-conflicts)
   - [pigments](https://atom.io/packages/pigments)
-  - [atom-wrap-in-tag](https://atom.io/packages/atom-wrap-in-tag)
-  - [editorconfig](https://atom.io/packages/editorconfig)
+  - [prettier-atom](https://atom.io/packages/prettier-atom)
+  - [px-rem-tooltip](https://atom.io/packages/px-rem-tooltip)
   - [tablr](https://atom.io/packages/tablr)
+  - [tree-view-copy-relative-path](https://atom.io/packages/tree-view-copy-relative-path)
 
 ### 10. Install apps
 
 - [1Password](https://1password.com/downloads)
 - [Alfred](https://www.alfredapp.com)
 - [Arq](https://www.arqbackup.com)
-- [Blackmagic Disk Speed Test](https://itunes.apple.com/us/app/blackmagic-disk-speed-test/id425264550)
 - [Boom 3D](http://www.globaldelight.com/boom)
 - [Caffeine](http://lightheadsw.com/caffeine)
 - [CleanMyMac](http://cleanmymac.com)
@@ -125,14 +131,12 @@ plugins: [
 - [Moom](https://manytricks.com/moom)
 - [OverSight](https://objective-see.com/products/oversight.html)
 - [Popcorn Time](https://popcorntime.sh)
-- [Postgres.app](https://postgresapp.com)
 - [Postman](https://www.getpostman.com)
 - [Sequel Pro](https://www.sequelpro.com)
 - [Slack](https://slack.com)
 - [Spotify](https://www.spotify.com)
 - [Telegram](https://macos.telegram.org)
 - [Transmit](https://panic.com/transmit)
-- [VLC](http://www.videolan.org/vlc)
 - [The Unarchiver](https://theunarchiver.com)
 - [Steam](http://store.steampowered.com/about)
 - VPN App
@@ -145,9 +149,3 @@ Install [Fira Code](https://github.com/tonsky/FiraCode) font and set to use it o
 ## Use it yourself
 
 Fork this repo, or just copy-paste things you need, and make it your own. **Please be sure to change your `.gitconfig` name and email address though!**
-
-## Works on my machine
-
-Yup, it does. Hopefully it does on yours as well, but please don't hate me if it doesn't.
-
-<3
