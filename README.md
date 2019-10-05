@@ -108,7 +108,6 @@ plugins: [
 - [Dropbox](https://dropbox.com)
 - [Firefox](https://mozilla.org/firefox)
 - [Google Chrome](https://google.com/chrome/browser/desktop)
-- [iBoostUp](https://itunes.apple.com/us/app/iboostup/id484829041)
 - [iStat Menus](https://bjango.com/mac/istatmenus)
 - [Little Snitch](https://obdev.at/products/littlesnitch)
 - [Malwarebytes Anti-Malware](https://malwarebytes.com)
