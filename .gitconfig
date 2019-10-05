@@ -1,6 +1,6 @@
 [user]
-  name = Pedro Felipe
-  email = pedro@pedrofelipe.com.br
+	name = Pedro Menezes
+	email = pedro@pedrofelipe.com.br
 
 [alias]
   co = checkout
@@ -26,3 +26,10 @@
     untracked = cyan
   [core]
     whitespace=fix,-indent-with-non-tab,trailing-space,cr-at-eol
+[push]
+	default = current
+[filter "lfs"]
+	process = git-lfs filter-process
+	required = true
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
