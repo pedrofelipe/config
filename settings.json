@@ -1,0 +1,36 @@
+{
+    "debug.internalConsoleOptions": "neverOpen",
+    "editor.codeActionsOnSave": {
+        "source.fixAll.eslint": true,
+        "source.fixAll.stylelint": true
+    },
+    "editor.fontFamily": "Fira Code",
+    "editor.fontSize": 15,
+    "editor.formatOnPaste": true,
+    "editor.multiCursorModifier": "ctrlCmd",
+    "editor.suggestSelection": "first",
+    "editor.tabSize": 2,
+    "eslint.alwaysShowStatus": true,
+    "git.confirmSync": false,
+    "sortLines.filterBlankLines": true,
+    "telemetry.enableCrashReporter": false,
+    "telemetry.enableTelemetry": false,
+    "vsintellicode.modify.editor.suggestSelection": "automaticallyOverrodeDefaultValue",
+    "workbench.colorTheme": "Atom One Dark",
+    "workbench.iconTheme": "city-lights-icons-vsc",
+    "workbench.startupEditor": "newUntitledFile",
+    "workbench.tree.indent": 10,
+    "explorer.compactFolders": false,
+    "editor.minimap.enabled": false,
+    "window.zoomLevel": 0,
+    "javascript.updateImportsOnFileMove.enabled": "always",
+    "editor.parameterHints.enabled": false,
+    "editor.suggest.snippetsPreventQuickSuggestions": false,
+    "extensions.ignoreRecommendations": true,
+    "files.associations": {
+        "*.ejs": "html"
+    },
+    "[html]": {
+        "editor.defaultFormatter": "Glavin001.unibeautify-vscode"
+    },
+}

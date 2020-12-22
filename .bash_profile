@@ -1,8 +1,17 @@
+# Source functions
+# if [ -f ~/.functions ]; then
+#   source ~/.functions
+# fi
+
 # Get the Git branch
-parse_git_branch() {
+function parse_git_branch() {
   git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
 }
 
+# Fix missing Hyper cursor
+function fix-cursor() {
+  tput cnorm
+}
 
 # Quicker navigation
 alias ..="cd .."
@@ -65,12 +74,13 @@ export PS2="\[$ORANGE\]→ \[$RESET\]"
 export PROMPT_COMMAND='echo -ne "\033]0;${PWD##*/}\007"'
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh" # This loads nvm
-
-export PATH="$HOME/.rbenv/bin:$PATH" # This loads rbenv
-eval "$(rbenv init -)"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 
 # bash-completion
 if [ -f $(brew --prefix)/etc/bash_completion ]; then
     . $(brew --prefix)/etc/bash_completion
 fi
+
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+export NPM_TOKEN='TOKEN_HERE'

@@ -1,6 +1,6 @@
 [user]
 	name = Pedro Menezes
-	email = pedro@pedrofelipe.com.br
+	email = email_here
 
 [alias]
   co = checkout
@@ -33,3 +33,5 @@
 	required = true
 	clean = git-lfs clean -- %f
 	smudge = git-lfs smudge -- %f
+[pull]
+	rebase = false
