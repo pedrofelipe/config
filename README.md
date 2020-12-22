@@ -119,6 +119,7 @@ Install [Fira Code](https://github.com/tonsky/FiraCode) font.
 - [Steam](http://store.steampowered.com/about)
 - [Stremio](https://stremio.com)
 - [WhatsApp](https://whatsapp.com/download)
+- [Zeplin](https://zpl.io/download-mac)
 - VPN App
 
 ## Use it yourself
