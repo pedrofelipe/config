@@ -6,10 +6,11 @@
 
 | File | Description |
 | --- | --- |
-| `.bash-profile` | Customizes the Terminal.app prompt and echoes the currently checked out Git branch. |
+| `.bash_profile` | Customizes the Terminal.app prompt and echoes the currently checked out Git branch. |
 | `.gitconfig` | Global Git configuration to specify my name and email, shortcuts, colors, and more. |
 | `.inputrc` | Makes tab autocompletion case insensitive. |
-| `.hyper.js` | Customizes Hyper.app terminal |
+| `.hyper.js` | Custom settings for Hyper.app terminal |
+| `settings.js` | Custom settings for Visual Studio Code |
 
 ## Checklist
 
