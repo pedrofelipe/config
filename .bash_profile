@@ -1,8 +1,3 @@
-# Source functions
-# if [ -f ~/.functions ]; then
-#   source ~/.functions
-# fi
-
 # Get the Git branch
 function parse_git_branch() {
   git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
@@ -82,5 +77,11 @@ if [ -f $(brew --prefix)/etc/bash_completion ]; then
 fi
 
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+# Hides the followign macOS message from Terminal
+# The default interactive shell is now zsh.
+# To update your account to use zsh, please run `chsh -s /bin/zsh`.
+# For more details, please visit https://support.apple.com/kb/HT208050.
+export BASH_SILENCE_DEPRECATION_WARNING=1
 
 export NPM_TOKEN='TOKEN_HERE'

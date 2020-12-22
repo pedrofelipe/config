@@ -34,25 +34,31 @@
 /bin/bash -c "\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
-### 5. Setup nvm, Node.js and npm
+### 5. Setup nvm, Node.js, npm and Yarn
 - [ ] Install [nvm](https://github.com/creationix/nvm)
 - [ ] Install latest [Node.js](https://nodejs.org/en) LTS via nvm
 - [ ] Make it global version of Node.js
 - [ ] Upgrade npm
+- [ ] Install Yarn
 
 ```
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 nvm install 14.15.3
 nvm alias default 14.15.3
 nvm install-latest-npm
+brew install yarn
 ```
 
 ### 6. Additional dependencies
 
+- [ ] Make bash default on macOS
+- [ ] Update bash
 - [ ] Override Git from macOS
 - [ ] Install bash-completion
 
 ```
+chsh -s /bin/bash
+brew install bash
 brew install git
 brew install bash-completion
 ```
@@ -85,6 +91,7 @@ Install [Fira Code](https://github.com/tonsky/FiraCode) font.
   - [stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
   - [vscode-pigments](https://marketplace.visualstudio.com/items?itemName=jaspernorth.vscode-pigments)
 - Load [`settings.json`](/settings.json) config file
+- Follow instructions to [enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 
 ### 10. Install apps
 
