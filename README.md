@@ -15,7 +15,7 @@
 ### 1. Switch zsh for bash
 - [ ] Set bash the default shell on macOS
 
-```
+```bash
 chsh -s /bin/bash
 ```
 
@@ -37,7 +37,7 @@ killall Finder
 - [ ] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
 - [ ] Fix keys permissions
 
-```
+```bash
 chmod 600 ~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa.pub
 ```
@@ -49,7 +49,7 @@ chmod 600 ~/.ssh/id_rsa.pub
 - [ ] Install bash-completion
 - [ ] Install Yarn
 
-```
+```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install bash
 brew install git
@@ -63,7 +63,7 @@ brew install yarn
 - [ ] Set as global version of Node.js
 - [ ] Upgrade npm to latest version
 
-```
+```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
 nvm install 14.15.3
 nvm alias default 14.15.3
@@ -74,7 +74,7 @@ nvm install-latest-npm
 - [ ] Install [Hyper](https://hyper.is)
 - [ ] Load [`.hyper.js`](/.hyper.js) config file on user folder
 
-```
+```bash
 brew install --cask hyper
 ```
 
