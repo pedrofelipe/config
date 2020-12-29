@@ -129,5 +129,15 @@ brew install --cask hyper
 - [ ] [Zeplin](https://zpl.io/download-mac)
 - [ ] VPN App
 
+### 11. Set Dock preferences
+- [ ] Set Dock size as 40
+- [ ] Lock Dock from being resized
+
+```
+defaults write com.apple.dock tilesize -integer 40
+defaults write com.apple.dock size-immutable -bool true
+killall Dock
+```
+
 ## Use it yourself
 Fork this repo, or just copy-paste things you need, and make it your own. **Please be sure to change your `.gitconfig` name and email address though!**
