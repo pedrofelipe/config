@@ -33,9 +33,9 @@ killall Finder
 - Load [`.inputrc`](/.inputrc)
 
 ### 4. Copy or create SSH keys
-- [] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
-- [] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
-- [] Fix keys permissions
+- [ ] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
+- [ ] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
+- [ ] Fix keys permissions
 
 ```
 chmod 600 ~/.ssh/id_rsa
@@ -71,36 +71,36 @@ nvm install-latest-npm
 ```
 
 ### 8. Setup Hyper terminal
-- Install [Hyper](https://hyper.is)
-- Load [`.hyper.js`](/.hyper.js) config file on user folder
+- [ ] Install [Hyper](https://hyper.is)
+- [ ] Load [`.hyper.js`](/.hyper.js) config file on user folder
 
 ```
 brew install --cask hyper
 ```
 
-## 9. Install Fira Code font
-Install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font
+### 9. Install Fira Code font
+- Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
 
 ### 10. Setup code editor
-- Install [Visual Studio Code](https://code.visualstudio.com)
-- [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
+- [ ] Install [Visual Studio Code](https://code.visualstudio.com)
+- [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 - Install extensions
-  - [Atom Keymap](https://marketplace.visualstudio.com/items?itemName=ms-vscode.atom-keybindings)
-  - [Atom One Dark Theme](https://marketplace.visualstudio.com/items?itemName=akamud.vscode-theme-onedark)
-  - [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
-  - [Bracket Pair Colorizer](https://marketplace.visualstudio.com/items?itemName=CoenraadS.bracket-pair-colorizer)
-  - [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
-  - [City Lights theme](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-theme)
-  - [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
-  - [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-  - [Import Cost](https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost)
-  - [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
-  - [Path Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.path-intellisense)
-  - [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-  - [Sort lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
-  - [stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
-  - [vscode-pigments](https://marketplace.visualstudio.com/items?itemName=jaspernorth.vscode-pigments)
-- Load [`settings.json`](/settings.json) config file on user folder
+  - [ ] [Atom Keymap](https://marketplace.visualstudio.com/items?itemName=ms-vscode.atom-keybindings)
+  - [ ] [Atom One Dark Theme](https://marketplace.visualstudio.com/items?itemName=akamud.vscode-theme-onedark)
+  - [ ] [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
+  - [ ] [Bracket Pair Colorizer](https://marketplace.visualstudio.com/items?itemName=CoenraadS.bracket-pair-colorizer)
+  - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
+  - [ ] [City Lights theme](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-theme)
+  - [ ] [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
+  - [ ] [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
+  - [ ] [Import Cost](https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost)
+  - [ ] [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
+  - [ ] [Path Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.path-intellisense)
+  - [ ] [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+  - [ ] [Sort lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
+  - [ ] [stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
+  - [ ] [vscode-pigments](https://marketplace.visualstudio.com/items?itemName=jaspernorth.vscode-pigments)
+- [ ] Load [`settings.json`](/settings.json) config file on user folder
 
 ### 10. Install apps
 - [1Blocker](https://apps.apple.com/us/app/1blocker-for-safari/id1107421413)
