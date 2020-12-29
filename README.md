@@ -100,7 +100,7 @@ brew install --cask hyper
   - [ ] [Sort lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
   - [ ] [stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
   - [ ] [vscode-pigments](https://marketplace.visualstudio.com/items?itemName=jaspernorth.vscode-pigments)
-- [ ] Load [`settings.json`](/settings.json) config file on user folder
+- [ ] Load [`settings.json`](/settings.json) config file
 
 ### 10. Install apps
 - [ ] [1Blocker](https://apps.apple.com/us/app/1blocker-for-safari/id1107421413)
