@@ -22,7 +22,7 @@ chsh -s /bin/bash
 ### 2. Hidden files
 - [ ] Make hidden files visible on Finder
 
-```
+```bash
 defaults write com.apple.finder AppleShowAllFiles true
 killall Finder
 ```
