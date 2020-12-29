@@ -13,14 +13,14 @@
 ## Checklist
 
 ### 1. Switch zsh for bash
-- Set bash the default shell on macOS
+- [ ] Set bash the default shell on macOS
 
 ```
 chsh -s /bin/bash
 ```
 
 ### 2. Hidden files
-- Make hidden files visible on Finder
+- [ ] Make hidden files visible on Finder
 
 ```
 defaults write com.apple.finder AppleShowAllFiles true
@@ -28,9 +28,9 @@ killall Finder
 ```
 
 ### 3. Prepare Terminal
-- Load [`.bash_profile`](/.bash_profile)
-- Load [`.gitconfig`](/.gitconfig)
-- Load [`.inputrc`](/.inputrc)
+- [ ] Load [`.bash_profile`](/.bash_profile)
+- [ ] Load [`.gitconfig`](/.gitconfig)
+- [ ] Load [`.inputrc`](/.inputrc)
 
 ### 4. Copy or create SSH keys
 - [ ] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
@@ -79,12 +79,12 @@ brew install --cask hyper
 ```
 
 ### 9. Install Fira Code font
-- Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
+- [ ] Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
 
 ### 10. Setup code editor
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
-- Install extensions
+- [ ] Install extensions
   - [ ] [Atom Keymap](https://marketplace.visualstudio.com/items?itemName=ms-vscode.atom-keybindings)
   - [ ] [Atom One Dark Theme](https://marketplace.visualstudio.com/items?itemName=akamud.vscode-theme-onedark)
   - [ ] [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
@@ -103,31 +103,31 @@ brew install --cask hyper
 - [ ] Load [`settings.json`](/settings.json) config file on user folder
 
 ### 10. Install apps
-- [1Blocker](https://apps.apple.com/us/app/1blocker-for-safari/id1107421413)
-- [1Password](https://1password.com/downloads)
-- [AirBuddy](https://v2.airbuddy.app)
-- [Amphetamine](https://apps.apple.com/us/app/amphetamine/id937984704)
-- [Boom 3D](http://globaldelight.com/boom)
-- [CleanMyMac](http://cleanmymac.com)
-- [coconutBattery](http://coconut-flavour.com/coconutbattery)
-- [DaisyDisk](https://daisydiskapp.com)
-- [Discord](https://discord.com)
-- [Dropbox](https://dropbox.com)
-- [Firefox](https://mozilla.org/firefox)
-- [Google Chrome](https://google.com/chrome/browser/desktop)
-- [iStat Menus](https://bjango.com/mac/istatmenus)
-- [Little Snitch](https://obdev.at/products/littlesnitch)
-- [Malwarebytes Anti-Malware](https://malwarebytes.com)
-- [Micro Snitch](https://www.obdev.at/products/microsnitch)
-- [Moom](https://manytricks.com/moom)
-- [Sketch](https://sketch.com)
-- [Slack](https://slack.com)
-- [Spotify](https://spotify.com)
-- [Steam](http://store.steampowered.com/about)
-- [Stremio](https://stremio.com)
-- [WhatsApp](https://whatsapp.com/download)
-- [Zeplin](https://zpl.io/download-mac)
-- VPN App
+- [ ] [1Blocker](https://apps.apple.com/us/app/1blocker-for-safari/id1107421413)
+- [ ] [1Password](https://1password.com/downloads)
+- [ ] [AirBuddy](https://v2.airbuddy.app)
+- [ ] [Amphetamine](https://apps.apple.com/us/app/amphetamine/id937984704)
+- [ ] [Boom 3D](http://globaldelight.com/boom)
+- [ ] [CleanMyMac](http://cleanmymac.com)
+- [ ] [coconutBattery](http://coconut-flavour.com/coconutbattery)
+- [ ] [DaisyDisk](https://daisydiskapp.com)
+- [ ] [Discord](https://discord.com)
+- [ ] [Dropbox](https://dropbox.com)
+- [ ] [Firefox](https://mozilla.org/firefox)
+- [ ] [Google Chrome](https://google.com/chrome/browser/desktop)
+- [ ] [iStat Menus](https://bjango.com/mac/istatmenus)
+- [ ] [Little Snitch](https://obdev.at/products/littlesnitch)
+- [ ] [Malwarebytes Anti-Malware](https://malwarebytes.com)
+- [ ] [Micro Snitch](https://www.obdev.at/products/microsnitch)
+- [ ] [Moom](https://manytricks.com/moom)
+- [ ] [Sketch](https://sketch.com)
+- [ ] [Slack](https://slack.com)
+- [ ] [Spotify](https://spotify.com)
+- [ ] [Steam](http://store.steampowered.com/about)
+- [ ] [Stremio](https://stremio.com)
+- [ ] [WhatsApp](https://whatsapp.com/download)
+- [ ] [Zeplin](https://zpl.io/download-mac)
+- [ ] VPN App
 
 ## Use it yourself
 Fork this repo, or just copy-paste things you need, and make it your own. **Please be sure to change your `.gitconfig` name and email address though!**
