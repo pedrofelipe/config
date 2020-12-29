@@ -70,7 +70,7 @@ nvm alias default 14.15.3
 nvm install-latest-npm
 ```
 
-### 8. Setup Hyper terminal
+### 7. Setup Hyper terminal
 - [ ] Install [Hyper](https://hyper.is)
 - [ ] Load [`.hyper.js`](/.hyper.js) config file on user folder
 
@@ -78,10 +78,10 @@ nvm install-latest-npm
 brew install --cask hyper
 ```
 
-### 9. Install Fira Code font
+### 8. Install Fira Code font
 - [ ] Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
 
-### 10. Setup code editor
+### 9. Setup code editor
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 - [ ] Install extensions
