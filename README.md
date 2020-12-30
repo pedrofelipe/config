@@ -59,7 +59,7 @@ brew install yarn
 
 ### 6. Setup Node.js and npm
 - [ ] Install [nvm](https://github.com/creationix/nvm)
-- [ ] Install latest [Node.js](https://nodejs.org/en) LTS via nvm
+- [ ] Install latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as global version of Node.js
 - [ ] Upgrade npm to latest version
 
@@ -130,7 +130,7 @@ brew install --cask hyper
 - [ ] VPN App
 
 ### 11. Adjust Dock preferences
-- [ ] Set Dock size as 40
+- [ ] Set Dock icon size
 - [ ] Lock Dock from being resized
 
 ```
