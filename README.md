@@ -19,7 +19,7 @@
 chsh -s /bin/bash
 ```
 
-### 2. Hidden files
+### 2. Enable hidden files
 - [ ] Make hidden files visible on Finder
 
 ```bash
@@ -27,7 +27,7 @@ defaults write com.apple.finder AppleShowAllFiles true
 killall Finder
 ```
 
-### 3. Prepare Terminal
+### 3. Load config files
 - [ ] Load [`.bash_profile`](/.bash_profile)
 - [ ] Load [`.gitconfig`](/.gitconfig)
 - [ ] Load [`.inputrc`](/.inputrc)
@@ -129,7 +129,7 @@ brew install --cask hyper
 - [ ] [Zeplin](https://zpl.io/download-mac)
 - [ ] VPN App
 
-### 11. Set Dock preferences
+### 11. Adjust Dock preferences
 - [ ] Set Dock size as 40
 - [ ] Lock Dock from being resized
 
