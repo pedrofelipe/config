@@ -64,9 +64,9 @@ brew install yarn
 - [ ] Upgrade npm to latest version
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.37.2/install.sh | bash
-nvm install 14.15.3
-nvm alias default 14.15.3
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
+nvm install 16.18.0
+nvm alias default 16.18.0
 nvm install-latest-npm
 ```
 
@@ -88,11 +88,11 @@ brew install --cask hyper
   - [ ] [Atom Keymap](https://marketplace.visualstudio.com/items?itemName=ms-vscode.atom-keybindings)
   - [ ] [Atom One Dark Theme](https://marketplace.visualstudio.com/items?itemName=akamud.vscode-theme-onedark)
   - [ ] [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
-  - [ ] [Bracket Pair Colorizer](https://marketplace.visualstudio.com/items?itemName=CoenraadS.bracket-pair-colorizer)
   - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
-  - [ ] [City Lights theme](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-theme)
+  - [ ] [colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
   - [ ] [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
   - [ ] [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
+  - [ ] [GitHub Theme](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme)
   - [ ] [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens)
   - [ ] [Import Cost](https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost)
   - [ ] [Path Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.path-intellisense)
@@ -100,13 +100,11 @@ brew install --cask hyper
   - [ ] [Sort lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
   - [ ] [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
   - [ ] [stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
-  - [ ] [vscode-pigments](https://marketplace.visualstudio.com/items?itemName=jaspernorth.vscode-pigments)
 - [ ] Load [`settings.json`](/settings.json) config file
 
 ### 10. Install apps
 - [ ] [1Blocker](https://apps.apple.com/us/app/1blocker-for-safari/id1107421413)
 - [ ] [1Password](https://1password.com/downloads)
-- [ ] [AirBuddy](https://v2.airbuddy.app)
 - [ ] [Amphetamine](https://apps.apple.com/us/app/amphetamine/id937984704)
 - [ ] [Boom 3D](http://globaldelight.com/boom)
 - [ ] [CleanMyMac](http://cleanmymac.com)
@@ -119,15 +117,12 @@ brew install --cask hyper
 - [ ] [iStat Menus](https://bjango.com/mac/istatmenus)
 - [ ] [Little Snitch](https://obdev.at/products/littlesnitch)
 - [ ] [Malwarebytes Anti-Malware](https://malwarebytes.com)
-- [ ] [Micro Snitch](https://www.obdev.at/products/microsnitch)
 - [ ] [Moom](https://manytricks.com/moom)
-- [ ] [Sketch](https://www.sketch.com/updates/#version-64)
 - [ ] [Slack](https://slack.com/intl/en-pt/downloads/mac)
 - [ ] [Spotify](https://www.spotify.com/us/download/mac)
 - [ ] [Steam](http://store.steampowered.com/about)
 - [ ] [Stremio](https://stremio.com)
 - [ ] [WhatsApp](https://whatsapp.com/download)
-- [ ] [Zeplin](https://zpl.io/download-mac)
 - [ ] VPN App
 
 ### 11. Adjust Dock preferences
