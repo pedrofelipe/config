@@ -27,24 +27,24 @@
 	"workbench.iconTheme": "city-lights-icons-vsc",
 	"workbench.startupEditor": "newUntitledFile",
 	"workbench.tree.indent": 10,
-  "css.validate": false,
-  "editor.insertSpaces": true,
-  "editor.tabSize": 2,
-  "less.validate": false,
-  "scss.validate": false,
-  "stylelint.configFile": "./.stylelintrc.js",
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "github.copilot.enable": {
-    "*": true,
-    "yaml": false,
-    "plaintext": true,
-    "markdown": false
-  },
-  "explorer.confirmDelete": false,
-  "editor.stickyScroll.enabled": true
+	"css.validate": false,
+	"editor.insertSpaces": true,
+	"editor.tabSize": 2,
+	"less.validate": false,
+	"scss.validate": false,
+	"stylelint.configFile": "./.stylelintrc.js",
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"[javascript]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"github.copilot.enable": {
+		"*": true,
+		"yaml": false,
+		"plaintext": true,
+		"markdown": false
+	},
+	"explorer.confirmDelete": false,
+	"editor.stickyScroll.enabled": true
 }
