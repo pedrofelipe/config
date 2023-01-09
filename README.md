@@ -81,6 +81,11 @@ brew install --cask hyper
 ### 8. Install Fira Code font
 - [ ] Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
 
+```bash
+brew tap homebrew/cask-fonts
+brew install --cask font-fira-code
+```
+
 ### 9. Setup code editor
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
