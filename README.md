@@ -64,9 +64,9 @@ brew install yarn
 - [ ] Upgrade npm to latest version
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.2/install.sh | bash
-nvm install 16.18.0
-nvm alias default 16.18.0
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+nvm install 18.13.0
+nvm alias default 18.13.0
 nvm install-latest-npm
 ```
 
