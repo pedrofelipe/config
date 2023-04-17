@@ -1,50 +1,56 @@
 {
-	"colorize.languages": ["typescript", "javascript", "css", "scss"],
-	"debug.internalConsoleOptions": "neverOpen",
-	"editor.bracketPairColorization.enabled": true,
-	"editor.codeActionsOnSave": {
-		"source.fixAll.eslint": true,
-		"source.fixAll.stylelint": true
-	},
-	"editor.detectIndentation": false,
-	"editor.fontFamily": "'Fira Code'",
-	"editor.fontLigatures": true,
-	"editor.fontSize": 13,
-	"editor.formatOnPaste": true,
-	"editor.inlineSuggest.enabled": true,
-	"editor.minimap.enabled": false,
-	"editor.multiCursorModifier": "ctrlCmd",
-	"editor.parameterHints.enabled": false,
-	"editor.suggest.snippetsPreventQuickSuggestions": false,
-	"editor.suggestSelection": "first",
-	"eslint.alwaysShowStatus": true,
-	"explorer.compactFolders": false,
-	"extensions.ignoreRecommendations": true,
-	"git.confirmSync": false,
-	"javascript.updateImportsOnFileMove.enabled": "always",
-	"sortLines.filterBlankLines": true,
-	"workbench.colorTheme": "GitHub Dark",
-	"workbench.iconTheme": "city-lights-icons-vsc",
-	"workbench.startupEditor": "newUntitledFile",
-	"workbench.tree.indent": 10,
-  "css.validate": false,
-  "editor.insertSpaces": true,
-  "editor.tabSize": 2,
-  "less.validate": false,
-  "scss.validate": false,
-  "stylelint.configFile": "./.stylelintrc.js",
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
   "[javascript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[json]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[scss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "colorize.languages": ["typescript", "javascript", "css", "scss"],
+  "css.validate": false,
+  "debug.internalConsoleOptions": "neverOpen",
+  "editor.bracketPairColorization.enabled": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+    "source.fixAll.stylelint": true,
+    "source.fixAll.prettier": true
+  },
+  "editor.detectIndentation": false,
+  "editor.fontFamily": "'Fira Code'",
+  "editor.fontLigatures": true,
+  "editor.fontSize": 15,
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.inlineSuggest.enabled": true,
+  "editor.insertSpaces": true,
+  "editor.minimap.enabled": false,
+  "editor.multiCursorModifier": "ctrlCmd",
+  "editor.parameterHints.enabled": false,
+  "editor.stickyScroll.enabled": true,
+  "editor.suggest.snippetsPreventQuickSuggestions": false,
+  "editor.suggestSelection": "first",
+  "editor.tabSize": 2,
+  "eslint.format.enable": true,
+  "explorer.compactFolders": false,
+  "explorer.confirmDelete": false,
+  "explorer.confirmDragAndDrop": false,
+  "extensions.ignoreRecommendations": true,
+  "files.autoSave": "afterDelay",
+  "git.confirmSync": false,
   "github.copilot.enable": {
     "*": true,
-    "yaml": false,
-    "plaintext": true,
-    "markdown": false
   },
-  "explorer.confirmDelete": false,
-  "editor.stickyScroll.enabled": true
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "scss.validate": false,
+  "sortLines.filterBlankLines": true,
+  "typescript.updateImportsOnFileMove.enabled": "never",
+  "workbench.colorTheme": "GitHub Dark",
+  "workbench.iconTheme": "city-lights-icons-vsc",
+  "workbench.startupEditor": "newUntitledFile",
+  "workbench.tree.indent": 10
 }
