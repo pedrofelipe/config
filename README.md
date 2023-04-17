@@ -1,14 +1,15 @@
 # Config
-**Config** is a basic checklist I follow to set up a new Mac development environment.
+**Config** is a basic checklist I follow to set up macOS development environment.
 
 ## Contents
 | File | Description |
 | --- | --- |
-| `.bash_profile` | Customizes the Terminal.app prompt and echoes the currently checked out Git branch. |
-| `.gitconfig` | Global Git configuration to specify my name and email, shortcuts, colors, and more. |
-| `.inputrc` | Makes tab autocompletion case insensitive. |
-| `.hyper.js` | Custom settings for Hyper.app terminal |
+| `.bash_profile` | Customizes the Terminal.app prompt and echoes the currently checked out Git branch |
+| `.gitconfig` | Global Git configuration to specify my name and email, shortcuts, colors, and more |
+| `.inputrc` | Makes tab autocompletion case insensitive |
+| `.hyper.js` | Custom settings for Hyper terminal |
 | `settings.js` | Custom settings for Visual Studio Code |
+| `settings.js` | Custom set of key bindings for Visual Studio Code |
 
 ## Checklist
 
@@ -65,8 +66,8 @@ brew install yarn
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
-nvm install 18.13.0
-nvm alias default 18.13.0
+nvm install 18.16.0
+nvm alias default 18.16.0
 nvm install-latest-npm
 ```
 
@@ -90,47 +91,24 @@ brew install --cask font-fira-code
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 - [ ] Install extensions
-  - [ ] [Atom Keymap](https://marketplace.visualstudio.com/items?itemName=ms-vscode.atom-keybindings)
-  - [ ] [Atom One Dark Theme](https://marketplace.visualstudio.com/items?itemName=akamud.vscode-theme-onedark)
   - [ ] [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
   - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
-  - [ ] [colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
   - [ ] [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
   - [ ] [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
+  - [ ] [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)
   - [ ] [GitHub Theme](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme)
   - [ ] [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens)
   - [ ] [Import Cost](https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost)
   - [ ] [Path Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.path-intellisense)
   - [ ] [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
   - [ ] [Sort lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
+  - [ ] [colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
   - [ ] [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
-  - [ ] [stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
+  - [ ] [Stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
 - [ ] Load [`settings.json`](/settings.json) config file
+- [ ] Load [`keybindings.json`](/keybindings.json) file
 
-### 10. Install apps
-- [ ] [1Blocker](https://apps.apple.com/us/app/1blocker-for-safari/id1107421413)
-- [ ] [1Password](https://1password.com/downloads)
-- [ ] [Amphetamine](https://apps.apple.com/us/app/amphetamine/id937984704)
-- [ ] [Boom 3D](http://globaldelight.com/boom)
-- [ ] [CleanMyMac](http://cleanmymac.com)
-- [ ] [coconutBattery](http://coconut-flavour.com/coconutbattery)
-- [ ] [DaisyDisk](https://daisydiskapp.com)
-- [ ] [Discord](https://discord.com)
-- [ ] [Dropbox](https://www.dropbox.com/install)
-- [ ] [Firefox](https://www.mozilla.org/en-US/firefox/download/thanks)
-- [ ] [Google Chrome](https://google.com/chrome/browser/desktop)
-- [ ] [iStat Menus](https://bjango.com/mac/istatmenus)
-- [ ] [Little Snitch](https://obdev.at/products/littlesnitch)
-- [ ] [Malwarebytes Anti-Malware](https://malwarebytes.com)
-- [ ] [Moom](https://manytricks.com/moom)
-- [ ] [Slack](https://slack.com/intl/en-pt/downloads/mac)
-- [ ] [Spotify](https://www.spotify.com/us/download/mac)
-- [ ] [Steam](http://store.steampowered.com/about)
-- [ ] [Stremio](https://stremio.com)
-- [ ] [WhatsApp](https://whatsapp.com/download)
-- [ ] VPN App
-
-### 11. Adjust Dock preferences
+### 10. Adjust Dock preferences
 - [ ] Set Dock icon size
 - [ ] Lock Dock from being resized
 
