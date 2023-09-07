@@ -20,20 +20,12 @@
 chsh -s /bin/bash
 ```
 
-### 2. Enable hidden files
-- [ ] Make hidden files visible on Finder
-
-```bash
-defaults write com.apple.finder AppleShowAllFiles true
-killall Finder
-```
-
-### 3. Load config files
+### 2. Load config files
 - [ ] Load [`.bash_profile`](/.bash_profile)
 - [ ] Load [`.gitconfig`](/.gitconfig)
 - [ ] Load [`.inputrc`](/.inputrc)
 
-### 4. Copy or create SSH keys
+### 3. Copy or create SSH keys
 - [ ] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
 - [ ] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
 - [ ] Fix keys permissions
@@ -43,7 +35,7 @@ chmod 600 ~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa.pub
 ```
 
-### 5. Setup Homebrew and install packages
+### 4. Setup Homebrew and install packages
 - [ ] Install [Homebrew](http://brew.sh)
 - [ ] Update bash to latest version
 - [ ] Update Git to latest version
@@ -58,7 +50,7 @@ brew install bash-completion
 brew install yarn
 ```
 
-### 6. Setup Node.js and npm
+### 5. Setup Node.js and npm
 - [ ] Install [nvm](https://github.com/creationix/nvm)
 - [ ] Install latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as global version of Node.js
@@ -71,7 +63,7 @@ nvm alias default 18.17.1
 nvm install-latest-npm
 ```
 
-### 7. Setup Hyper terminal
+### 6. Setup Hyper terminal
 - [ ] Install [Hyper](https://hyper.is)
 - [ ] Load [`.hyper.js`](/.hyper.js) config file on user folder
 
@@ -79,7 +71,7 @@ nvm install-latest-npm
 brew install --cask hyper
 ```
 
-### 8. Install Fira Code font
+### 7. Install Fira Code font
 - [ ] Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
 
 ```bash
@@ -87,7 +79,7 @@ brew tap homebrew/cask-fonts
 brew install --cask font-fira-code
 ```
 
-### 9. Setup code editor
+### 8. Setup code editor
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 - [ ] Install extensions
@@ -107,9 +99,10 @@ brew install --cask font-fira-code
 - [ ] Load [`settings.json`](/settings.json) config file
 - [ ] Load [`keybindings.json`](/keybindings.json) file
 
-### 10. macOS Preferences
+### 9. macOS Preferences
 
 ```bash
+  # Dock
   # Set Dock icon size
   defaults write com.apple.dock tilesize -integer 40
 
@@ -123,9 +116,17 @@ brew install --cask font-fira-code
   # Don’t show recent applications in Dock
   defaults write com.apple.dock show-recents -bool false
 
+  # Finder
+  # Make hidden files visible on Finder
+  defaults write com.apple.finder AppleShowAllFiles true
+
+  # When performing a search, search the current folder by default
+  defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+
   # Prevent .DS_Store files
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 
+  # System Preferences
   # Enable tap to click for trackpad
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 
