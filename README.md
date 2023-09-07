@@ -107,14 +107,43 @@ brew install --cask font-fira-code
 - [ ] Load [`settings.json`](/settings.json) config file
 - [ ] Load [`keybindings.json`](/keybindings.json) file
 
-### 10. Adjust Dock preferences
-- [ ] Set Dock icon size
-- [ ] Lock Dock from being resized
+### 10. macOS Preferences
 
-```
-defaults write com.apple.dock tilesize -integer 40
-defaults write com.apple.dock size-immutable -bool true
-killall Dock
+```bash
+  # Set Dock icon size
+  defaults write com.apple.dock tilesize -integer 40
+
+  # Lock Dock from being resized
+  defaults write com.apple.dock size-immutable -bool true
+
+  # Clear out the dock of default icons
+  defaults delete com.apple.dock persistent-apps
+  defaults delete com.apple.dock persistent-others
+
+  # Don’t show recent applications in Dock
+  defaults write com.apple.dock show-recents -bool false
+
+  # Prevent .DS_Store files
+  defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+
+  # Enable tap to click for trackpad
+  defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+
+  # Disable keyboard autocorrect
+  defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+
+  # Disable Dashboard
+  defaults write com.apple.dashboard mcx-disabled -bool true
+
+  # Don’t show Dashboard as a Space
+  defaults write com.apple.dock dashboard-in-overlay -bool true
+
+  # Show battery percentage in menu bar
+  defaults write com.apple.menuextra.battery ShowPercent -string "YES"
+
+  # Restart Finder and Dock
+  killall Finder
+  killall Dock
 ```
 
 ## Use it yourself
