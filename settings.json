@@ -1,25 +1,7 @@
 {
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[scss]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
   "colorize.languages": ["typescript", "javascript", "css", "scss"],
-  "css.validate": false,
   "debug.internalConsoleOptions": "neverOpen",
   "editor.bracketPairColorization.enabled": true,
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": true,
-    "source.fixAll.stylelint": true,
-    "source.fixAll.prettier": true
-  },
   "editor.detectIndentation": false,
   "editor.fontFamily": "'Fira Code'",
   "editor.fontLigatures": true,
@@ -35,22 +17,20 @@
   "editor.suggest.snippetsPreventQuickSuggestions": false,
   "editor.suggestSelection": "first",
   "editor.tabSize": 2,
-  "eslint.format.enable": true,
+  "editor.unicodeHighlight.nonBasicASCII": false,
   "explorer.compactFolders": false,
   "explorer.confirmDelete": false,
   "explorer.confirmDragAndDrop": false,
   "extensions.ignoreRecommendations": true,
   "files.autoSave": "afterDelay",
   "git.confirmSync": false,
-  "github.copilot.enable": {
-    "*": true,
-  },
   "javascript.updateImportsOnFileMove.enabled": "always",
-  "scss.validate": false,
+  "prettier.prettierPath": "./node_modules/prettier",
+  "prettier.requireConfig": true,
   "sortLines.filterBlankLines": true,
-  "typescript.updateImportsOnFileMove.enabled": "never",
+  "typescript.updateImportsOnFileMove.enabled": "always",
   "workbench.colorTheme": "GitHub Dark",
-  "workbench.iconTheme": "city-lights-icons-vsc",
   "workbench.startupEditor": "newUntitledFile",
-  "workbench.tree.indent": 10
+  "workbench.tree.indent": 15,
+  "workbench.tree.renderIndentGuides": "always",
 }
