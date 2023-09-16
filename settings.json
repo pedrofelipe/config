@@ -27,7 +27,7 @@
   "sortLines.filterBlankLines": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
   "workbench.colorTheme": "GitHub Dark",
-  "workbench.iconTheme": "city-lights-icons-vsc-light",
+  "workbench.iconTheme": "city-lights-icons-vsc",
   "workbench.startupEditor": "newUntitledFile",
   "workbench.tree.indent": 15,
   "workbench.tree.renderIndentGuides": "always",
