@@ -96,6 +96,7 @@ brew install --cask font-fira-code
   - [ ] [colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
   - [ ] [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
   - [ ] [Stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
+  - [ ] [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
 - [ ] Load [`settings.json`](/settings.json) config file
 - [ ] Load [`keybindings.json`](/keybindings.json) file
 
