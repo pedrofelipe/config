@@ -58,8 +58,8 @@ brew install yarn
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
-nvm install 18.17.1
-nvm alias default 18.17.1
+nvm install --lts
+nvm alias default node
 nvm install-latest-npm
 ```
 
