@@ -1,5 +1,10 @@
 {
-  "colorize.languages": ["typescript", "javascript", "css", "scss"],
+  "colorize.languages": [
+    "typescript",
+    "javascript",
+    "css",
+    "scss"
+  ],
   "debug.internalConsoleOptions": "neverOpen",
   "editor.bracketPairColorization.enabled": true,
   "editor.detectIndentation": false,
@@ -27,6 +32,7 @@
   "sortLines.filterBlankLines": true,
   "typescript.updateImportsOnFileMove.enabled": "always",
   "workbench.colorTheme": "GitHub Dark",
+  "workbench.editor.labelFormat": "medium",
   "workbench.iconTheme": "city-lights-icons-vsc",
   "workbench.startupEditor": "newUntitledFile",
   "workbench.tree.indent": 15,
