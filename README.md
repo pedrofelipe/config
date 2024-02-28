@@ -105,6 +105,9 @@ brew install --cask font-fira-code
 
 ```bash
   # Dock
+  # Move Dock to the left side
+  defaults write com.apple.dock orientation left
+
   # Set Dock icon size
   defaults write com.apple.dock tilesize -integer 40
 
