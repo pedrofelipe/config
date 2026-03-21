@@ -51,6 +51,10 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Install or upgrade a Homebrew formula
 brew_formula() {
   local pkg=$1
+  if ! command -v brew &>/dev/null; then
+    $DRY_RUN && would "brew install $pkg"
+    return
+  fi
   if brew list --formula "$pkg" &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade $pkg"
@@ -79,6 +83,10 @@ brew_formula() {
 brew_cask() {
   local cask=$1
   local cmd=$2
+  if ! command -v brew &>/dev/null; then
+    $DRY_RUN && would "brew install --cask $cask"
+    return
+  fi
   if brew list --cask "$cask" &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade --cask $cask"
@@ -161,7 +169,7 @@ done
 
 # VS Code: check for app first, then CLI
 if [ -d "/Applications/Visual Studio Code.app" ]; then
-  if brew list --cask visual-studio-code &>/dev/null; then
+  if command -v brew &>/dev/null && brew list --cask visual-studio-code &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade --cask visual-studio-code"
     else
@@ -296,11 +304,11 @@ else
   done
 
   VSCODE_DIR="$HOME/Library/Application Support/Code/User"
-  mkdir -p "$VSCODE_DIR"
 
   if $DRY_RUN; then
     would "cp settings.json and keybindings.json to VS Code"
   else
+    mkdir -p "$VSCODE_DIR"
     cp "$DOTFILES_DIR/settings.json" "$VSCODE_DIR/settings.json" && installed "settings.json"
     cp "$DOTFILES_DIR/keybindings.json" "$VSCODE_DIR/keybindings.json" && installed "keybindings.json"
   fi
