@@ -141,6 +141,10 @@ for file in .bash_profile .gitconfig .inputrc; do
     if $DRY_RUN; then
       would "cp $file to $HOME/$file"
     else
+      if [ -f "$HOME/$file" ]; then
+        read -r -p "  $file already exists. Overwrite? [Y/n] " r
+        [[ "$r" =~ ^[nN] ]] && { ok "$file unchanged"; continue; }
+      fi
       cp "$DOTFILES_DIR/$file" "$HOME/$file"
       installed "$file"
     fi
@@ -269,10 +273,15 @@ else
     if $DRY_RUN; then
       would "chsh -s $HOMEBREW_BASH"
     else
-      if chsh -s "$HOMEBREW_BASH"; then
-        installed "default shell → $HOMEBREW_BASH"
+      read -r -p "  Switch default shell to Homebrew bash? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        if chsh -s "$HOMEBREW_BASH"; then
+          installed "default shell → $HOMEBREW_BASH"
+        else
+          warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
+        fi
       else
-        warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
+        ok "Shell unchanged"
       fi
     fi
   fi
@@ -352,8 +361,13 @@ else
     would "cp settings.json and keybindings.json to VS Code"
   else
     mkdir -p "$VSCODE_DIR"
-    cp "$DOTFILES_DIR/settings.json" "$VSCODE_DIR/settings.json" && installed "settings.json"
-    cp "$DOTFILES_DIR/keybindings.json" "$VSCODE_DIR/keybindings.json" && installed "keybindings.json"
+    for config_file in settings.json keybindings.json; do
+      if [ -f "$VSCODE_DIR/$config_file" ]; then
+        read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
+        [[ "$r" =~ ^[nN] ]] && { ok "$config_file unchanged"; continue; }
+      fi
+      cp "$DOTFILES_DIR/$config_file" "$VSCODE_DIR/$config_file" && installed "$config_file"
+    done
   fi
 fi
 
@@ -373,8 +387,13 @@ step "Applying macOS preferences"
 
 if $DRY_RUN; then
   would "configure Dock, Finder, and System Settings"
-  would "reset Dock to: Finder, Google Chrome, Terminal, VS Code, 1Password, Spotify, Trash"
+  would "reset Dock to: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
 else
+  read -r -p "  Apply macOS preferences? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "macOS preferences unchanged"
+  else
+
   # Dock
   defaults write com.apple.dock orientation left
   defaults write com.apple.dock tilesize -integer 40
@@ -449,6 +468,8 @@ else
   killall Finder
   killall Dock
   ok "Finder and Dock restarted"
+
+  fi # end macOS preferences
 fi
 
 # -------------------------------------------------------
