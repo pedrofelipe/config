@@ -61,7 +61,7 @@ echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
 chsh -s /opt/homebrew/bin/bash
 ```
 
-### 5. Set up Node.js and npm
+### 5. Set up Node.js
 - [ ] Install [nvm](https://github.com/creationix/nvm)
 - [ ] Install the latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as the default Node.js version

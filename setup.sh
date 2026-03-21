@@ -247,7 +247,7 @@ fi
 # -------------------------------------------------------
 # 5. Node.js via nvm
 # -------------------------------------------------------
-step "Installing nvm and Node.js"
+step "Installing Node.js"
 
 if [ -d "$HOME/.nvm" ]; then
   ok "nvm already installed"
