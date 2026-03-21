@@ -379,6 +379,10 @@ else
   defaults write com.apple.dock tilesize -integer 40
   defaults write com.apple.dock size-immutable -bool true
   defaults write com.apple.dock minimize-to-application -bool true
+  if ! defaults read com.apple.dock persistent-apps 2>/dev/null | grep "bundle-identifier" | grep -qv '"com\.apple\.'; then
+    defaults delete com.apple.dock persistent-apps 2>/dev/null
+    defaults delete com.apple.dock persistent-others 2>/dev/null
+  fi
   defaults write com.apple.dock show-recents -bool false
   ok "Dock configured"
 
