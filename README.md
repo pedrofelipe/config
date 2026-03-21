@@ -1,5 +1,10 @@
 # Config
-**Config** is a basic checklist I follow to set up a macOS development environment.
+
+My personal setup for a new Mac. Clone the repo and run the script — it handles everything automatically. If you'd rather go step by step, the full checklist is below.
+
+```bash
+git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
+```
 
 ## Contents
 | File | Description |
@@ -9,14 +14,6 @@
 | `.inputrc` | Makes tab autocompletion case insensitive |
 | `settings.json` | Custom settings for Visual Studio Code |
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
-
-## Automated setup
-
-Clone the repo and run the setup script to apply everything automatically:
-
-```bash
-git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
-```
 
 ## Checklist
 
