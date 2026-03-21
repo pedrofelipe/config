@@ -96,12 +96,15 @@ for pkg in bash git bash-completion@2 yarn gh; do
   brew_formula "$pkg"
 done
 
-# VS Code: check for code CLI regardless of install source
-if command -v code &>/dev/null; then
+# VS Code: check for app first, then CLI
+if [ -d "/Applications/Visual Studio Code.app" ]; then
   if brew list --cask visual-studio-code &>/dev/null; then
     brew upgrade --cask visual-studio-code &>/dev/null && updated "visual-studio-code upgraded" || ok "visual-studio-code already up to date"
   else
     ok "VS Code installed outside Homebrew, skipping"
+  fi
+  if ! command -v code &>/dev/null; then
+    warn "VS Code CLI not found — open VS Code and run: Shell Command: Install 'code' command in PATH"
   fi
 else
   brew install --cask visual-studio-code && ok "Installed visual-studio-code"
