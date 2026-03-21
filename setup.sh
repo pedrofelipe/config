@@ -37,9 +37,10 @@ echo ""
 osascript -e 'tell application "System Preferences" to quit' 2>/dev/null
 osascript -e 'tell application "System Settings" to quit' 2>/dev/null
 
-# Ask for sudo password upfront
+# Ask for sudo password upfront and keep it alive for the duration of the script
 if ! $DRY_RUN; then
   sudo -v
+  while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 fi
 
 # Summary tracking
@@ -242,30 +243,34 @@ step "Setting Homebrew bash as default shell"
 
 HOMEBREW_BASH="/opt/homebrew/bin/bash"
 
-if grep -q "$HOMEBREW_BASH" /etc/shells; then
-  ok "$HOMEBREW_BASH already in /etc/shells"
+if ! $DRY_RUN && [ ! -f "$HOMEBREW_BASH" ]; then
+  warn "Homebrew bash not found at $HOMEBREW_BASH — was 'brew install bash' successful? Skipping shell switch"
 else
-  if $DRY_RUN; then
-    would "echo $HOMEBREW_BASH | sudo tee -a /etc/shells"
+  if grep -q "$HOMEBREW_BASH" /etc/shells; then
+    ok "$HOMEBREW_BASH already in /etc/shells"
   else
-    if echo "$HOMEBREW_BASH" | sudo tee -a /etc/shells >/dev/null; then
-      installed "$HOMEBREW_BASH in /etc/shells"
+    if $DRY_RUN; then
+      would "echo $HOMEBREW_BASH | sudo tee -a /etc/shells"
     else
-      warn "Failed to add $HOMEBREW_BASH to /etc/shells — try manually: echo \"$HOMEBREW_BASH\" | sudo tee -a /etc/shells"
+      if echo "$HOMEBREW_BASH" | sudo tee -a /etc/shells >/dev/null; then
+        installed "$HOMEBREW_BASH in /etc/shells"
+      else
+        warn "Failed to add $HOMEBREW_BASH to /etc/shells — try manually: echo \"$HOMEBREW_BASH\" | sudo tee -a /etc/shells"
+      fi
     fi
   fi
-fi
 
-if [ "$SHELL" = "$HOMEBREW_BASH" ]; then
-  ok "Already using Homebrew bash"
-else
-  if $DRY_RUN; then
-    would "chsh -s $HOMEBREW_BASH"
+  if [ "$SHELL" = "$HOMEBREW_BASH" ]; then
+    ok "Already using Homebrew bash"
   else
-    if chsh -s "$HOMEBREW_BASH"; then
-      installed "default shell → $HOMEBREW_BASH"
+    if $DRY_RUN; then
+      would "chsh -s $HOMEBREW_BASH"
     else
-      warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
+      if chsh -s "$HOMEBREW_BASH"; then
+        installed "default shell → $HOMEBREW_BASH"
+      else
+        warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
+      fi
     fi
   fi
 fi
