@@ -362,7 +362,11 @@ else
   defaults write com.apple.finder AppleShowAllFiles true
   defaults write com.apple.finder ShowPathbar -bool true
   defaults write com.apple.finder ShowRecentTags -bool false
+  defaults write com.apple.finder FXPreferredViewStyle -string "icnv"
+  defaults write com.apple.finder NewWindowTarget -string "PfHm"
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+  defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
+  defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
   ok "Finder configured"
 
@@ -372,6 +376,10 @@ else
   defaults write NSGlobalDomain AppleShowAllExtensions -bool true
   defaults write NSGlobalDomain AppleInterfaceStyle Dark
   defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
+  defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
+  defaults write NSGlobalDomain KeyRepeat -int 5
+  defaults write NSGlobalDomain InitialKeyRepeat -int 25
+  defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
   ok "System settings configured"
 
   # Restart Finder and Dock

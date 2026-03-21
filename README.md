@@ -151,8 +151,20 @@ brew install --cask 1password
   # Hide recent tags in Finder sidebar
   defaults write com.apple.finder ShowRecentTags -bool false
 
+  # Use icon view by default
+  defaults write com.apple.finder FXPreferredViewStyle -string "icnv"
+
+  # Open new Finder windows to Home folder
+  defaults write com.apple.finder NewWindowTarget -string "PfHm"
+
   # When performing a search, search the current folder by default
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+
+  # Show external drives on desktop
+  defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
+
+  # Show hard drives on desktop
+  defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
 
   # Prevent .DS_Store files on network drives
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
@@ -172,6 +184,16 @@ brew install --cask 1password
 
   # Disable natural scroll direction
   defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
+
+  # Minimize window on title bar double-click
+  defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
+
+  # Faster key repeat
+  defaults write NSGlobalDomain KeyRepeat -int 5
+  defaults write NSGlobalDomain InitialKeyRepeat -int 25
+
+  # Mute volume change feedback sound
+  defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
 
   # Restart Finder and Dock
   killall Finder
