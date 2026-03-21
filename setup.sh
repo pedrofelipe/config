@@ -51,7 +51,7 @@ WARNINGS=()
 
 step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
-ok()        { echo -e "${GREEN}✔ $1${RESET}"; SKIPPED+=("$1"); }
+ok()        { echo -e "${CYAN}✔ $1${RESET}"; SKIPPED+=("$1"); }
 updated()   { echo -e "${BLUE}↑ updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
@@ -362,9 +362,9 @@ fi
 # -------------------------------------------------------
 step "Installing apps"
 
-confirm "google-chrome" && brew_cask "google-chrome"
-confirm "spotify"       && brew_cask "spotify"
-confirm "1password"     && brew_cask "1password"
+confirm "Google Chrome" && brew_cask "google-chrome"
+confirm "Spotify"       && brew_cask "spotify"
+confirm "1Password"     && brew_cask "1password"
 
 # -------------------------------------------------------
 # 8. macOS Preferences
@@ -445,7 +445,7 @@ echo -e "${BOLD}Summary${RESET}"
 echo -e "${BOLD}-----------------------------------${RESET}"
 [ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET} $(printf '%s, ' "${INSTALLED[@]}" | sed 's/, $//')"
 [ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET} $(printf '%s, ' "${UPDATED[@]}" | sed 's/, $//')"
-[ ${#SKIPPED[@]} -gt 0 ]   && echo -e "  Skipped (${#SKIPPED[@]}): $(printf '%s, ' "${SKIPPED[@]}" | sed 's/, $//')"
+[ ${#SKIPPED[@]} -gt 0 ]   && echo -e "${CYAN}✔ Skipped (${#SKIPPED[@]}):${RESET} $(printf '%s, ' "${SKIPPED[@]}" | sed 's/, $//')"
 [ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET} $(printf '%s, ' "${WARNINGS[@]}" | sed 's/, $//')"
 echo ""
 $DRY_RUN || echo -e "${GREEN}${BOLD}All done! Restart your terminal to apply all changes.${RESET}"
