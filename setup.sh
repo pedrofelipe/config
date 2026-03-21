@@ -1,0 +1,206 @@
+#!/bin/bash
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# ASCII art
+echo -e "${CYAN}${BOLD}"
+cat << 'EOF'
+ _____         _
+|  __ \       | |
+| |__) |__  __| |_ __ ___
+|  ___/ _ \/ _` | '__/ _ \
+| |  |  __/ (_| | | | (_) |
+|_|   \___|\__,_|_|  \___/
+EOF
+echo -e "${RESET}"
+echo -e "${BOLD}macOS Setup Script${RESET}"
+echo "-----------------------------------"
+echo ""
+
+step() { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
+ok()   { echo -e "${GREEN}✔ $1${RESET}"; }
+warn() { echo -e "${YELLOW}⚠ $1${RESET}"; }
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# -------------------------------------------------------
+# 1. Config files
+# -------------------------------------------------------
+step "Loading config files"
+
+for file in .bash_profile .gitconfig .inputrc; do
+  if [ -f "$DOTFILES_DIR/$file" ]; then
+    cp "$DOTFILES_DIR/$file" "$HOME/$file"
+    ok "Copied $file"
+  else
+    warn "$file not found, skipping"
+  fi
+done
+
+# -------------------------------------------------------
+# 2. SSH keys
+# -------------------------------------------------------
+step "SSH keys"
+if [ -f "$HOME/.ssh/id_rsa" ]; then
+  ok "SSH keys already exist"
+else
+  warn "No SSH keys found — generate them manually or copy existing ones to ~/.ssh"
+fi
+
+# -------------------------------------------------------
+# 3. Homebrew
+# -------------------------------------------------------
+step "Installing Homebrew and packages"
+
+if ! command -v brew &>/dev/null; then
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+  ok "Homebrew installed"
+else
+  ok "Homebrew already installed"
+fi
+
+packages=(bash git bash-completion@2 yarn gh)
+for pkg in "${packages[@]}"; do
+  if brew list --formula "$pkg" &>/dev/null; then
+    ok "$pkg already installed"
+  else
+    brew install "$pkg" && ok "Installed $pkg"
+  fi
+done
+
+casks=(claude-code font-fira-code)
+for cask in "${casks[@]}"; do
+  if brew list --cask "$cask" &>/dev/null; then
+    ok "$cask already installed"
+  else
+    brew install --cask "$cask" && ok "Installed $cask"
+  fi
+done
+
+# -------------------------------------------------------
+# 4. Switch to Homebrew bash
+# -------------------------------------------------------
+step "Setting Homebrew bash as default shell"
+
+HOMEBREW_BASH="/opt/homebrew/bin/bash"
+
+if grep -q "$HOMEBREW_BASH" /etc/shells; then
+  ok "$HOMEBREW_BASH already in /etc/shells"
+else
+  echo "$HOMEBREW_BASH" | sudo tee -a /etc/shells
+  ok "Added $HOMEBREW_BASH to /etc/shells"
+fi
+
+if [ "$SHELL" = "$HOMEBREW_BASH" ]; then
+  ok "Already using Homebrew bash"
+else
+  chsh -s "$HOMEBREW_BASH"
+  ok "Default shell set to $HOMEBREW_BASH"
+fi
+
+# -------------------------------------------------------
+# 5. Node.js via nvm
+# -------------------------------------------------------
+step "Installing nvm and Node.js"
+
+if [ -d "$HOME/.nvm" ]; then
+  ok "nvm already installed"
+else
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+  ok "nvm installed"
+fi
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+if command -v node &>/dev/null; then
+  ok "Node.js already installed ($(node --version))"
+else
+  nvm install --lts
+  nvm alias default node
+  ok "Node.js LTS installed"
+fi
+
+# -------------------------------------------------------
+# 6. VS Code extensions and settings
+# -------------------------------------------------------
+step "Setting up VS Code"
+
+if ! command -v code &>/dev/null; then
+  warn "VS Code CLI not found — install VS Code and enable 'code' command from the command palette"
+else
+  extensions=(
+    anthropic.claude-code
+    bradlc.vscode-tailwindcss
+    christian-kohler.npm-intellisense
+    christian-kohler.path-intellisense
+    dbaeumer.vscode-eslint
+    eamodio.gitlens
+    editorconfig.editorconfig
+    esbenp.prettier-vscode
+    github.github-vscode-theme
+    kamikillerto.vscode-colorize
+    tyriar.sort-lines
+    wix.vscode-import-cost
+    yummygum.city-lights-icon-vsc
+  )
+
+  for ext in "${extensions[@]}"; do
+    code --install-extension "$ext" --force &>/dev/null && ok "Installed $ext"
+  done
+
+  VSCODE_DIR="$HOME/Library/Application Support/Code/User"
+  mkdir -p "$VSCODE_DIR"
+
+  cp "$DOTFILES_DIR/settings.json" "$VSCODE_DIR/settings.json" && ok "Copied settings.json"
+  cp "$DOTFILES_DIR/keybindings.json" "$VSCODE_DIR/keybindings.json" && ok "Copied keybindings.json"
+fi
+
+# -------------------------------------------------------
+# 7. macOS Preferences
+# -------------------------------------------------------
+step "Applying macOS preferences"
+
+# Dock
+defaults write com.apple.dock orientation left
+defaults write com.apple.dock tilesize -integer 40
+defaults write com.apple.dock size-immutable -bool true
+defaults delete com.apple.dock persistent-apps 2>/dev/null
+defaults delete com.apple.dock persistent-others 2>/dev/null
+defaults write com.apple.dock show-recents -bool false
+ok "Dock configured"
+
+# Hot corners (disabled)
+defaults write com.apple.dock wvous-tl-corner -int 1
+defaults write com.apple.dock wvous-tr-corner -int 1
+defaults write com.apple.dock wvous-bl-corner -int 1
+defaults write com.apple.dock wvous-br-corner -int 1
+ok "Hot corners disabled"
+
+# Finder
+defaults write com.apple.finder AppleShowAllFiles true
+defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+ok "Finder configured"
+
+# System Settings
+defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+ok "System settings configured"
+
+# Restart Finder and Dock
+killall Finder
+killall Dock
+ok "Finder and Dock restarted"
+
+# -------------------------------------------------------
+echo ""
+echo -e "${GREEN}${BOLD}All done! Restart your terminal to apply all changes.${RESET}"
+echo ""

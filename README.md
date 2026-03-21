@@ -10,6 +10,14 @@
 | `settings.json` | Custom settings for Visual Studio Code |
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 
+## Automated setup
+
+Clone the repo and run the setup script to apply everything automatically:
+
+```bash
+git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
+```
+
 ## Checklist
 
 ### 1. Load config files
