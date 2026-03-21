@@ -3,9 +3,19 @@
 # Colors
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
 RESET='\033[0m'
+
+# Parse flags
+DRY_RUN=false
+for arg in "$@"; do
+  [[ "$arg" == "--dry-run" ]] && DRY_RUN=true
+done
+
+# nvm version — update manually when a new stable release is available
+NVM_VERSION="v0.40.4"
 
 # ASCII art
 echo -e "${CYAN}${BOLD}"
@@ -19,13 +29,22 @@ cat << 'EOF'
 EOF
 echo -e "${RESET}"
 echo -e "${BOLD}macOS Setup Script${RESET}"
+$DRY_RUN && echo -e "\n${YELLOW}${BOLD}Dry run — no changes will be made${RESET}"
 echo "-----------------------------------"
 echo ""
 
-step()    { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
-ok()      { echo -e "${GREEN}✔ $1${RESET}"; }
-warn()    { echo -e "${YELLOW}⚠ $1${RESET}"; }
-updated() { echo -e "${CYAN}↑ $1${RESET}"; }
+# Summary tracking
+INSTALLED=()
+UPDATED=()
+SKIPPED=()
+WARNINGS=()
+
+step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
+installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
+ok()        { echo -e "${GREEN}✔ $1${RESET}"; SKIPPED+=("$1"); }
+updated()   { echo -e "${BLUE}↑ updated $1${RESET}"; UPDATED+=("$1"); }
+warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
+would()     { echo -e "  ${BOLD}→${RESET} $1"; }
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -33,23 +52,55 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 brew_formula() {
   local pkg=$1
   if brew list --formula "$pkg" &>/dev/null; then
-    brew upgrade "$pkg" &>/dev/null && updated "$pkg upgraded" || ok "$pkg already up to date"
+    if $DRY_RUN; then
+      would "brew upgrade $pkg"
+    else
+      if brew upgrade "$pkg" &>/dev/null; then
+        updated "$pkg"
+      else
+        ok "$pkg already up to date"
+      fi
+    fi
   else
-    brew install "$pkg" && ok "Installed $pkg"
+    if $DRY_RUN; then
+      would "brew install $pkg"
+    else
+      if brew install "$pkg" >/dev/null; then
+        installed "$pkg"
+      else
+        warn "Failed to install $pkg"
+      fi
+    fi
   fi
 }
 
 # Install or upgrade a Homebrew cask
-# Pass a second argument to check if it's already installed via a CLI command
+# Pass a second argument (CLI command name) to detect installs outside Homebrew
 brew_cask() {
   local cask=$1
   local cmd=$2
   if brew list --cask "$cask" &>/dev/null; then
-    brew upgrade --cask "$cask" &>/dev/null && updated "$cask upgraded" || ok "$cask already up to date"
+    if $DRY_RUN; then
+      would "brew upgrade --cask $cask"
+    else
+      if brew upgrade --cask "$cask" &>/dev/null; then
+        updated "$cask"
+      else
+        ok "$cask already up to date"
+      fi
+    fi
   elif [ -n "$cmd" ] && command -v "$cmd" &>/dev/null; then
     warn "$cask is installed outside Homebrew, skipping"
   else
-    brew install --cask "$cask" && ok "Installed $cask"
+    if $DRY_RUN; then
+      would "brew install --cask $cask"
+    else
+      if brew install --cask "$cask" >/dev/null; then
+        installed "$cask"
+      else
+        warn "Failed to install $cask"
+      fi
+    fi
   fi
 }
 
@@ -60,8 +111,12 @@ step "Loading config files"
 
 for file in .bash_profile .gitconfig .inputrc; do
   if [ -f "$DOTFILES_DIR/$file" ]; then
-    cp "$DOTFILES_DIR/$file" "$HOME/$file"
-    ok "Copied $file"
+    if $DRY_RUN; then
+      would "cp $file to $HOME/$file"
+    else
+      cp "$DOTFILES_DIR/$file" "$HOME/$file"
+      installed "$file"
+    fi
   else
     warn "$file not found, skipping"
   fi
@@ -71,6 +126,7 @@ done
 # 2. SSH keys
 # -------------------------------------------------------
 step "SSH keys"
+
 if [ -f "$HOME/.ssh/id_rsa" ]; then
   ok "SSH keys already exist"
 else
@@ -83,12 +139,20 @@ fi
 step "Installing Homebrew and packages"
 
 if ! command -v brew &>/dev/null; then
-  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-  eval "$(/opt/homebrew/bin/brew shellenv)"
-  ok "Homebrew installed"
-  warn "Homebrew was added to this session's PATH only — your shell will need a restart to pick it up permanently"
+  if $DRY_RUN; then
+    would "install Homebrew"
+  else
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+    installed "Homebrew"
+    warn "Homebrew was added to this session's PATH only — your shell will need a restart to pick it up permanently"
+  fi
 else
-  brew update &>/dev/null && ok "Homebrew updated"
+  if $DRY_RUN; then
+    would "brew update"
+  else
+    brew update &>/dev/null && ok "Homebrew up to date"
+  fi
 fi
 
 for pkg in bash git bash-completion@2 yarn gh; do
@@ -98,7 +162,15 @@ done
 # VS Code: check for app first, then CLI
 if [ -d "/Applications/Visual Studio Code.app" ]; then
   if brew list --cask visual-studio-code &>/dev/null; then
-    brew upgrade --cask visual-studio-code &>/dev/null && updated "visual-studio-code upgraded" || ok "visual-studio-code already up to date"
+    if $DRY_RUN; then
+      would "brew upgrade --cask visual-studio-code"
+    else
+      if brew upgrade --cask visual-studio-code &>/dev/null; then
+        updated "visual-studio-code"
+      else
+        ok "visual-studio-code already up to date"
+      fi
+    fi
   else
     ok "VS Code installed outside Homebrew, skipping"
   fi
@@ -106,7 +178,15 @@ if [ -d "/Applications/Visual Studio Code.app" ]; then
     warn "VS Code CLI not found — open VS Code and run: Shell Command: Install 'code' command in PATH"
   fi
 else
-  brew install --cask visual-studio-code && ok "Installed visual-studio-code"
+  if $DRY_RUN; then
+    would "brew install --cask visual-studio-code"
+  else
+    if brew install --cask visual-studio-code >/dev/null; then
+      installed "visual-studio-code"
+    else
+      warn "Failed to install visual-studio-code"
+    fi
+  fi
 fi
 
 brew_cask "claude-code" "claude"
@@ -122,15 +202,29 @@ HOMEBREW_BASH="/opt/homebrew/bin/bash"
 if grep -q "$HOMEBREW_BASH" /etc/shells; then
   ok "$HOMEBREW_BASH already in /etc/shells"
 else
-  echo "$HOMEBREW_BASH" | sudo tee -a /etc/shells
-  ok "Added $HOMEBREW_BASH to /etc/shells"
+  if $DRY_RUN; then
+    would "echo $HOMEBREW_BASH | sudo tee -a /etc/shells"
+  else
+    if echo "$HOMEBREW_BASH" | sudo tee -a /etc/shells >/dev/null; then
+      installed "$HOMEBREW_BASH in /etc/shells"
+    else
+      warn "Failed to add $HOMEBREW_BASH to /etc/shells — try manually: echo \"$HOMEBREW_BASH\" | sudo tee -a /etc/shells"
+    fi
+  fi
 fi
 
 if [ "$SHELL" = "$HOMEBREW_BASH" ]; then
   ok "Already using Homebrew bash"
 else
-  chsh -s "$HOMEBREW_BASH"
-  ok "Default shell set to $HOMEBREW_BASH"
+  if $DRY_RUN; then
+    would "chsh -s $HOMEBREW_BASH"
+  else
+    if chsh -s "$HOMEBREW_BASH"; then
+      installed "default shell → $HOMEBREW_BASH"
+    else
+      warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
+    fi
+  fi
 fi
 
 # -------------------------------------------------------
@@ -139,20 +233,31 @@ fi
 step "Installing nvm and Node.js"
 
 if [ -d "$HOME/.nvm" ]; then
-  cd "$HOME/.nvm" && git fetch --tags &>/dev/null && git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*") &>/dev/null && cd - &>/dev/null
-  ok "nvm up to date"
+  ok "nvm already installed"
 else
-  git clone https://github.com/nvm-sh/nvm.git "$HOME/.nvm" &>/dev/null
-  cd "$HOME/.nvm" && git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*") &>/dev/null && cd - &>/dev/null
-  ok "nvm installed"
+  if $DRY_RUN; then
+    would "install nvm $NVM_VERSION"
+  else
+    if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash; then
+      installed "nvm $NVM_VERSION"
+    else
+      warn "Failed to install nvm"
+    fi
+  fi
 fi
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-# Always install latest LTS — nvm skips if already on latest
-nvm install --lts &>/dev/null && nvm alias default node
-ok "Node.js LTS up to date ($(node --version))"
+if $DRY_RUN; then
+  would "nvm install --lts && nvm alias default node"
+else
+  if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
+    ok "Node.js LTS up to date ($(node --version))"
+  else
+    warn "Failed to install Node.js LTS"
+  fi
+fi
 
 # -------------------------------------------------------
 # 6. VS Code extensions and settings
@@ -179,14 +284,26 @@ else
   )
 
   for ext in "${extensions[@]}"; do
-    code --install-extension "$ext" --force &>/dev/null && ok "Installed/updated $ext"
+    if $DRY_RUN; then
+      would "code --install-extension $ext"
+    else
+      if code --install-extension "$ext" --force &>/dev/null; then
+        installed "$ext"
+      else
+        warn "Failed to install extension $ext"
+      fi
+    fi
   done
 
   VSCODE_DIR="$HOME/Library/Application Support/Code/User"
   mkdir -p "$VSCODE_DIR"
 
-  cp "$DOTFILES_DIR/settings.json" "$VSCODE_DIR/settings.json" && ok "Copied settings.json"
-  cp "$DOTFILES_DIR/keybindings.json" "$VSCODE_DIR/keybindings.json" && ok "Copied keybindings.json"
+  if $DRY_RUN; then
+    would "cp settings.json and keybindings.json to VS Code"
+  else
+    cp "$DOTFILES_DIR/settings.json" "$VSCODE_DIR/settings.json" && installed "settings.json"
+    cp "$DOTFILES_DIR/keybindings.json" "$VSCODE_DIR/keybindings.json" && installed "keybindings.json"
+  fi
 fi
 
 # -------------------------------------------------------
@@ -194,39 +311,53 @@ fi
 # -------------------------------------------------------
 step "Applying macOS preferences"
 
-# Dock
-defaults write com.apple.dock orientation left
-defaults write com.apple.dock tilesize -integer 40
-defaults write com.apple.dock size-immutable -bool true
-defaults delete com.apple.dock persistent-apps 2>/dev/null
-defaults delete com.apple.dock persistent-others 2>/dev/null
-defaults write com.apple.dock show-recents -bool false
-ok "Dock configured"
+if $DRY_RUN; then
+  would "configure Dock, Finder, and System Settings"
+else
+  # Dock
+  defaults write com.apple.dock orientation left
+  defaults write com.apple.dock tilesize -integer 40
+  defaults write com.apple.dock size-immutable -bool true
+  defaults delete com.apple.dock persistent-apps 2>/dev/null
+  defaults delete com.apple.dock persistent-others 2>/dev/null
+  defaults write com.apple.dock show-recents -bool false
+  ok "Dock configured"
 
-# Hot corners (disabled)
-defaults write com.apple.dock wvous-tl-corner -int 1
-defaults write com.apple.dock wvous-tr-corner -int 1
-defaults write com.apple.dock wvous-bl-corner -int 1
-defaults write com.apple.dock wvous-br-corner -int 1
-ok "Hot corners disabled"
+  # Hot corners (disabled)
+  defaults write com.apple.dock wvous-tl-corner -int 1
+  defaults write com.apple.dock wvous-tr-corner -int 1
+  defaults write com.apple.dock wvous-bl-corner -int 1
+  defaults write com.apple.dock wvous-br-corner -int 1
+  ok "Hot corners disabled"
 
-# Finder
-defaults write com.apple.finder AppleShowAllFiles true
-defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
-ok "Finder configured"
+  # Finder
+  defaults write com.apple.finder AppleShowAllFiles true
+  defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+  defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+  ok "Finder configured"
 
-# System Settings
-defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-ok "System settings configured"
+  # System Settings
+  defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+  defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+  ok "System settings configured"
 
-# Restart Finder and Dock
-killall Finder
-killall Dock
-ok "Finder and Dock restarted"
+  # Restart Finder and Dock
+  killall Finder
+  killall Dock
+  ok "Finder and Dock restarted"
+fi
 
 # -------------------------------------------------------
+# Summary
+# -------------------------------------------------------
 echo ""
-echo -e "${GREEN}${BOLD}All done! Restart your terminal to apply all changes.${RESET}"
+echo -e "${BOLD}-----------------------------------${RESET}"
+echo -e "${BOLD}Summary${RESET}"
+echo -e "${BOLD}-----------------------------------${RESET}"
+[ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET} $(IFS=', '; echo "${INSTALLED[*]}")"
+[ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET} $(IFS=', '; echo "${UPDATED[*]}")"
+[ ${#SKIPPED[@]} -gt 0 ]   && echo -e "  Skipped (${#SKIPPED[@]}): $(IFS=', '; echo "${SKIPPED[*]}")"
+[ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET} $(IFS=', '; echo "${WARNINGS[*]}")"
+echo ""
+$DRY_RUN || echo -e "${GREEN}${BOLD}All done! Restart your terminal to apply all changes.${RESET}"
 echo ""

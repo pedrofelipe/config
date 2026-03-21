@@ -60,8 +60,7 @@ chsh -s /opt/homebrew/bin/bash
 - [ ] Set as global version of Node.js
 
 ```bash
-git clone https://github.com/nvm-sh/nvm.git ~/.nvm
-cd ~/.nvm && git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*")
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
 nvm install --lts
 nvm alias default node
 ```
