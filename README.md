@@ -14,6 +14,7 @@ git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
 | `.inputrc` | Makes tab autocompletion case insensitive |
 | `settings.json` | Custom settings for Visual Studio Code |
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
+| `setup.sh` | Automated setup script for a fresh macOS install |
 
 ## Checklist
 

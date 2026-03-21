@@ -87,6 +87,7 @@ if ! command -v brew &>/dev/null; then
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
   eval "$(/opt/homebrew/bin/brew shellenv)"
   ok "Homebrew installed"
+  warn "Homebrew was added to this session's PATH only — your shell will need a restart to pick it up permanently"
 else
   brew update &>/dev/null && ok "Homebrew updated"
 fi
