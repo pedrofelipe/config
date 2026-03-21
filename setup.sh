@@ -68,10 +68,14 @@ brew_formula() {
   fi
   if brew list --formula "$pkg" &>/dev/null; then
     if $DRY_RUN; then
-      would "brew upgrade $pkg"
+      would "brew upgrade $pkg (if outdated)"
     else
-      if brew upgrade "$pkg" &>/dev/null; then
-        updated "$pkg"
+      if brew outdated --formula | grep -q "^$pkg$"; then
+        if brew upgrade "$pkg" &>/dev/null; then
+          updated "$pkg"
+        else
+          warn "Failed to upgrade $pkg"
+        fi
       else
         ok "$pkg already up to date"
       fi
@@ -80,7 +84,7 @@ brew_formula() {
     if $DRY_RUN; then
       would "brew install $pkg"
     else
-      if brew install "$pkg" >/dev/null; then
+      if brew install "$pkg" &>/dev/null; then
         installed "$pkg"
       else
         warn "Failed to install $pkg"
@@ -100,10 +104,14 @@ brew_cask() {
   fi
   if brew list --cask "$cask" &>/dev/null; then
     if $DRY_RUN; then
-      would "brew upgrade --cask $cask"
+      would "brew upgrade --cask $cask (if outdated)"
     else
-      if brew upgrade --cask "$cask" &>/dev/null; then
-        updated "$cask"
+      if brew outdated --cask | grep -q "^$cask$"; then
+        if brew upgrade --cask "$cask" &>/dev/null; then
+          updated "$cask"
+        else
+          warn "Failed to upgrade $cask"
+        fi
       else
         ok "$cask already up to date"
       fi
@@ -114,7 +122,7 @@ brew_cask() {
     if $DRY_RUN; then
       would "brew install --cask $cask"
     else
-      if brew install --cask "$cask" >/dev/null; then
+      if brew install --cask "$cask" &>/dev/null; then
         installed "$cask"
       else
         warn "Failed to install $cask"
@@ -195,7 +203,21 @@ else
           warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
         fi
       else
-        warn "Not authenticated with GitHub — run 'gh auth login' then: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+        read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
+        if [[ ! "$r" =~ ^[nN] ]]; then
+          gh auth login
+          if gh auth status &>/dev/null 2>&1; then
+            if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
+              installed "SSH key on GitHub"
+            else
+              warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+            fi
+          else
+            warn "Still not authenticated — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+          fi
+        else
+          warn "Skipped GitHub login — run manually: gh auth login && gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+        fi
       fi
     else
       warn "Failed to generate SSH key"
@@ -210,7 +232,6 @@ if [ -d "/Applications/Visual Studio Code.app" ]; then
   else
     ok "VS Code installed outside Homebrew, skipping"
   fi
-  command -v code &>/dev/null || warn "VS Code CLI not found — in VS Code, open the Command Palette and run: Shell Command: Install 'code' command in PATH"
 else
   brew_cask "visual-studio-code"
 fi
@@ -283,7 +304,7 @@ if $DRY_RUN; then
   would "nvm install --lts && nvm alias default node"
 else
   if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
-    ok "Node.js LTS up to date ($(node --version))"
+    ok "Node.js LTS installed ($(node --version 2>/dev/null || echo 'unknown'))"
   else
     warn "Failed to install Node.js LTS"
   fi
