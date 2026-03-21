@@ -104,7 +104,15 @@ brew install --cask visual-studio-code
 - [ ] Apply [`settings.json`](/settings.json)
 - [ ] Apply [`keybindings.json`](/keybindings.json)
 
-### 8. macOS Preferences
+### 8. Install apps
+
+```bash
+brew install --cask google-chrome
+brew install --cask spotify
+brew install --cask 1password
+```
+
+### 9. macOS Preferences
 
 ```bash
   # Dock

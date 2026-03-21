@@ -324,7 +324,16 @@ else
 fi
 
 # -------------------------------------------------------
-# 7. macOS Preferences
+# 7. Apps
+# -------------------------------------------------------
+step "Installing apps"
+
+brew_cask "google-chrome"
+brew_cask "spotify"
+brew_cask "1password"
+
+# -------------------------------------------------------
+# 8. macOS Preferences
 # -------------------------------------------------------
 step "Applying macOS preferences"
 
