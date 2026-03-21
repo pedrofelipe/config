@@ -23,11 +23,37 @@ echo -e "${BOLD}macOS Setup Script${RESET}"
 echo "-----------------------------------"
 echo ""
 
-step() { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
-ok()   { echo -e "${GREEN}✔ $1${RESET}"; }
-warn() { echo -e "${YELLOW}⚠ $1${RESET}"; }
+step()    { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
+ok()      { echo -e "${GREEN}✔ $1${RESET}"; }
+warn()    { echo -e "${YELLOW}⚠ $1${RESET}"; }
+updated() { echo -e "${CYAN}↑ $1${RESET}"; }
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Install or upgrade a Homebrew formula
+brew_formula() {
+  local pkg=$1
+  if brew list --formula "$pkg" &>/dev/null; then
+    brew upgrade "$pkg" &>/dev/null && updated "$pkg upgraded" || ok "$pkg already up to date"
+  elif command -v "$pkg" &>/dev/null; then
+    warn "$pkg is installed outside Homebrew, skipping"
+  else
+    brew install "$pkg" && ok "Installed $pkg"
+  fi
+}
+
+# Install or upgrade a Homebrew cask
+brew_cask() {
+  local cask=$1
+  local cmd=${2:-$1}
+  if brew list --cask "$cask" &>/dev/null; then
+    brew upgrade --cask "$cask" &>/dev/null && updated "$cask upgraded" || ok "$cask already up to date"
+  elif command -v "$cmd" &>/dev/null; then
+    warn "$cask is installed outside Homebrew, skipping"
+  else
+    brew install --cask "$cask" && ok "Installed $cask"
+  fi
+}
 
 # -------------------------------------------------------
 # 1. Config files
@@ -63,26 +89,26 @@ if ! command -v brew &>/dev/null; then
   eval "$(/opt/homebrew/bin/brew shellenv)"
   ok "Homebrew installed"
 else
-  ok "Homebrew already installed"
+  brew update &>/dev/null && ok "Homebrew updated"
 fi
 
-packages=(bash git bash-completion@2 yarn gh)
-for pkg in "${packages[@]}"; do
-  if brew list --formula "$pkg" &>/dev/null; then
-    ok "$pkg already installed"
-  else
-    brew install "$pkg" && ok "Installed $pkg"
-  fi
+for pkg in bash git bash-completion@2 yarn gh; do
+  brew_formula "$pkg"
 done
 
-casks=(visual-studio-code claude-code font-fira-code)
-for cask in "${casks[@]}"; do
-  if brew list --cask "$cask" &>/dev/null; then
-    ok "$cask already installed"
+# VS Code: check for code CLI regardless of install source
+if command -v code &>/dev/null; then
+  if brew list --cask visual-studio-code &>/dev/null; then
+    brew upgrade --cask visual-studio-code &>/dev/null && updated "visual-studio-code upgraded" || ok "visual-studio-code already up to date"
   else
-    brew install --cask "$cask" && ok "Installed $cask"
+    ok "VS Code installed outside Homebrew, skipping"
   fi
-done
+else
+  brew install --cask visual-studio-code && ok "Installed visual-studio-code"
+fi
+
+brew_cask "claude-code" "claude"
+brew_cask "font-fira-code"
 
 # -------------------------------------------------------
 # 4. Switch to Homebrew bash
@@ -111,7 +137,9 @@ fi
 step "Installing nvm and Node.js"
 
 if [ -d "$HOME/.nvm" ]; then
-  ok "nvm already installed"
+  # Reinstalling nvm upgrades it in place
+  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash &>/dev/null
+  ok "nvm up to date"
 else
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
   ok "nvm installed"
@@ -120,13 +148,9 @@ fi
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-if command -v node &>/dev/null; then
-  ok "Node.js already installed ($(node --version))"
-else
-  nvm install --lts
-  nvm alias default node
-  ok "Node.js LTS installed"
-fi
+# Always install latest LTS — nvm skips if already on latest
+nvm install --lts &>/dev/null && nvm alias default node
+ok "Node.js LTS up to date ($(node --version))"
 
 # -------------------------------------------------------
 # 6. VS Code extensions and settings
@@ -134,7 +158,7 @@ fi
 step "Setting up VS Code"
 
 if ! command -v code &>/dev/null; then
-  warn "VS Code CLI not found — install VS Code and enable 'code' command from the command palette"
+  warn "VS Code CLI not found — open VS Code and run: Shell Command: Install 'code' command in PATH"
 else
   extensions=(
     anthropic.claude-code
@@ -153,7 +177,7 @@ else
   )
 
   for ext in "${extensions[@]}"; do
-    code --install-extension "$ext" --force &>/dev/null && ok "Installed $ext"
+    code --install-extension "$ext" --force &>/dev/null && ok "Installed/updated $ext"
   done
 
   VSCODE_DIR="$HOME/Library/Application Support/Code/User"
