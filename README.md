@@ -22,7 +22,7 @@ git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
 - [ ] Load [`.gitconfig`](/.gitconfig)
 - [ ] Load [`.inputrc`](/.inputrc)
 
-### 3. Copy or create SSH keys
+### 2. Copy or create SSH keys
 - [ ] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
 - [ ] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
 - [ ] Fix key permissions
@@ -32,7 +32,7 @@ chmod 600 ~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa.pub
 ```
 
-### 4. Setup Homebrew and install packages
+### 3. Setup Homebrew and install packages
 - [ ] Install [Homebrew](http://brew.sh)
 - [ ] Install latest bash, git, and other packages
 
@@ -43,10 +43,9 @@ brew install git
 brew install bash-completion@2
 brew install yarn
 brew install gh
-brew install --cask claude-code
 ```
 
-### 5. Switch zsh for bash
+### 4. Switch zsh for bash
 - [ ] Set Homebrew bash as the default shell
 
 ```bash
@@ -54,7 +53,7 @@ echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
 chsh -s /opt/homebrew/bin/bash
 ```
 
-### 6. Setup Node.js and npm
+### 5. Setup Node.js and npm
 - [ ] Install [nvm](https://github.com/creationix/nvm)
 - [ ] Install latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as global version of Node.js
@@ -65,18 +64,19 @@ nvm install --lts
 nvm alias default node
 ```
 
-### 7. Install Fira Code font
+### 6. Install Fira Code font
 - [ ] Install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font
 
 ```bash
 brew install --cask font-fira-code
 ```
 
-### 8. Setup code editor
-- [ ] Install [Visual Studio Code](https://code.visualstudio.com) via Homebrew (includes `code` CLI)
+### 7. Setup code editor
+- [ ] Install [Visual Studio Code](https://code.visualstudio.com) and [Claude Code](https://claude.ai/code) via Homebrew
 
 ```bash
 brew install --cask visual-studio-code
+brew install --cask claude-code
 ```
 
 - [ ] Install extensions
@@ -96,7 +96,7 @@ brew install --cask visual-studio-code
 - [ ] Apply [`settings.json`](/settings.json)
 - [ ] Apply [`keybindings.json`](/keybindings.json)
 
-### 9. macOS Preferences
+### 8. macOS Preferences
 
 ```bash
   # Dock

@@ -35,20 +35,19 @@ brew_formula() {
   local pkg=$1
   if brew list --formula "$pkg" &>/dev/null; then
     brew upgrade "$pkg" &>/dev/null && updated "$pkg upgraded" || ok "$pkg already up to date"
-  elif command -v "$pkg" &>/dev/null; then
-    warn "$pkg is installed outside Homebrew, skipping"
   else
     brew install "$pkg" && ok "Installed $pkg"
   fi
 }
 
 # Install or upgrade a Homebrew cask
+# Pass a second argument to check if it's already installed via a CLI command
 brew_cask() {
   local cask=$1
-  local cmd=${2:-$1}
+  local cmd=$2
   if brew list --cask "$cask" &>/dev/null; then
     brew upgrade --cask "$cask" &>/dev/null && updated "$cask upgraded" || ok "$cask already up to date"
-  elif command -v "$cmd" &>/dev/null; then
+  elif [ -n "$cmd" ] && command -v "$cmd" &>/dev/null; then
     warn "$cask is installed outside Homebrew, skipping"
   else
     brew install --cask "$cask" && ok "Installed $cask"
