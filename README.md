@@ -29,7 +29,21 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 - [ ] Load [`.gitconfig`](/.gitconfig)
 - [ ] Load [`.inputrc`](/.inputrc)
 
-### 2. Copy or create SSH keys
+### 2. Set up Homebrew and install packages
+- [ ] Install [Homebrew](http://brew.sh)
+- [ ] Install the latest bash, git, and other packages
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+brew install bash
+brew install git
+brew install bash-completion@2
+brew install yarn
+brew install gh
+brew install --cask claude-code
+```
+
+### 3. Copy or create SSH keys
 - [ ] Copy existing SSH keys to `~/.ssh`, or generate new ones and add to GitHub
 
 If generating manually:
@@ -44,20 +58,6 @@ gh ssh-key add ~/.ssh/id_ed25519.pub --title "your-key-name"
 Then confirm it was added at [github.com/settings/keys](https://github.com/settings/keys).
 
 > The setup script handles this automatically — it will prompt for a key name, generate the key, and add it to GitHub via the `gh` CLI.
-
-### 3. Set up Homebrew and install packages
-- [ ] Install [Homebrew](http://brew.sh)
-- [ ] Install the latest bash, git, and other packages
-
-```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install bash
-brew install git
-brew install bash-completion@2
-brew install yarn
-brew install gh
-brew install --cask claude-code
-```
 
 ### 4. Switch from zsh to bash
 - [ ] Set Homebrew bash as the default shell
