@@ -33,6 +33,15 @@ $DRY_RUN && echo -e "\n${YELLOW}${BOLD}Dry run — no changes will be made${RESE
 echo "-----------------------------------"
 echo ""
 
+# Close System Preferences/Settings to prevent it from overriding defaults
+osascript -e 'tell application "System Preferences" to quit' 2>/dev/null
+osascript -e 'tell application "System Settings" to quit' 2>/dev/null
+
+# Ask for sudo password upfront
+if ! $DRY_RUN; then
+  sudo -v
+fi
+
 # Summary tracking
 INSTALLED=()
 UPDATED=()
