@@ -86,6 +86,7 @@ brew install --cask font-fira-code
 brew install --cask visual-studio-code
 ```
 
+- [ ] Install the `code` CLI: open VS Code, open the Command Palette (`Cmd+Shift+P`), and run `Shell Command: Install 'code' command in PATH`
 - [ ] Install extensions
   - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
   - [ ] [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
