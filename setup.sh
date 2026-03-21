@@ -340,6 +340,7 @@ else
 
   # Finder
   defaults write com.apple.finder AppleShowAllFiles true
+  defaults write com.apple.finder ShowPathbar -bool true
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
   ok "Finder configured"

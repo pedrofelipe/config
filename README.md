@@ -127,6 +127,9 @@ brew install --cask visual-studio-code
   # Show hidden files in Finder
   defaults write com.apple.finder AppleShowAllFiles true
 
+  # Show path bar in Finder
+  defaults write com.apple.finder ShowPathbar -bool true
+
   # When performing a search, search the current folder by default
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
