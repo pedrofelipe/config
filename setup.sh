@@ -145,7 +145,7 @@ if ! command -v brew &>/dev/null; then
     /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
     eval "$(/opt/homebrew/bin/brew shellenv)"
     installed "Homebrew"
-    warn "Homebrew was added to this session's PATH only — your shell will need a restart to pick it up permanently"
+    warn "Homebrew was added to this session's PATH — restart your terminal to make it permanent"
   fi
 else
   if $DRY_RUN; then
@@ -175,7 +175,7 @@ if [ -d "/Applications/Visual Studio Code.app" ]; then
     ok "VS Code installed outside Homebrew, skipping"
   fi
   if ! command -v code &>/dev/null; then
-    warn "VS Code CLI not found — open VS Code and run: Shell Command: Install 'code' command in PATH"
+    warn "VS Code CLI not found — in VS Code, open the Command Palette and run: Shell Command: Install 'code' command in PATH"
   fi
 else
   if $DRY_RUN; then
@@ -265,7 +265,7 @@ fi
 step "Setting up VS Code"
 
 if ! command -v code &>/dev/null; then
-  warn "VS Code CLI not found — open VS Code and run: Shell Command: Install 'code' command in PATH"
+  warn "VS Code CLI not found — in VS Code, open the Command Palette and run: Shell Command: Install 'code' command in PATH"
 else
   extensions=(
     anthropic.claude-code

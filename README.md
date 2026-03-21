@@ -9,9 +9,9 @@ git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
 ## Contents
 | File | Description |
 | --- | --- |
-| `.bash_profile` | Customizes the Terminal.app prompt and echoes the currently checked out Git branch |
-| `.gitconfig` | Global Git configuration to specify my name and email, shortcuts, colors, and more |
-| `.inputrc` | Makes tab autocompletion case insensitive |
+| `.bash_profile` | Customizes the Terminal.app prompt and shows the currently checked-out Git branch |
+| `.gitconfig` | Global Git configuration with my name, email, aliases, colors, and more |
+| `.inputrc` | Makes tab completion case-insensitive |
 | `settings.json` | Custom settings for Visual Studio Code |
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 | `setup.sh` | Automated setup script for a fresh macOS install |
@@ -33,9 +33,9 @@ chmod 600 ~/.ssh/id_rsa
 chmod 600 ~/.ssh/id_rsa.pub
 ```
 
-### 3. Setup Homebrew and install packages
+### 3. Set up Homebrew and install packages
 - [ ] Install [Homebrew](http://brew.sh)
-- [ ] Install latest bash, git, and other packages
+- [ ] Install the latest bash, git, and other packages
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -44,6 +44,7 @@ brew install git
 brew install bash-completion@2
 brew install yarn
 brew install gh
+brew install --cask claude-code
 ```
 
 ### 4. Switch zsh for bash
@@ -54,10 +55,10 @@ echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
 chsh -s /opt/homebrew/bin/bash
 ```
 
-### 5. Setup Node.js and npm
+### 5. Set up Node.js and npm
 - [ ] Install [nvm](https://github.com/creationix/nvm)
-- [ ] Install latest [Node.js](https://nodejs.org/en) LTS version
-- [ ] Set as global version of Node.js
+- [ ] Install the latest [Node.js](https://nodejs.org/en) LTS version
+- [ ] Set as the default Node.js version
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
@@ -65,19 +66,18 @@ nvm install --lts
 nvm alias default node
 ```
 
-### 6. Install Fira Code font
+### 6. Install the Fira Code font
 - [ ] Install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font
 
 ```bash
 brew install --cask font-fira-code
 ```
 
-### 7. Setup code editor
-- [ ] Install [Visual Studio Code](https://code.visualstudio.com) and [Claude Code](https://claude.ai/code) via Homebrew
+### 7. Set up VS Code
+- [ ] Install [Visual Studio Code](https://code.visualstudio.com) via Homebrew
 
 ```bash
 brew install --cask visual-studio-code
-brew install --cask claude-code
 ```
 
 - [ ] Install extensions
@@ -118,13 +118,13 @@ brew install --cask claude-code
   defaults write com.apple.dock show-recents -bool false
 
   # Finder
-  # Make hidden files visible on Finder
+  # Show hidden files in Finder
   defaults write com.apple.finder AppleShowAllFiles true
 
   # When performing a search, search the current folder by default
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
-  # Prevent .DS_Store files
+  # Prevent .DS_Store files on network drives
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 
   # System Settings
