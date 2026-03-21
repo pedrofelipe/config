@@ -53,7 +53,7 @@ brew install gh
 brew install --cask claude-code
 ```
 
-### 4. Switch zsh for bash
+### 4. Switch from zsh to bash
 - [ ] Set Homebrew bash as the default shell
 
 ```bash
@@ -123,6 +123,12 @@ brew install --cask visual-studio-code
   # Don’t show recent applications in Dock
   defaults write com.apple.dock show-recents -bool false
 
+  # Disable hot corners
+  defaults write com.apple.dock wvous-tl-corner -int 1
+  defaults write com.apple.dock wvous-tr-corner -int 1
+  defaults write com.apple.dock wvous-bl-corner -int 1
+  defaults write com.apple.dock wvous-br-corner -int 1
+
   # Finder
   # Show hidden files in Finder
   defaults write com.apple.finder AppleShowAllFiles true
@@ -142,12 +148,6 @@ brew install --cask visual-studio-code
 
   # Disable keyboard autocorrect
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-
-  # Disable hot corners
-  defaults write com.apple.dock wvous-tl-corner -int 1
-  defaults write com.apple.dock wvous-tr-corner -int 1
-  defaults write com.apple.dock wvous-bl-corner -int 1
-  defaults write com.apple.dock wvous-br-corner -int 1
 
   # Restart Finder and Dock
   killall Finder
