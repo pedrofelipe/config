@@ -7,9 +7,8 @@
 | `.bash_profile` | Customizes the Terminal.app prompt and echoes the currently checked out Git branch |
 | `.gitconfig` | Global Git configuration to specify my name and email, shortcuts, colors, and more |
 | `.inputrc` | Makes tab autocompletion case insensitive |
-| `.hyper.js` | Custom settings for Hyper terminal |
-| `settings.js` | Custom settings for Visual Studio Code |
-| `settings.js` | Custom set of key bindings for Visual Studio Code |
+| `settings.json` | Custom settings for Visual Studio Code |
+| `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 
 ## Checklist
 
@@ -46,8 +45,10 @@ chmod 600 ~/.ssh/id_rsa.pub
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 brew install bash
 brew install git
-brew install bash-completion
+brew install bash-completion@2
 brew install yarn
+brew install gh
+brew install --cask claude-code
 ```
 
 ### 5. Setup Node.js and npm
@@ -57,51 +58,39 @@ brew install yarn
 - [ ] Upgrade npm to latest version
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
 nvm install --lts
 nvm alias default node
-nvm install-latest-npm
 ```
 
-### 6. Setup Hyper terminal
-- [ ] Install [Hyper](https://hyper.is)
-- [ ] Load [`.hyper.js`](/.hyper.js) config file on user folder
-
-```bash
-brew install --cask hyper
-```
-
-### 7. Install Fira Code font
+### 6. Install Fira Code font
 - [ ] Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
 
 ```bash
-brew tap homebrew/cask-fonts
 brew install --cask font-fira-code
 ```
 
-### 8. Setup code editor
+### 7. Setup code editor
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 - [ ] Install extensions
   - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
-  - [ ] [colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
-  - [ ] [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
+  - [ ] [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
+  - [ ] [Colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
   - [ ] [EditorConfig](https://marketplace.visualstudio.com/items?itemName=EditorConfig.EditorConfig)
-  - [ ] [GitHub Copilot](https://marketplace.visualstudio.com/items?itemName=GitHub.copilot)
+  - [ ] [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
   - [ ] [GitHub Theme](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme)
   - [ ] [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens)
   - [ ] [Import Cost](https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost)
   - [ ] [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
   - [ ] [Path Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.path-intellisense)
   - [ ] [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-  - [ ] [Sort lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
-  - [ ] [Stylelint](https://marketplace.visualstudio.com/items?itemName=stylelint.vscode-stylelint)
+  - [ ] [Sort Lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
   - [ ] [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
-  - [ ] [WSL](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-wsl)
 - [ ] Load [`settings.json`](/settings.json) config file
 - [ ] Load [`keybindings.json`](/keybindings.json) file
 
-### 9. macOS Preferences
+### 8. macOS Preferences
 
 ```bash
   # Dock
@@ -137,15 +126,6 @@ brew install --cask font-fira-code
 
   # Disable keyboard autocorrect
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-
-  # Disable Dashboard
-  defaults write com.apple.dashboard mcx-disabled -bool true
-
-  # Don’t show Dashboard as a Space
-  defaults write com.apple.dock dashboard-in-overlay -bool true
-
-  # Show battery percentage in menu bar
-  defaults write com.apple.menuextra.battery ShowPercent -string "YES"
 
   # Restart Finder and Dock
   killall Finder

@@ -3,11 +3,6 @@ function parse_git_branch() {
   git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'
 }
 
-# Fix missing Hyper cursor
-function fix-cursor() {
-  tput cnorm
-}
-
 # Quicker navigation
 alias ..="cd .."
 alias ...="cd ../.."
@@ -67,7 +62,7 @@ export PS2="\[$ORANGE\]→ \[$RESET\]"
 export PROMPT_COMMAND='echo -ne "\033]0;${PWD##*/}\007"'
 
 # bash-completion
-[[ -r "/usr/local/etc/profile.d/bash_completion.sh" ]] && . "/usr/local/etc/profile.d/bash_completion.sh"
+[[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
 
 # nvm
 export NVM_DIR="$HOME/.nvm"

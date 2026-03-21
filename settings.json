@@ -10,7 +10,7 @@
   "editor.detectIndentation": false,
   "editor.fontFamily": "'Fira Code'",
   "editor.fontLigatures": true,
-  "editor.fontSize": 15,
+  "editor.fontSize": 14,
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
   "editor.inlineSuggest.enabled": true,
@@ -37,4 +37,7 @@
   "workbench.startupEditor": "newUntitledFile",
   "workbench.tree.indent": 15,
   "workbench.tree.renderIndentGuides": "always",
+  "gitlens.codeLens.enabled": false,
+  "security.workspace.trust.enabled": false,
+  "claudeCode.preferredLocation": "panel"
 }
