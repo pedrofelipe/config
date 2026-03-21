@@ -212,6 +212,9 @@ brew install --cask 1password
   # Mute volume change feedback sound
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
 
+  # Disable translucent menu bar
+  defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
+
   # Finder
   # Don't warn when changing a file extension
   defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false

@@ -418,6 +418,7 @@ else
   defaults write NSGlobalDomain KeyRepeat -int 5
   defaults write NSGlobalDomain InitialKeyRepeat -int 25
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
+  defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
   ok "System settings configured"
 
   # Finder
