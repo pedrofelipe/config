@@ -54,6 +54,7 @@ ok()        { echo -e "${GREEN}✔ $1${RESET}"; SKIPPED+=("$1"); }
 updated()   { echo -e "${BLUE}↑ updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
+confirm()   { $DRY_RUN && return 0; read -r -p "  Install $1? [Y/n] " r; [[ "$r" =~ ^[nN] ]] && return 1 || return 0; }
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -328,9 +329,9 @@ fi
 # -------------------------------------------------------
 step "Installing apps"
 
-brew_cask "google-chrome"
-brew_cask "spotify"
-brew_cask "1password"
+confirm "google-chrome" && brew_cask "google-chrome"
+confirm "spotify"       && brew_cask "spotify"
+confirm "1password"     && brew_cask "1password"
 
 # -------------------------------------------------------
 # 8. macOS Preferences
