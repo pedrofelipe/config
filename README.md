@@ -124,6 +124,12 @@ brew install --cask font-fira-code
   # Disable keyboard autocorrect
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
+  # Disable hot corners
+  defaults write com.apple.dock wvous-tl-corner -int 1
+  defaults write com.apple.dock wvous-tr-corner -int 1
+  defaults write com.apple.dock wvous-bl-corner -int 1
+  defaults write com.apple.dock wvous-br-corner -int 1
+
   # Restart Finder and Dock
   killall Finder
   killall Dock
