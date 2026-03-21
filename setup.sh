@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Colors
-RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
@@ -140,11 +139,11 @@ fi
 step "Installing nvm and Node.js"
 
 if [ -d "$HOME/.nvm" ]; then
-  # Reinstalling nvm upgrades it in place
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash &>/dev/null
+  cd "$HOME/.nvm" && git fetch --tags &>/dev/null && git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*") &>/dev/null && cd - &>/dev/null
   ok "nvm up to date"
 else
-  curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+  git clone https://github.com/nvm-sh/nvm.git "$HOME/.nvm" &>/dev/null
+  cd "$HOME/.nvm" && git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*") &>/dev/null && cd - &>/dev/null
   ok "nvm installed"
 fi
 

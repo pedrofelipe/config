@@ -60,7 +60,8 @@ chsh -s /opt/homebrew/bin/bash
 - [ ] Set as global version of Node.js
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+git clone https://github.com/nvm-sh/nvm.git ~/.nvm
+cd ~/.nvm && git checkout $(git describe --abbrev=0 --tags --match "v[0-9]*")
 nvm install --lts
 nvm alias default node
 ```
@@ -111,8 +112,8 @@ brew install --cask claude-code
   defaults write com.apple.dock size-immutable -bool true
 
   # Clear out the dock of default icons
-  defaults delete com.apple.dock persistent-apps
-  defaults delete com.apple.dock persistent-others
+  defaults delete com.apple.dock persistent-apps 2>/dev/null
+  defaults delete com.apple.dock persistent-others 2>/dev/null
 
   # Don’t show recent applications in Dock
   defaults write com.apple.dock show-recents -bool false
