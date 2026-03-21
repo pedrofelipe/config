@@ -30,14 +30,18 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 - [ ] Load [`.inputrc`](/.inputrc)
 
 ### 2. Copy or create SSH keys
-- [ ] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
-- [ ] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
-- [ ] Fix key permissions
+- [ ] Copy existing SSH keys to `~/.ssh`, or generate new ones and add to GitHub
+
+If generating manually:
 
 ```bash
-chmod 600 ~/.ssh/id_rsa
-chmod 600 ~/.ssh/id_rsa.pub
+ssh-keygen -t ed25519 -C "your-key-name"
+chmod 600 ~/.ssh/id_ed25519
+chmod 600 ~/.ssh/id_ed25519.pub
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "your-key-name"
 ```
+
+> The setup script handles this automatically — it will prompt for a key name, generate the key, and add it to GitHub via the `gh` CLI.
 
 ### 3. Set up Homebrew and install packages
 - [ ] Install [Homebrew](http://brew.sh)

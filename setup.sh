@@ -145,10 +145,26 @@ done
 # -------------------------------------------------------
 step "SSH keys"
 
-if [ -f "$HOME/.ssh/id_rsa" ]; then
+SSH_KEY_TITLE=""
+SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
+
+if [ -f "$SSH_KEY_PATH" ] || [ -f "$HOME/.ssh/id_rsa" ]; then
   ok "SSH keys already exist"
 else
-  warn "No SSH keys found — generate them manually or copy existing ones to ~/.ssh"
+  if $DRY_RUN; then
+    would "prompt for key name, generate SSH key, add to GitHub"
+  else
+    read -r -p "  Name for this SSH key on GitHub (e.g. Work MacBook): " SSH_KEY_TITLE
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+    if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -C "$SSH_KEY_TITLE"; then
+      chmod 600 "$SSH_KEY_PATH"
+      chmod 600 "${SSH_KEY_PATH}.pub"
+      installed "SSH key (~/.ssh/id_ed25519)"
+    else
+      warn "Failed to generate SSH key"
+    fi
+  fi
 fi
 
 # -------------------------------------------------------
@@ -176,6 +192,21 @@ fi
 for pkg in bash git bash-completion@2 yarn gh; do
   brew_formula "$pkg"
 done
+
+# Add SSH key to GitHub if one was just generated
+if [ -n "$SSH_KEY_TITLE" ] && [ -f "${SSH_KEY_PATH}.pub" ]; then
+  if $DRY_RUN; then
+    would "gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+  elif gh auth status &>/dev/null 2>&1; then
+    if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
+      installed "SSH key on GitHub"
+    else
+      warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+    fi
+  else
+    warn "Not authenticated with GitHub — run 'gh auth login' then: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+  fi
+fi
 
 # VS Code: check for app first, then CLI
 if [ -d "/Applications/Visual Studio Code.app" ]; then
