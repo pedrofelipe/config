@@ -129,6 +129,9 @@ brew install --cask 1password
   defaults delete com.apple.dock persistent-apps 2>/dev/null
   defaults delete com.apple.dock persistent-others 2>/dev/null
 
+  # Minimize windows to app icon
+  defaults write com.apple.dock minimize-to-application -bool true
+
   # Don’t show recent applications in Dock
   defaults write com.apple.dock show-recents -bool false
 
@@ -145,6 +148,9 @@ brew install --cask 1password
   # Show path bar in Finder
   defaults write com.apple.finder ShowPathbar -bool true
 
+  # Hide recent tags in Finder sidebar
+  defaults write com.apple.finder ShowRecentTags -bool false
+
   # When performing a search, search the current folder by default
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
@@ -157,6 +163,15 @@ brew install --cask 1password
 
   # Disable keyboard autocorrect
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+
+  # Show all file extensions
+  defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+
+  # Enable dark mode
+  defaults write NSGlobalDomain AppleInterfaceStyle Dark
+
+  # Disable natural scroll direction
+  defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
 
   # Restart Finder and Dock
   killall Finder

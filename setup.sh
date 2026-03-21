@@ -345,6 +345,7 @@ else
   defaults write com.apple.dock orientation left
   defaults write com.apple.dock tilesize -integer 40
   defaults write com.apple.dock size-immutable -bool true
+  defaults write com.apple.dock minimize-to-application -bool true
   defaults delete com.apple.dock persistent-apps 2>/dev/null
   defaults delete com.apple.dock persistent-others 2>/dev/null
   defaults write com.apple.dock show-recents -bool false
@@ -360,6 +361,7 @@ else
   # Finder
   defaults write com.apple.finder AppleShowAllFiles true
   defaults write com.apple.finder ShowPathbar -bool true
+  defaults write com.apple.finder ShowRecentTags -bool false
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
   ok "Finder configured"
@@ -367,6 +369,9 @@ else
   # System Settings
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+  defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+  defaults write NSGlobalDomain AppleInterfaceStyle Dark
+  defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
   ok "System settings configured"
 
   # Restart Finder and Dock
