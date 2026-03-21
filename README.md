@@ -41,6 +41,8 @@ chmod 600 ~/.ssh/id_ed25519.pub
 gh ssh-key add ~/.ssh/id_ed25519.pub --title "your-key-name"
 ```
 
+Then confirm it was added at [github.com/settings/keys](https://github.com/settings/keys).
+
 > The setup script handles this automatically — it will prompt for a key name, generate the key, and add it to GitHub via the `gh` CLI.
 
 ### 3. Set up Homebrew and install packages
