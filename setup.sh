@@ -181,7 +181,7 @@ else
     would "prompt for key name, generate SSH key, add to GitHub"
   else
     read -r -p "  Name for this SSH key on GitHub [Pedro's Mac]: " SSH_KEY_TITLE
-    SSH_KEY_TITLE="${SSH_KEY_TITLE:-Pedro's Mac}"
+    [[ -z "$SSH_KEY_TITLE" ]] && SSH_KEY_TITLE="Pedro's Mac"
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
     if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -C "$SSH_KEY_TITLE"; then
