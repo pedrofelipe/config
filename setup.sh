@@ -203,34 +203,16 @@ else
   fi
 fi
 
-# VS Code: check for app first, then CLI
+# VS Code: check app bundle first since 'code' CLI may not be in PATH
 if [ -d "/Applications/Visual Studio Code.app" ]; then
   if command -v brew &>/dev/null && brew list --cask visual-studio-code &>/dev/null; then
-    if $DRY_RUN; then
-      would "brew upgrade --cask visual-studio-code"
-    else
-      if brew upgrade --cask visual-studio-code &>/dev/null; then
-        updated "visual-studio-code"
-      else
-        ok "visual-studio-code already up to date"
-      fi
-    fi
+    brew_cask "visual-studio-code"
   else
     ok "VS Code installed outside Homebrew, skipping"
   fi
-  if ! command -v code &>/dev/null; then
-    warn "VS Code CLI not found — in VS Code, open the Command Palette and run: Shell Command: Install 'code' command in PATH"
-  fi
+  command -v code &>/dev/null || warn "VS Code CLI not found — in VS Code, open the Command Palette and run: Shell Command: Install 'code' command in PATH"
 else
-  if $DRY_RUN; then
-    would "brew install --cask visual-studio-code"
-  else
-    if brew install --cask visual-studio-code >/dev/null; then
-      installed "visual-studio-code"
-    else
-      warn "Failed to install visual-studio-code"
-    fi
-  fi
+  brew_cask "visual-studio-code"
 fi
 
 brew_cask "claude-code" "claude"
