@@ -1,6 +1,6 @@
 # Config
 
-My personal setup for a new Mac. Clone the repo and run the script — it handles everything automatically. If you'd rather go step by step, the full checklist is below.
+My personal setup for a new Mac. Run the script or follow the checklist below.
 
 ```bash
 git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
