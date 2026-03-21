@@ -1,5 +1,5 @@
 # Config
-**Config** is a basic checklist I follow to set up macOS development environment.
+**Config** is a basic checklist I follow to set up a macOS development environment.
 
 ## Contents
 | File | Description |
@@ -12,14 +12,7 @@
 
 ## Checklist
 
-### 1. Switch zsh for bash
-- [ ] Set bash the default shell on macOS
-
-```bash
-chsh -s /bin/bash
-```
-
-### 2. Load config files
+### 1. Load config files
 - [ ] Load [`.bash_profile`](/.bash_profile)
 - [ ] Load [`.gitconfig`](/.gitconfig)
 - [ ] Load [`.inputrc`](/.inputrc)
@@ -27,7 +20,7 @@ chsh -s /bin/bash
 ### 3. Copy or create SSH keys
 - [ ] Copy existing `id_rsa` and `id_rsa.pub` keys to `~/.ssh` folder
 - [ ] Or [generate a new SSH key](https://help.github.com/articles/generating-ssh-keys)
-- [ ] Fix keys permissions
+- [ ] Fix key permissions
 
 ```bash
 chmod 600 ~/.ssh/id_rsa
@@ -36,10 +29,7 @@ chmod 600 ~/.ssh/id_rsa.pub
 
 ### 4. Setup Homebrew and install packages
 - [ ] Install [Homebrew](http://brew.sh)
-- [ ] Update bash to latest version
-- [ ] Update Git to latest version
-- [ ] Install bash-completion
-- [ ] Install Yarn
+- [ ] Install latest bash, git, and other packages
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -51,11 +41,18 @@ brew install gh
 brew install --cask claude-code
 ```
 
-### 5. Setup Node.js and npm
+### 5. Switch zsh for bash
+- [ ] Set Homebrew bash as the default shell
+
+```bash
+echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
+chsh -s /opt/homebrew/bin/bash
+```
+
+### 6. Setup Node.js and npm
 - [ ] Install [nvm](https://github.com/creationix/nvm)
 - [ ] Install latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as global version of Node.js
-- [ ] Upgrade npm to latest version
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
@@ -63,14 +60,14 @@ nvm install --lts
 nvm alias default node
 ```
 
-### 6. Install Fira Code font
-- [ ] Download and install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font files
+### 7. Install Fira Code font
+- [ ] Install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font
 
 ```bash
 brew install --cask font-fira-code
 ```
 
-### 7. Setup code editor
+### 8. Setup code editor
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com)
 - [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
 - [ ] Install extensions
@@ -87,10 +84,10 @@ brew install --cask font-fira-code
   - [ ] [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
   - [ ] [Sort Lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
   - [ ] [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
-- [ ] Load [`settings.json`](/settings.json) config file
-- [ ] Load [`keybindings.json`](/keybindings.json) file
+- [ ] Apply [`settings.json`](/settings.json)
+- [ ] Apply [`keybindings.json`](/keybindings.json)
 
-### 8. macOS Preferences
+### 9. macOS Preferences
 
 ```bash
   # Dock
@@ -120,7 +117,7 @@ brew install --cask font-fira-code
   # Prevent .DS_Store files
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 
-  # System Preferences
+  # System Settings
   # Enable tap to click for trackpad
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 
