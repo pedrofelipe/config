@@ -171,7 +171,7 @@ else
   fi
 fi
 
-for pkg in bash git bash-completion@2 yarn gh; do
+for pkg in bash git bash-completion@2 yarn gh dockutil; do
   brew_formula "$pkg"
 done
 
@@ -373,18 +373,31 @@ step "Applying macOS preferences"
 
 if $DRY_RUN; then
   would "configure Dock, Finder, and System Settings"
+  would "reset Dock to: Finder, Google Chrome, Terminal, VS Code, 1Password, Spotify, Trash"
 else
   # Dock
   defaults write com.apple.dock orientation left
   defaults write com.apple.dock tilesize -integer 40
   defaults write com.apple.dock size-immutable -bool true
   defaults write com.apple.dock minimize-to-application -bool true
-  if ! defaults read com.apple.dock persistent-apps 2>/dev/null | grep "bundle-identifier" | grep -qv '"com\.apple\.'; then
-    defaults delete com.apple.dock persistent-apps 2>/dev/null
-    defaults delete com.apple.dock persistent-others 2>/dev/null
-  fi
   defaults write com.apple.dock show-recents -bool false
   ok "Dock configured"
+
+  # Dock app layout
+  if command -v dockutil &>/dev/null; then
+    read -r -p "  Reset Dock to preferred app list? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      dockutil --remove all --no-restart &>/dev/null
+      [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
+      [[ -d "/System/Applications/Utilities/Terminal.app" ]] && dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart &>/dev/null
+      [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
+      [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
+      [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
+      ok "Dock apps set: Finder, Google Chrome, Terminal, VS Code, 1Password, Spotify, Trash"
+    else
+      ok "Dock apps unchanged"
+    fi
+  fi
 
   # Hot corners (disabled)
   defaults write com.apple.dock wvous-tl-corner -int 1

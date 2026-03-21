@@ -40,6 +40,7 @@ brew install git
 brew install bash-completion@2
 brew install yarn
 brew install gh
+brew install dockutil
 brew install --cask claude-code
 ```
 
@@ -129,15 +130,19 @@ brew install --cask 1password
   # Lock Dock from being resized
   defaults write com.apple.dock size-immutable -bool true
 
-  # Clear default Apple apps from Dock (skipped if custom apps are already pinned)
-  defaults delete com.apple.dock persistent-apps 2>/dev/null
-  defaults delete com.apple.dock persistent-others 2>/dev/null
-
   # Minimize windows to app icon
   defaults write com.apple.dock minimize-to-application -bool true
 
   # Don’t show recent applications in Dock
   defaults write com.apple.dock show-recents -bool false
+
+  # Set Dock app layout (requires dockutil)
+  dockutil --remove all --no-restart
+  dockutil --add "/Applications/Google Chrome.app" --no-restart
+  dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart
+  dockutil --add "/Applications/Visual Studio Code.app" --no-restart
+  dockutil --add "/Applications/1Password.app" --no-restart
+  dockutil --add "/Applications/Spotify.app"
 
   # Disable hot corners
   defaults write com.apple.dock wvous-tl-corner -int 1
