@@ -75,7 +75,7 @@ for pkg in "${packages[@]}"; do
   fi
 done
 
-casks=(claude-code font-fira-code)
+casks=(visual-studio-code claude-code font-fira-code)
 for cask in "${casks[@]}"; do
   if brew list --cask "$cask" &>/dev/null; then
     ok "$cask already installed"

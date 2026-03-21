@@ -73,8 +73,12 @@ brew install --cask font-fira-code
 ```
 
 ### 8. Setup code editor
-- [ ] Install [Visual Studio Code](https://code.visualstudio.com)
-- [ ] [Enable launch from command line](https://code.visualstudio.com/docs/setup/mac#_launching-from-the-command-line)
+- [ ] Install [Visual Studio Code](https://code.visualstudio.com) via Homebrew (includes `code` CLI)
+
+```bash
+brew install --cask visual-studio-code
+```
+
 - [ ] Install extensions
   - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
   - [ ] [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
