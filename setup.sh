@@ -325,7 +325,6 @@ else
     christian-kohler.path-intellisense
     dbaeumer.vscode-eslint
     eamodio.gitlens
-    editorconfig.editorconfig
     esbenp.prettier-vscode
     formulahendry.auto-close-tag
     github.github-vscode-theme
