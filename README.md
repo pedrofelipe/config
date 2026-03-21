@@ -129,10 +129,6 @@ brew install --cask 1password
   # Lock Dock from being resized
   defaults write com.apple.dock size-immutable -bool true
 
-  # Clear out the dock of default icons
-  defaults delete com.apple.dock persistent-apps 2>/dev/null
-  defaults delete com.apple.dock persistent-others 2>/dev/null
-
   # Minimize windows to app icon
   defaults write com.apple.dock minimize-to-application -bool true
 

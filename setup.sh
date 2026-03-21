@@ -379,8 +379,6 @@ else
   defaults write com.apple.dock tilesize -integer 40
   defaults write com.apple.dock size-immutable -bool true
   defaults write com.apple.dock minimize-to-application -bool true
-  defaults delete com.apple.dock persistent-apps 2>/dev/null
-  defaults delete com.apple.dock persistent-others 2>/dev/null
   defaults write com.apple.dock show-recents -bool false
   ok "Dock configured"
 
