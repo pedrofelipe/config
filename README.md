@@ -92,6 +92,7 @@ brew install --cask visual-studio-code
 
 - [ ] Install the `code` CLI: open VS Code, open the Command Palette (`Cmd+Shift+P`), and run `Shell Command: Install 'code' command in PATH`
 - [ ] Install extensions
+  - [ ] [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
   - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
   - [ ] [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
   - [ ] [Colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
@@ -180,6 +181,18 @@ brew install --cask 1password
   # Disable keyboard autocorrect
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
+  # Disable autocapitalization
+  defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+
+  # Disable smart dashes
+  defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+
+  # Disable smart periods
+  defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
+
+  # Disable smart quotes
+  defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
+
   # Show all file extensions
   defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
@@ -198,6 +211,20 @@ brew install --cask 1password
 
   # Mute volume change feedback sound
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
+
+  # Finder
+  # Don't warn when changing a file extension
+  defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
+  # Screenshots
+  # Save to Desktop
+  defaults write com.apple.screencapture location -string "$HOME/Desktop"
+
+  # Disable drop shadow
+  defaults write com.apple.screencapture disable-shadow -bool true
+
+  # Disable floating thumbnail preview
+  defaults write com.apple.screencapture show-thumbnail -bool false
 
   # Restart Finder and Dock
   killall Finder

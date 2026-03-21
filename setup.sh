@@ -327,6 +327,7 @@ else
     eamodio.gitlens
     editorconfig.editorconfig
     esbenp.prettier-vscode
+    formulahendry.auto-close-tag
     github.github-vscode-theme
     kamikillerto.vscode-colorize
     tyriar.sort-lines
@@ -406,6 +407,10 @@ else
   # System Settings
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
+  defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
   defaults write NSGlobalDomain AppleShowAllExtensions -bool true
   defaults write NSGlobalDomain AppleInterfaceStyle Dark
   defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
@@ -414,6 +419,16 @@ else
   defaults write NSGlobalDomain InitialKeyRepeat -int 25
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
   ok "System settings configured"
+
+  # Finder
+  defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+  ok "Finder extension warning disabled"
+
+  # Screenshots
+  defaults write com.apple.screencapture location -string "$HOME/Desktop"
+  defaults write com.apple.screencapture disable-shadow -bool true
+  defaults write com.apple.screencapture show-thumbnail -bool false
+  ok "Screenshots configured"
 
   # Restart Finder and Dock
   killall Finder
