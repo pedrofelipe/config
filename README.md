@@ -139,8 +139,8 @@ brew install --cask 1password
   # Set Dock app layout (requires dockutil)
   dockutil --remove all --no-restart
   dockutil --add "/Applications/Google Chrome.app" --no-restart
-  dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart
   dockutil --add "/Applications/Visual Studio Code.app" --no-restart
+  dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart
   dockutil --add "/Applications/1Password.app" --no-restart
   dockutil --add "/Applications/Spotify.app"
 
