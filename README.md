@@ -6,6 +6,12 @@ My personal setup for a new Mac. Run the script or follow the checklist below.
 git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
 ```
 
+Pass `--dry-run` to preview what the script would do without making any changes.
+
+```bash
+./setup.sh --dry-run
+```
+
 ## Contents
 | File | Description |
 | --- | --- |
