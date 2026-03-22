@@ -193,6 +193,7 @@ else
     would "generate SSH key, add to GitHub with title $(hostname)"
   else
     SSH_KEY_TITLE="$(hostname)"
+    SSH_KEY_TITLE="${SSH_KEY_TITLE%.local}"
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
     if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH"; then

@@ -53,7 +53,7 @@ If generating manually:
 ssh-keygen -t ed25519
 chmod 600 ~/.ssh/id_ed25519
 chmod 600 ~/.ssh/id_ed25519.pub
-gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)"
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname | sed 's/\.local$//')"
 ```
 
 Then confirm it was added at [github.com/settings/keys](https://github.com/settings/keys).
