@@ -109,7 +109,39 @@ brew install --cask visual-studio-code
 - [ ] Apply [`settings.json`](/settings.json)
 - [ ] Apply [`keybindings.json`](/keybindings.json)
 
-### 8. Install apps
+### 8. Set up Terminal
+
+The setup script configures Terminal automatically. To do it manually:
+
+```bash
+TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
+
+# Duplicate Basic profile and rename
+/usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST"
+
+# Font and background
+osascript -e 'tell application "Terminal" to set font name of settings set "Pedro'\''s Default" to "SFMono-Regular"'
+osascript -e 'tell application "Terminal" to set font size of settings set "Pedro'\''s Default" to 15'
+osascript -e 'tell application "Terminal" to set background color of settings set "Pedro'\''s Default" to {0, 0, 0}'
+
+# Profile settings
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:BackgroundBlur' 0.5" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:shellExitAction' 0" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowActiveProcessInTitle' false" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowDimensionsInTitle' false" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowShellCommandInTitle' false" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowWindowSettingsNameInTitle' false" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLInTitle' true" "$TERM_PLIST"
+/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLPathInTitle' false" "$TERM_PLIST"
+
+# Set as default
+defaults write com.apple.Terminal "Default Window Settings" -string "Pedro's Default"
+defaults write com.apple.Terminal "Startup Window Settings" -string "Pedro's Default"
+defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
+```
+
+### 9. Install apps
 
 ```bash
 brew install --cask google-chrome
@@ -117,7 +149,7 @@ brew install --cask spotify
 brew install --cask 1password
 ```
 
-### 9. macOS Preferences
+### 10. macOS Preferences
 
 ```bash
   # Dock

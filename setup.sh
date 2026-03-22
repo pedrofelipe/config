@@ -380,7 +380,57 @@ confirm "Spotify"       && brew_cask "spotify"
 confirm "1Password"     && brew_cask "1password"
 
 # -------------------------------------------------------
-# 8. macOS Preferences
+# 8. Terminal
+# -------------------------------------------------------
+step "Setting up Terminal"
+
+TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
+TERM_PROFILE="Pedro's Default"
+
+if $DRY_RUN; then
+  would "create Terminal profile '$TERM_PROFILE' with SF Mono 15pt, black background, and title bar settings"
+elif [ ! -f "$TERM_PLIST" ]; then
+  warn "Terminal preferences not found — open Terminal.app first, then re-run"
+else
+  # Create the profile by duplicating Basic, then rename it
+  /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default' dict" "$TERM_PLIST"
+  /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST"
+
+  # Font and background via AppleScript
+  osascript &>/dev/null <<'APPLESCRIPT'
+tell application "Terminal"
+  set font name of settings set "Pedro's Default" to "SFMono-Regular"
+  set font size of settings set "Pedro's Default" to 15
+  set background color of settings set "Pedro's Default" to {0, 0, 0}
+end tell
+APPLESCRIPT
+
+  # Profile settings via PlistBuddy
+  pb_set() {
+    /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:$1' $2" "$TERM_PLIST" 2>/dev/null \
+      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:$1' $3 $2" "$TERM_PLIST"
+  }
+  pb_set BackgroundBlur               0.5   real
+  pb_set shellExitAction              0     integer
+  pb_set ShowActiveProcessInTitle     false bool
+  pb_set ShowDimensionsInTitle        false bool
+  pb_set ShowShellCommandInTitle      false bool
+  pb_set ShowWindowSettingsNameInTitle false bool
+  pb_set ShowRepresentedURLInTitle    true  bool
+  pb_set ShowRepresentedURLPathInTitle false bool
+  unset -f pb_set
+
+  # Set as default profile
+  defaults write com.apple.Terminal "Default Window Settings" -string "$TERM_PROFILE"
+  defaults write com.apple.Terminal "Startup Window Settings" -string "$TERM_PROFILE"
+  defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
+
+  ok "Terminal profile '$TERM_PROFILE' configured"
+fi
+
+# -------------------------------------------------------
+# 9. macOS Preferences
 # -------------------------------------------------------
 step "Applying macOS preferences"
 
