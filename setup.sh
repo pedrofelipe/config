@@ -46,17 +46,40 @@ fi
 # Summary tracking
 INSTALLED=()
 UPDATED=()
-SKIPPED=()
 WARNINGS=()
+
+# Per-section summaries
+SUM_DOTFILES=""
+SUM_HOMEBREW=""
+SUM_SSH=""
+SUM_SHELL=""
+SUM_NODE=""
+SUM_VSCODE=""
+SUM_APPS=""
+SUM_TERMINAL=""
+SUM_MACOS=""
+
+# Brew counters (shared across brew_formula/brew_cask calls)
+BREW_OK=0
+BREW_UPDATED=0
+BREW_INSTALLED=0
 
 step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
-ok()         { echo -e "${CYAN}✔ $1${RESET}"; SKIPPED+=("$1"); }
-configured() { echo -e "${CYAN}✔ $1${RESET}"; }
+ok()        { echo -e "${CYAN}✔ $1${RESET}"; }
 updated()   { echo -e "${BLUE}↑ updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
-confirm()   { $DRY_RUN && return 0; read -r -p "  Install $1? [Y/n] " r; [[ "$r" =~ ^[nN] ]] && return 1 || return 0; }
+
+join_arr() {
+  local sep=$1; shift
+  local result="" first=true
+  for item in "$@"; do
+    $first && result="$item" || result="$result$sep$item"
+    first=false
+  done
+  echo "$result"
+}
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
@@ -74,11 +97,14 @@ brew_formula() {
       if brew outdated --formula | grep -q "^$pkg$"; then
         if brew upgrade "$pkg" &>/dev/null; then
           updated "$pkg"
+          BREW_UPDATED=$((BREW_UPDATED+1))
         else
           warn "Failed to upgrade $pkg"
+          return 1
         fi
       else
         ok "$pkg already up to date"
+        BREW_OK=$((BREW_OK+1))
       fi
     fi
   else
@@ -87,8 +113,10 @@ brew_formula() {
     else
       if brew install "$pkg" &>/dev/null; then
         installed "$pkg"
+        BREW_INSTALLED=$((BREW_INSTALLED+1))
       else
         warn "Failed to install $pkg"
+        return 1
       fi
     fi
   fi
@@ -110,11 +138,13 @@ brew_cask() {
       if brew outdated --cask | grep -q "^$cask$"; then
         if brew upgrade --cask "$cask" &>/dev/null; then
           updated "$cask"
+          BREW_UPDATED=$((BREW_UPDATED+1))
         else
           warn "Failed to upgrade $cask"
         fi
       else
         ok "$cask already up to date"
+        BREW_OK=$((BREW_OK+1))
       fi
     fi
   elif [ -n "$cmd" ] && command -v "$cmd" &>/dev/null; then
@@ -125,8 +155,10 @@ brew_cask() {
     else
       if brew install --cask "$cask" &>/dev/null; then
         installed "$cask"
+        BREW_INSTALLED=$((BREW_INSTALLED+1))
       else
         warn "Failed to install $cask"
+        return 1
       fi
     fi
   fi
@@ -137,6 +169,7 @@ brew_cask() {
 # -------------------------------------------------------
 step "Loading config files"
 
+CF_OK=()
 for file in .bash_profile .gitconfig .inputrc; do
   if [ -f "$DOTFILES_DIR/$file" ]; then
     if $DRY_RUN; then
@@ -145,20 +178,27 @@ for file in .bash_profile .gitconfig .inputrc; do
       if [ -f "$HOME/$file" ]; then
         if diff -q "$HOME/$file" "$DOTFILES_DIR/$file" &>/dev/null; then
           ok "$file already up to date"
+          CF_OK+=("$file")
           continue
         fi
         echo "  Diff for $file:"
         diff --color=always "$HOME/$file" "$DOTFILES_DIR/$file"
-        read -r -p "  $file already exists. Overwrite? [Y/n] " r
-        [[ "$r" =~ ^[nN] ]] && { ok "$file unchanged"; continue; }
+        read -r -p "  $file already exists. Overwrite? [y/N] " r
+        if [[ ! "$r" =~ ^[yY] ]]; then
+          ok "$file unchanged"
+          CF_OK+=("$file")
+          continue
+        fi
       fi
       cp "$DOTFILES_DIR/$file" "$HOME/$file"
       installed "$file"
+      CF_OK+=("$file")
     fi
   else
     warn "$file not found, skipping"
   fi
 done
+[ ${#CF_OK[@]} -gt 0 ] && SUM_DOTFILES="${GREEN}✔${RESET} $(join_arr ' · ' "${CF_OK[@]}")"
 
 # -------------------------------------------------------
 # 2. Homebrew
@@ -186,6 +226,20 @@ for pkg in bash git bash-completion@2 yarn gh dockutil; do
   brew_formula "$pkg"
 done
 
+# VS Code: check app bundle first since 'code' CLI may not be in PATH
+if [ -d "/Applications/Visual Studio Code.app" ]; then
+  if command -v brew &>/dev/null && brew list --cask visual-studio-code &>/dev/null; then
+    brew_cask "visual-studio-code"
+  else
+    ok "VS Code installed outside Homebrew, skipping"
+  fi
+else
+  brew_cask "visual-studio-code"
+fi
+
+brew_cask "claude-code" "claude"
+brew_cask "font-fira-code"
+
 # -------------------------------------------------------
 # 3. SSH keys
 # -------------------------------------------------------
@@ -195,6 +249,7 @@ SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
 
 if [ -f "$SSH_KEY_PATH" ] || [ -f "$HOME/.ssh/id_rsa" ]; then
   ok "SSH keys already exist"
+  SUM_SSH="${GREEN}✔${RESET} keys exist"
 else
   if $DRY_RUN; then
     would "generate SSH key, add to GitHub with title $(hostname | sed 's/\.local$//')"
@@ -207,19 +262,22 @@ else
       chmod 600 "$SSH_KEY_PATH"
       chmod 600 "${SSH_KEY_PATH}.pub"
       installed "SSH key (~/.ssh/id_ed25519)"
+      SUM_SSH="${GREEN}✔${RESET} key generated"
       if gh auth status &>/dev/null 2>&1; then
         if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
           installed "SSH key on GitHub"
+          SUM_SSH="${GREEN}✔${RESET} key generated · added to GitHub"
         else
           warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
         fi
       else
-        read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
-        if [[ ! "$r" =~ ^[nN] ]]; then
+        read -r -p "  Not authenticated with GitHub. Run gh auth login now? [y/N] " r
+        if [[ "$r" =~ ^[yY] ]]; then
           gh auth login
           if gh auth status &>/dev/null 2>&1; then
             if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
               installed "SSH key on GitHub"
+              SUM_SSH="${GREEN}✔${RESET} key generated · added to GitHub"
             else
               warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
             fi
@@ -236,19 +294,12 @@ else
   fi
 fi
 
-# VS Code: check app bundle first since 'code' CLI may not be in PATH
-if [ -d "/Applications/Visual Studio Code.app" ]; then
-  if command -v brew &>/dev/null && brew list --cask visual-studio-code &>/dev/null; then
-    brew_cask "visual-studio-code"
-  else
-    ok "VS Code installed outside Homebrew, skipping"
-  fi
-else
-  brew_cask "visual-studio-code"
-fi
-
-brew_cask "claude-code" "claude"
-brew_cask "font-fira-code"
+# Build Homebrew summary (after all brew_formula/brew_cask calls in this section)
+HB_PARTS=()
+[ $BREW_INSTALLED -gt 0 ] && HB_PARTS+=("${BREW_INSTALLED} installed")
+[ $BREW_UPDATED -gt 0 ]   && HB_PARTS+=("${BREW_UPDATED} updated")
+[ $BREW_OK -gt 0 ]        && HB_PARTS+=("${BREW_OK} up to date")
+[ ${#HB_PARTS[@]} -gt 0 ] && SUM_HOMEBREW="${GREEN}✔${RESET} $(join_arr ' · ' "${HB_PARTS[@]}")"
 
 # -------------------------------------------------------
 # 4. Switch to Homebrew bash
@@ -259,6 +310,7 @@ HOMEBREW_BASH="/opt/homebrew/bin/bash"
 
 if ! $DRY_RUN && [ ! -f "$HOMEBREW_BASH" ]; then
   warn "Homebrew bash not found at $HOMEBREW_BASH — was 'brew install bash' successful? Skipping shell switch"
+  SUM_SHELL="${YELLOW}⚠${RESET} Homebrew bash not found"
 else
   if grep -q "$HOMEBREW_BASH" /etc/shells; then
     ok "$HOMEBREW_BASH already in /etc/shells"
@@ -276,19 +328,23 @@ else
 
   if [ "$SHELL" = "$HOMEBREW_BASH" ]; then
     ok "Already using Homebrew bash"
+    SUM_SHELL="${GREEN}✔${RESET} Homebrew bash active"
   else
     if $DRY_RUN; then
       would "chsh -s $HOMEBREW_BASH"
     else
-      read -r -p "  Switch default shell to Homebrew bash? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
+      read -r -p "  Switch default shell to Homebrew bash? [y/N] " r
+      if [[ "$r" =~ ^[yY] ]]; then
         if chsh -s "$HOMEBREW_BASH"; then
           installed "default shell → $HOMEBREW_BASH"
+          SUM_SHELL="${GREEN}✔${RESET} switched to Homebrew bash"
         else
           warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
+          SUM_SHELL="${YELLOW}⚠${RESET} switch failed"
         fi
       else
         ok "Shell unchanged"
+        SUM_SHELL="${CYAN}✔${RESET} unchanged"
       fi
     fi
   fi
@@ -320,9 +376,12 @@ if $DRY_RUN; then
   would "nvm install --lts && nvm alias default node"
 else
   if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
-    ok "Node.js LTS installed ($(node --version 2>/dev/null || echo 'unknown'))"
+    NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
+    ok "Node.js LTS installed ($NODE_VERSION)"
+    SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
   else
     warn "Failed to install Node.js LTS"
+    SUM_NODE="${YELLOW}⚠${RESET} install failed"
   fi
 fi
 
@@ -333,6 +392,7 @@ step "Setting up VS Code"
 
 if ! command -v code &>/dev/null; then
   warn "VS Code CLI not found — in VS Code, open the Command Palette and run: Shell Command: Install 'code' command in PATH"
+  SUM_VSCODE="${YELLOW}⚠${RESET} CLI not found"
 else
   extensions=(
     anthropic.claude-code
@@ -350,12 +410,20 @@ else
     yummygum.city-lights-icon-vsc
   )
 
+  VSCODE_EXT_OK=0
+  VSCODE_EXT_NEW=0
+  $DRY_RUN || installed_exts=$(code --list-extensions 2>/dev/null)
+
   for ext in "${extensions[@]}"; do
     if $DRY_RUN; then
       would "code --install-extension $ext"
     else
-      if code --install-extension "$ext" --force &>/dev/null; then
+      if echo "$installed_exts" | grep -qix "$ext"; then
+        ok "$ext"
+        VSCODE_EXT_OK=$((VSCODE_EXT_OK+1))
+      elif code --install-extension "$ext" &>/dev/null; then
         installed "$ext"
+        VSCODE_EXT_NEW=$((VSCODE_EXT_NEW+1))
       else
         warn "Failed to install extension $ext"
       fi
@@ -363,6 +431,8 @@ else
   done
 
   VSCODE_DIR="$HOME/Library/Application Support/Code/User"
+  VSCODE_SETTINGS_OK=()
+  VSCODE_SETTINGS_NEW=()
 
   if $DRY_RUN; then
     would "cp settings.json and keybindings.json to VS Code"
@@ -372,16 +442,40 @@ else
       if [ -f "$VSCODE_DIR/$config_file" ]; then
         if diff -q "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file" &>/dev/null; then
           ok "$config_file already up to date"
+          VSCODE_SETTINGS_OK+=("$config_file")
           continue
         fi
         echo "  Diff for $config_file:"
         diff --color=always "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
-        read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
-        [[ "$r" =~ ^[nN] ]] && { ok "$config_file unchanged"; continue; }
+        read -r -p "  $config_file already exists. Overwrite? [y/N] " r
+        if [[ ! "$r" =~ ^[yY] ]]; then
+          ok "$config_file unchanged"
+          VSCODE_SETTINGS_OK+=("$config_file")
+          continue
+        fi
       fi
       cp "$DOTFILES_DIR/$config_file" "$VSCODE_DIR/$config_file" && installed "$config_file"
+      VSCODE_SETTINGS_NEW+=("$config_file")
     done
   fi
+
+  # Build VS Code summary
+  EXT_SUMMARY=""
+  if [ $VSCODE_EXT_NEW -gt 0 ] && [ $VSCODE_EXT_OK -gt 0 ]; then
+    EXT_SUMMARY="${VSCODE_EXT_NEW} installed · ${VSCODE_EXT_OK} up to date"
+  elif [ $VSCODE_EXT_NEW -gt 0 ]; then
+    EXT_SUMMARY="${VSCODE_EXT_NEW} installed"
+  elif [ $VSCODE_EXT_OK -gt 0 ]; then
+    EXT_SUMMARY="${VSCODE_EXT_OK} extensions"
+  fi
+
+  VSCODE_PARTS=()
+  [ -n "$EXT_SUMMARY" ] && VSCODE_PARTS+=("$EXT_SUMMARY")
+  SETTINGS_OK_STR=$(join_arr ' · ' "${VSCODE_SETTINGS_OK[@]}")
+  SETTINGS_NEW_STR=$(join_arr ' · ' "${VSCODE_SETTINGS_NEW[@]}")
+  [ -n "$SETTINGS_OK_STR" ] && VSCODE_PARTS+=("$SETTINGS_OK_STR")
+  [ -n "$SETTINGS_NEW_STR" ] && VSCODE_PARTS+=("↑ $SETTINGS_NEW_STR")
+  [ ${#VSCODE_PARTS[@]} -gt 0 ] && SUM_VSCODE="${GREEN}✔${RESET} $(join_arr ' · ' "${VSCODE_PARTS[@]}")"
 fi
 
 # -------------------------------------------------------
@@ -389,9 +483,29 @@ fi
 # -------------------------------------------------------
 step "Installing apps"
 
-confirm "Google Chrome" && brew_cask "google-chrome"
-confirm "Spotify"       && brew_cask "spotify"
-confirm "1Password"     && brew_cask "1password"
+APP_OK=()
+
+install_app() {
+  local name=$1 cask=$2 app=$3
+  if $DRY_RUN; then
+    would "brew install --cask $cask"
+  elif brew list --cask "$cask" &>/dev/null || [ -d "$app" ]; then
+    ok "$name already installed"
+    APP_OK+=("$name")
+  else
+    read -r -p "  Install $name? [y/N] " r
+    if [[ "$r" =~ ^[yY] ]]; then
+      if brew_cask "$cask"; then
+        APP_OK+=("$name")
+      fi
+    fi
+  fi
+}
+
+install_app "Google Chrome" "google-chrome" "/Applications/Google Chrome.app"
+install_app "Spotify"       "spotify"       "/Applications/Spotify.app"
+install_app "1Password"     "1password"     "/Applications/1Password.app"
+[ ${#APP_OK[@]} -gt 0 ] && SUM_APPS="${GREEN}✔${RESET} $(join_arr ' · ' "${APP_OK[@]}")"
 
 # -------------------------------------------------------
 # 8. Terminal
@@ -405,17 +519,19 @@ if $DRY_RUN; then
   would "create Terminal profile '$TERM_PROFILE' with SF Mono 15pt, black background, and title bar settings"
 elif [ ! -f "$TERM_PLIST" ]; then
   warn "Terminal preferences not found — open Terminal.app first, then re-run"
+  SUM_TERMINAL="${YELLOW}⚠${RESET} plist not found"
 else
   # Create the profile by duplicating Basic, then rename it
   /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default' dict" "$TERM_PLIST"
-  /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST"
+    || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default' dict" "$TERM_PLIST" 2>/dev/null
+  /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
+    || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:name' string 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null
 
   # Font and background via AppleScript
   osascript &>/dev/null <<'APPLESCRIPT'
 tell application "Terminal"
-  set font name of settings set "Pedro's Default" to "SFMono-Regular"
-  set font size of settings set "Pedro's Default" to 15
+  set font name of settings set "Pedro's Default" to "SFMonoTerminal-Regular"
+  set font size of settings set "Pedro's Default" to 14
   set background color of settings set "Pedro's Default" to {0, 0, 0}
 end tell
 APPLESCRIPT
@@ -423,24 +539,30 @@ APPLESCRIPT
   # Profile settings via PlistBuddy
   pb_set() {
     /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:$1' $2" "$TERM_PLIST" 2>/dev/null \
-      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:$1' $3 $2" "$TERM_PLIST"
+      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:$1' $3 $2" "$TERM_PLIST" 2>/dev/null
   }
-  pb_set BackgroundBlur               0.5   real
-  pb_set shellExitAction              0     integer
-  pb_set ShowActiveProcessInTitle     false bool
-  pb_set ShowDimensionsInTitle        false bool
-  pb_set ShowShellCommandInTitle      false bool
-  pb_set ShowWindowSettingsNameInTitle false bool
-  pb_set ShowRepresentedURLInTitle    true  bool
-  pb_set ShowRepresentedURLPathInTitle false bool
+  pb_set BackgroundBlur                    0.5   real
+  pb_set shellExitAction                   0     integer
+  pb_set ShowActiveProcessInTitle          false bool
+  pb_set ShowDimensionsInTitle             false bool
+  pb_set ShowShellCommandInTitle           false bool
+  pb_set ShowWindowSettingsNameInTitle     false bool
+  pb_set ShowRepresentedURLInTitle         true  bool
+  pb_set ShowRepresentedURLPathInTitle     false bool
+  pb_set SetLocaleEnvironmentVariables     false bool
   unset -f pb_set
 
   # Set as default profile
   defaults write com.apple.Terminal "Default Window Settings" -string "$TERM_PROFILE"
   defaults write com.apple.Terminal "Startup Window Settings" -string "$TERM_PROFILE"
   defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
+  defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
+
+  # Disable Terminal injecting locale env vars (prevents LC_COLLATE warnings on startup)
+  defaults write com.apple.Terminal SetLocaleEnvironmentVariables -bool false
 
   ok "Terminal profile '$TERM_PROFILE' configured"
+  SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
 fi
 
 # -------------------------------------------------------
@@ -448,13 +570,57 @@ fi
 # -------------------------------------------------------
 step "Applying macOS preferences"
 
+macos_prefs_current() {
+  local loc; loc=$(defaults read com.apple.screencapture location 2>/dev/null)
+  [ "$(defaults read com.apple.dock orientation 2>/dev/null)"                                         = "left"     ] &&
+  [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                                            = "40"       ] &&
+  [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"                                      = "1"        ] &&
+  [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"                             = "1"        ] &&
+  [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"                                        = "0"        ] &&
+  [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"                                     = "1"        ] &&
+  [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"                                     = "1"        ] &&
+  [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"                                     = "1"        ] &&
+  [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"                                     = "1"        ] &&
+  [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                                 = "true"     ] &&
+  [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                                       = "1"        ] &&
+  [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                                    = "0"        ] &&
+  [ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null)"                              = "icnv"     ] &&
+  [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                                   = "PfHm"     ] &&
+  [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"                              = "SCcf"     ] &&
+  [ "$(defaults read com.apple.finder ShowExternalHardDrivesOnDesktop 2>/dev/null)"                   = "1"        ] &&
+  [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"                           = "1"        ] &&
+  [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"                 = "1"        ] &&
+  [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"                    = "0"        ] &&
+  [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)"        = "1"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"                = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"                    = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"                  = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"                = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"                 = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                              = "1"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                                 = "Dark"     ] &&
+  [ "$(defaults read NSGlobalDomain com.apple.swipescrolldirection 2>/dev/null)"                      = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                            = "Minimize" ] &&
+  [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                           = "5"        ] &&
+  [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                                    = "25"       ] &&
+  [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                       = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                      = "0"        ] &&
+  [ "$loc" = "$HOME/Desktop" ]                                                                                      &&
+  [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"                             = "1"        ] &&
+  [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"                             = "0"        ]
+}
+
 if $DRY_RUN; then
   would "configure Dock, Finder, and System Settings"
   would "reset Dock to: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
+elif macos_prefs_current; then
+  ok "macOS preferences already configured"
+  SUM_MACOS="${GREEN}✔${RESET} already configured"
 else
-  read -r -p "  Apply macOS preferences? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
+  read -r -p "  Apply macOS preferences? [y/N] " r
+  if [[ ! "$r" =~ ^[yY] ]]; then
     ok "macOS preferences unchanged"
+    SUM_MACOS="${CYAN}✔${RESET} unchanged"
   else
 
   # Dock
@@ -467,18 +633,13 @@ else
 
   # Dock app layout
   if command -v dockutil &>/dev/null; then
-    read -r -p "  Reset Dock to preferred app list? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
-      dockutil --remove all --no-restart &>/dev/null
-      [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
-      [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
-      [[ -d "/System/Applications/Utilities/Terminal.app" ]] && dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart &>/dev/null
-      [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
-      [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
-      ok "Dock apps set: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
-    else
-      ok "Dock apps unchanged"
-    fi
+    dockutil --remove all --no-restart &>/dev/null
+    [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
+    [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
+    [[ -d "/System/Applications/Utilities/Terminal.app" ]] && dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart &>/dev/null
+    [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
+    [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
+    ok "Dock apps set: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
   fi
 
   # Hot corners (disabled)
@@ -532,8 +693,10 @@ else
   killall Dock
   ok "Finder and Dock restarted"
 
-  fi # end macOS preferences
-fi
+  SUM_MACOS="${GREEN}✔${RESET} applied"
+
+  fi # end apply macOS preferences
+fi # end macOS preferences section
 
 # -------------------------------------------------------
 # Summary
@@ -542,10 +705,26 @@ echo ""
 echo -e "${BOLD}-----------------------------------${RESET}"
 echo -e "${BOLD}Summary${RESET}"
 echo -e "${BOLD}-----------------------------------${RESET}"
-[ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET} $(printf '%s, ' "${INSTALLED[@]}" | sed 's/, $//')"
-[ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET} $(printf '%s, ' "${UPDATED[@]}" | sed 's/, $//')"
-[ ${#SKIPPED[@]} -gt 0 ]   && echo -e "${CYAN}✔ Skipped (${#SKIPPED[@]}):${RESET} $(printf '%s, ' "${SKIPPED[@]}" | sed 's/, $//')"
-[ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET} $(printf '%s, ' "${WARNINGS[@]}" | sed 's/, $//')"
+[ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET}  $(printf '%s, ' "${INSTALLED[@]}" | sed 's/, $//')"
+[ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET}    $(printf '%s, ' "${UPDATED[@]}" | sed 's/, $//')"
+[ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET}   $(printf '%s, ' "${WARNINGS[@]}" | sed 's/, $//')"
+
+section_line() {
+  local label=$1 value=$2 pad
+  pad=$(( 16 - ${#label} )); [ $pad -lt 1 ] && pad=1
+  [ -n "$value" ] && echo -e "${BOLD}${label}${RESET}$(printf '%*s' $pad '')${value}"
+}
+
+echo ""
+section_line "Config files"  "$SUM_DOTFILES"
+section_line "Homebrew"      "$SUM_HOMEBREW"
+section_line "SSH"           "$SUM_SSH"
+section_line "Shell"         "$SUM_SHELL"
+section_line "Node.js"       "$SUM_NODE"
+section_line "VS Code"       "$SUM_VSCODE"
+section_line "Apps"          "$SUM_APPS"
+section_line "Terminal"      "$SUM_TERMINAL"
+section_line "macOS"         "$SUM_MACOS"
 echo ""
 $DRY_RUN || echo -e "${GREEN}${BOLD}All done! Restart your terminal to apply all changes.${RESET}"
 echo ""

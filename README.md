@@ -121,8 +121,8 @@ TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
 /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST"
 
 # Font and background
-osascript -e 'tell application "Terminal" to set font name of settings set "Pedro'\''s Default" to "SFMono-Regular"'
-osascript -e 'tell application "Terminal" to set font size of settings set "Pedro'\''s Default" to 15'
+osascript -e 'tell application "Terminal" to set font name of settings set "Pedro'\''s Default" to "SFMonoTerminal-Regular"'
+osascript -e 'tell application "Terminal" to set font size of settings set "Pedro'\''s Default" to 14'
 osascript -e 'tell application "Terminal" to set background color of settings set "Pedro'\''s Default" to {0, 0, 0}'
 
 # Profile settings
@@ -139,6 +139,7 @@ osascript -e 'tell application "Terminal" to set background color of settings se
 defaults write com.apple.Terminal "Default Window Settings" -string "Pedro's Default"
 defaults write com.apple.Terminal "Startup Window Settings" -string "Pedro's Default"
 defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
+defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 ```
 
 ### 9. Install apps
