@@ -3,6 +3,17 @@
 export LANG=en_US.UTF-8
 export LC_ALL=en_US.UTF-8
 
+# History
+shopt -s histappend
+HISTSIZE=10000
+HISTFILESIZE=20000
+HISTCONTROL=ignoreboth:erasedups
+
+# Shell behavior
+shopt -s cdspell        # autocorrect minor cd typos
+shopt -s globstar       # ** matches nested dirs in globs
+shopt -s checkwinsize   # update LINES/COLUMNS after each command
+
 # Get the Git branch
 function parse_git_branch() {
   git branch 2> /dev/null | sed -e '/^[^*]/d' -e 's/* \(.*\)/ (\1)/'

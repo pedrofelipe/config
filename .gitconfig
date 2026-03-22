@@ -7,6 +7,10 @@
 	ci = commit
 	st = status
 	br = branch
+	lg = log --oneline --graph --decorate
+	undo = reset HEAD~1 --soft
+	amend = commit --amend --no-edit
+	last = log -1 HEAD
 
 [color]
 	ui = auto
@@ -33,6 +37,16 @@
 
 [push]
 	default = current
+
+[fetch]
+	prune = true
+
+[diff]
+	algorithm = histogram
+
+[merge]
+	conflictstyle = zdiff3
+
 
 [pull]
 	rebase = false

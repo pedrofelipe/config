@@ -49,6 +49,7 @@ UPDATED=()
 WARNINGS=()
 
 # Per-section summaries
+SUM_XCODE=""
 SUM_DOTFILES=""
 SUM_HOMEBREW=""
 SUM_SSH=""
@@ -165,6 +166,24 @@ brew_cask() {
 }
 
 # -------------------------------------------------------
+# 0. Xcode Command Line Tools
+# -------------------------------------------------------
+step "Checking Xcode Command Line Tools"
+
+if xcode-select -p &>/dev/null; then
+  ok "Xcode CLT already installed"
+  SUM_XCODE="${GREEN}✔${RESET} installed"
+else
+  if $DRY_RUN; then
+    would "xcode-select --install"
+  else
+    xcode-select --install 2>/dev/null || true
+    warn "Xcode CLT installation started — complete the installer, then re-run this script"
+    exit 1
+  fi
+fi
+
+# -------------------------------------------------------
 # 1. Config files
 # -------------------------------------------------------
 step "Loading config files"
@@ -198,6 +217,41 @@ for file in .bash_profile .gitconfig .inputrc; do
     warn "$file not found, skipping"
   fi
 done
+# SSH config (deploys to ~/.ssh/config, not $HOME directly)
+if [ -f "$DOTFILES_DIR/ssh_config" ]; then
+  if $DRY_RUN; then
+    would "cp ssh_config to ~/.ssh/config"
+  else
+    mkdir -p "$HOME/.ssh"
+    chmod 700 "$HOME/.ssh"
+    if [ -f "$HOME/.ssh/config" ]; then
+      if diff -q "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config" &>/dev/null; then
+        ok "~/.ssh/config already up to date"
+        CF_OK+=("ssh_config")
+      else
+        echo "  Diff for ~/.ssh/config:"
+        diff --color=always "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
+        read -r -p "  ~/.ssh/config already exists. Overwrite? [y/N] " r
+        if [[ "$r" =~ ^[yY] ]]; then
+          cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
+          chmod 600 "$HOME/.ssh/config"
+          installed "~/.ssh/config"
+        else
+          ok "~/.ssh/config unchanged"
+        fi
+        CF_OK+=("ssh_config")
+      fi
+    else
+      cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
+      chmod 600 "$HOME/.ssh/config"
+      installed "~/.ssh/config"
+      CF_OK+=("ssh_config")
+    fi
+  fi
+else
+  warn "ssh_config not found, skipping"
+fi
+
 [ ${#CF_OK[@]} -gt 0 ] && SUM_DOTFILES="${GREEN}✔${RESET} $(join_arr ' · ' "${CF_OK[@]}")"
 
 # -------------------------------------------------------
@@ -262,6 +316,7 @@ else
       chmod 600 "$SSH_KEY_PATH"
       chmod 600 "${SSH_KEY_PATH}.pub"
       installed "SSH key (~/.ssh/id_ed25519)"
+      ssh-add --apple-use-keychain "$SSH_KEY_PATH" 2>/dev/null && ok "SSH key added to keychain agent"
       SUM_SSH="${GREEN}✔${RESET} key generated"
       if gh auth status &>/dev/null 2>&1; then
         if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
@@ -716,6 +771,7 @@ section_line() {
 }
 
 echo ""
+section_line "Xcode CLT"     "$SUM_XCODE"
 section_line "Config files"  "$SUM_DOTFILES"
 section_line "Homebrew"      "$SUM_HOMEBREW"
 section_line "SSH"           "$SUM_SSH"

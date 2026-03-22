@@ -18,11 +18,20 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 | `.bash_profile` | Customizes the Terminal.app prompt and shows the currently checked-out Git branch |
 | `.gitconfig` | Global Git configuration with my name, email, aliases, colors, and more |
 | `.inputrc` | Makes tab completion case-insensitive |
+| `ssh_config` | SSH client config — persists keys in the macOS keychain agent across reboots |
 | `settings.json` | Custom settings for Visual Studio Code |
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 | `setup.sh` | Automated setup script for a fresh macOS install |
 
 ## Checklist
+
+### 0. Install Xcode Command Line Tools
+
+Required by Homebrew and Git. If not already installed, macOS will prompt you automatically when you run the setup script. To install manually:
+
+```bash
+xcode-select --install
+```
 
 ### 1. Load config files
 - [ ] Load [`.bash_profile`](/.bash_profile)
@@ -45,6 +54,13 @@ brew install --cask claude-code
 ```
 
 ### 3. Copy or create SSH keys
+- [ ] Load [`ssh_config`](/ssh_config) to `~/.ssh/config` so keys persist in the keychain across reboots
+
+```bash
+mkdir -p ~/.ssh && chmod 700 ~/.ssh
+cp ssh_config ~/.ssh/config && chmod 600 ~/.ssh/config
+```
+
 - [ ] Copy existing SSH keys to `~/.ssh`, or generate new ones and add to GitHub
 
 If generating manually:
@@ -53,6 +69,7 @@ If generating manually:
 ssh-keygen -t ed25519
 chmod 600 ~/.ssh/id_ed25519
 chmod 600 ~/.ssh/id_ed25519.pub
+ssh-add --apple-use-keychain ~/.ssh/id_ed25519
 gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname | sed 's/\.local$//')"
 ```
 
