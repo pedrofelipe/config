@@ -51,7 +51,8 @@ WARNINGS=()
 
 step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
-ok()        { echo -e "${CYAN}✔ $1${RESET}"; SKIPPED+=("$1"); }
+ok()         { echo -e "${CYAN}✔ $1${RESET}"; SKIPPED+=("$1"); }
+configured() { echo -e "${CYAN}✔ $1${RESET}"; }
 updated()   { echo -e "${BLUE}↑ updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
@@ -142,6 +143,12 @@ for file in .bash_profile .gitconfig .inputrc; do
       would "cp $file to $HOME/$file"
     else
       if [ -f "$HOME/$file" ]; then
+        if diff -q "$HOME/$file" "$DOTFILES_DIR/$file" &>/dev/null; then
+          ok "$file already up to date"
+          continue
+        fi
+        echo "  Diff for $file:"
+        diff --color=always "$HOME/$file" "$DOTFILES_DIR/$file"
         read -r -p "  $file already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && { ok "$file unchanged"; continue; }
       fi
@@ -190,7 +197,7 @@ if [ -f "$SSH_KEY_PATH" ] || [ -f "$HOME/.ssh/id_rsa" ]; then
   ok "SSH keys already exist"
 else
   if $DRY_RUN; then
-    would "generate SSH key, add to GitHub with title $(hostname)"
+    would "generate SSH key, add to GitHub with title $(hostname | sed 's/\.local$//')"
   else
     SSH_KEY_TITLE="$(hostname)"
     SSH_KEY_TITLE="${SSH_KEY_TITLE%.local}"
@@ -363,6 +370,12 @@ else
     mkdir -p "$VSCODE_DIR"
     for config_file in settings.json keybindings.json; do
       if [ -f "$VSCODE_DIR/$config_file" ]; then
+        if diff -q "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file" &>/dev/null; then
+          ok "$config_file already up to date"
+          continue
+        fi
+        echo "  Diff for $config_file:"
+        diff --color=always "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
         read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && { ok "$config_file unchanged"; continue; }
       fi
