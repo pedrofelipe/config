@@ -50,10 +50,10 @@ brew install --cask claude-code
 If generating manually:
 
 ```bash
-ssh-keygen -t ed25519 -C "your-key-name"
+ssh-keygen -t ed25519
 chmod 600 ~/.ssh/id_ed25519
 chmod 600 ~/.ssh/id_ed25519.pub
-gh ssh-key add ~/.ssh/id_ed25519.pub --title "your-key-name"
+gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)"
 ```
 
 Then confirm it was added at [github.com/settings/keys](https://github.com/settings/keys).

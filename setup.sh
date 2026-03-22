@@ -190,13 +190,12 @@ if [ -f "$SSH_KEY_PATH" ] || [ -f "$HOME/.ssh/id_rsa" ]; then
   ok "SSH keys already exist"
 else
   if $DRY_RUN; then
-    would "prompt for key name, generate SSH key, add to GitHub"
+    would "generate SSH key, add to GitHub with title $(hostname)"
   else
-    read -r -p "  Name for this SSH key on GitHub [Pedro's Mac]: " SSH_KEY_TITLE
-    [[ -z "$SSH_KEY_TITLE" ]] && SSH_KEY_TITLE="Pedro's Mac"
+    SSH_KEY_TITLE="$(hostname)"
     mkdir -p "$HOME/.ssh"
     chmod 700 "$HOME/.ssh"
-    if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH" -C "$SSH_KEY_TITLE"; then
+    if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH"; then
       chmod 600 "$SSH_KEY_PATH"
       chmod 600 "${SSH_KEY_PATH}.pub"
       installed "SSH key (~/.ssh/id_ed25519)"
