@@ -69,7 +69,7 @@ BREW_INSTALLED=0
 step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
 ok()        { echo -e "${CYAN}✔ $1${RESET}"; }
-updated()   { echo -e "${BLUE}↑ updated $1${RESET}"; UPDATED+=("$1"); }
+updated()   { echo -e "${BLUE}↑ Updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
 
