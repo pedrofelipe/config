@@ -1,8 +1,3 @@
-# Locale — set first to prevent bash startup warnings from Terminal.app
-# injecting LC_CTYPE=UTF-8 with empty remaining LC_* variables
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-
 # History
 shopt -s histappend
 HISTSIZE=10000

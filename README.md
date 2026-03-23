@@ -152,9 +152,6 @@ osascript -e 'tell application "Terminal" to set background color of settings se
 /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLInTitle' true" "$TERM_PLIST"
 /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLPathInTitle' false" "$TERM_PLIST"
 
-# Disable automatic locale environment variables
-defaults write com.apple.Terminal SetLocaleEnvironmentVariables -bool false
-
 # Set as default
 defaults write com.apple.Terminal "Default Window Settings" -string "Pedro's Default"
 defaults write com.apple.Terminal "Startup Window Settings" -string "Pedro's Default"
@@ -196,7 +193,7 @@ brew install --cask istat-menus
   dockutil --add "/Applications/Visual Studio Code.app" --no-restart
   dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart
   dockutil --add "/Applications/1Password.app" --no-restart
-  dockutil --add "/Applications/Spotify.app"
+  dockutil --add "/Applications/Spotify.app" --no-restart
 
   # Disable hot corners
   defaults write com.apple.dock wvous-tl-corner -int 1

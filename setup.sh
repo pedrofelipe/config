@@ -96,8 +96,8 @@ brew_formula() {
       would "brew upgrade $pkg (if outdated)"
     else
       if brew outdated --formula | grep -q "^$pkg$"; then
-        read -r -p "  Upgrade $pkg? [y/N] " r
-        if [[ "$r" =~ ^[yY] ]]; then
+        read -r -p "  Upgrade $pkg? [Y/n] " r
+        if [[ ! "$r" =~ ^[nN] ]]; then
           if brew upgrade "$pkg" &>/dev/null; then
             updated "$pkg"
             BREW_UPDATED=$((BREW_UPDATED+1))
@@ -143,8 +143,8 @@ brew_cask() {
       would "brew upgrade --cask $cask (if outdated)"
     else
       if brew outdated --cask | grep -q "^$cask$"; then
-        read -r -p "  Upgrade $cask? [y/N] " r
-        if [[ "$r" =~ ^[yY] ]]; then
+        read -r -p "  Upgrade $cask? [Y/n] " r
+        if [[ ! "$r" =~ ^[nN] ]]; then
           if brew upgrade --cask "$cask" &>/dev/null; then
             updated "$cask"
             BREW_UPDATED=$((BREW_UPDATED+1))
@@ -215,8 +215,8 @@ for file in .bash_profile .gitconfig .inputrc; do
         fi
         echo "  Diff for $file:"
         diff --color=always "$HOME/$file" "$DOTFILES_DIR/$file"
-        read -r -p "  $file already exists. Overwrite? [y/N] " r
-        if [[ ! "$r" =~ ^[yY] ]]; then
+        read -r -p "  $file already exists. Overwrite? [Y/n] " r
+        if [[ "$r" =~ ^[nN] ]]; then
           ok "$file unchanged"
           CF_OK+=("$file")
           continue
@@ -244,8 +244,8 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
       else
         echo "  Diff for ~/.ssh/config:"
         diff --color=always "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
-        read -r -p "  ~/.ssh/config already exists. Overwrite? [y/N] " r
-        if [[ "$r" =~ ^[yY] ]]; then
+        read -r -p "  ~/.ssh/config already exists. Overwrite? [Y/n] " r
+        if [[ ! "$r" =~ ^[nN] ]]; then
           cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
           chmod 600 "$HOME/.ssh/config"
           installed "~/.ssh/config"
@@ -339,8 +339,8 @@ else
           warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
         fi
       else
-        read -r -p "  Not authenticated with GitHub. Run gh auth login now? [y/N] " r
-        if [[ "$r" =~ ^[yY] ]]; then
+        read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
+        if [[ ! "$r" =~ ^[nN] ]]; then
           gh auth login
           if gh auth status &>/dev/null 2>&1; then
             if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
@@ -401,8 +401,8 @@ else
     if $DRY_RUN; then
       would "chsh -s $HOMEBREW_BASH"
     else
-      read -r -p "  Switch default shell to Homebrew bash? [y/N] " r
-      if [[ "$r" =~ ^[yY] ]]; then
+      read -r -p "  Switch default shell to Homebrew bash? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
         if chsh -s "$HOMEBREW_BASH"; then
           installed "default shell → $HOMEBREW_BASH"
           SUM_SHELL="${GREEN}✔${RESET} switched to Homebrew bash"
@@ -434,8 +434,8 @@ if [ -d "$HOME/.nvm" ]; then
     if $DRY_RUN; then
       would "update nvm $current_nvm → $NVM_VERSION"
     else
-      read -r -p "  Upgrade nvm $current_nvm → $NVM_VERSION? [y/N] " r
-      if [[ "$r" =~ ^[yY] ]]; then
+      read -r -p "  Upgrade nvm $current_nvm → $NVM_VERSION? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
         if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash &>/dev/null; then
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           updated "nvm $current_nvm → $NVM_VERSION"
@@ -469,8 +469,8 @@ else
     ok "Node.js LTS ($prev_node)"
     SUM_NODE="${GREEN}✔${RESET} $prev_node"
   elif [ -n "$latest_lts" ] && [ "$prev_node" != "none" ]; then
-    read -r -p "  Upgrade Node.js $prev_node → $latest_lts? [y/N] " r
-    if [[ "$r" =~ ^[yY] ]]; then
+    read -r -p "  Upgrade Node.js $prev_node → $latest_lts? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
       if nvm install "$latest_lts" >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
         updated "Node.js LTS $prev_node → $latest_lts"
         SUM_NODE="${BLUE}↑${RESET} $latest_lts"
@@ -556,8 +556,8 @@ else
         fi
         echo "  Diff for $config_file:"
         diff --color=always "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
-        read -r -p "  $config_file already exists. Overwrite? [y/N] " r
-        if [[ ! "$r" =~ ^[yY] ]]; then
+        read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
+        if [[ "$r" =~ ^[nN] ]]; then
           ok "$config_file unchanged"
           VSCODE_SETTINGS_OK+=("$config_file")
           continue
@@ -604,8 +604,8 @@ install_app() {
     ok "$name already installed (not Homebrew-managed)"
     APP_OK+=("$name")
   else
-    read -r -p "  Install $name? [y/N] " r
-    if [[ "$r" =~ ^[yY] ]]; then
+    read -r -p "  Install $name? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
       if brew_cask "$cask"; then
         APP_OK+=("$name")
       fi
@@ -628,7 +628,7 @@ TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
 TERM_PROFILE="Pedro's Default"
 
 if $DRY_RUN; then
-  would "create Terminal profile '$TERM_PROFILE' with SF Mono 15pt, black background, and title bar settings"
+  would "create Terminal profile '$TERM_PROFILE' with SF Mono 14pt, black background, and title bar settings"
 elif [ ! -f "$TERM_PLIST" ]; then
   warn "Terminal preferences not found — open Terminal.app first, then re-run"
   SUM_TERMINAL="${YELLOW}⚠${RESET} plist not found"
@@ -661,7 +661,6 @@ APPLESCRIPT
   pb_set ShowWindowSettingsNameInTitle     false bool
   pb_set ShowRepresentedURLInTitle         true  bool
   pb_set ShowRepresentedURLPathInTitle     false bool
-  pb_set SetLocaleEnvironmentVariables     false bool
   unset -f pb_set
 
   # Set as default profile
@@ -669,9 +668,6 @@ APPLESCRIPT
   defaults write com.apple.Terminal "Startup Window Settings" -string "$TERM_PROFILE"
   defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
   defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
-
-  # Disable Terminal injecting locale env vars (prevents LC_COLLATE warnings on startup)
-  defaults write com.apple.Terminal SetLocaleEnvironmentVariables -bool false
 
   ok "Terminal profile '$TERM_PROFILE' configured"
   SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
@@ -729,8 +725,8 @@ elif macos_prefs_current; then
   ok "macOS preferences already configured"
   SUM_MACOS="${GREEN}✔${RESET} already configured"
 else
-  read -r -p "  Apply macOS preferences? [y/N] " r
-  if [[ ! "$r" =~ ^[yY] ]]; then
+  read -r -p "  Apply macOS preferences? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
     ok "macOS preferences unchanged"
     SUM_MACOS="${CYAN}✔${RESET} unchanged"
   else
