@@ -23,6 +23,7 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 | `setup.sh` | Automated setup script for a fresh macOS install |
 | `karabiner.json` | Karabiner-Elements config — remaps Ctrl↔Cmd and Alt+Tab on external keyboards |
+| `istatmenus.menubar.plist` | iStat Menus display preferences — which modules show in the menubar and menu |
 
 ## Checklist
 

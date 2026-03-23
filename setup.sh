@@ -618,6 +618,25 @@ install_app "Google Chrome" "google-chrome" "/Applications/Google Chrome.app"
 install_app "Spotify"       "spotify"       "/Applications/Spotify.app"
 install_app "1Password"     "1password"     "/Applications/1Password.app"
 install_app "iStat Menus"   "istat-menus"   "/Applications/iStat Menus.app"
+
+# Deploy iStat Menus settings
+ISTATMENUS_PLIST="$HOME/Library/Preferences/com.bjango.istatmenus.menubar.7.plist"
+if $DRY_RUN; then
+  would "deploy istatmenus.menubar.plist to $ISTATMENUS_PLIST"
+elif [ ! -f "/Applications/iStat Menus.app/Contents/Info.plist" ]; then
+  : # app not installed, skip
+elif diff -q "$ISTATMENUS_PLIST" "$DOTFILES_DIR/istatmenus.menubar.plist" &>/dev/null; then
+  ok "iStat Menus settings already up to date"
+  APP_OK+=("iStat Menus settings")
+else
+  read -r -p "  Apply iStat Menus settings? [Y/n] " r
+  if [[ ! "$r" =~ ^[nN] ]]; then
+    cp "$DOTFILES_DIR/istatmenus.menubar.plist" "$ISTATMENUS_PLIST"
+    ok "iStat Menus settings applied (restart iStat Menus to take effect)"
+    APP_OK+=("iStat Menus settings")
+  fi
+fi
+
 [ ${#APP_OK[@]} -gt 0 ] && SUM_APPS="${GREEN}✔${RESET} $(join_arr ' · ' "${APP_OK[@]}")"
 
 # -------------------------------------------------------
