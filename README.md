@@ -275,6 +275,9 @@ brew install --cask istat-menus
   # Disable window tiling when dragging to screen edge
   defaults write -g EnableTilingByEdgeDrag -bool false
 
+  # Disable window filling when dragging title bar to menu bar
+  defaults write -g EnableTilingByMenuBar -bool false
+
   # Finder
   # Don't warn when changing a file extension
   defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false

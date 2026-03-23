@@ -715,6 +715,7 @@ macos_prefs_current() {
   [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                       = "0"        ] &&
   [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                      = "0"        ] &&
   [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                         = "0"        ] &&
+  [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                          = "0"        ] &&
   [ "$loc" = "$HOME/Desktop" ]                                                                                      &&
   [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"                             = "1"        ] &&
   [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"                             = "0"        ]
@@ -787,6 +788,7 @@ else
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
   defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
   defaults write -g EnableTilingByEdgeDrag -bool false
+  defaults write -g EnableTilingByMenuBar -bool false
   ok "System settings configured"
 
   # Finder
