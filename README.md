@@ -23,7 +23,6 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 | `setup.sh` | Automated setup script for a fresh macOS install |
 | `karabiner.json` | Karabiner-Elements config — remaps Ctrl↔Cmd and Alt+Tab on external keyboards |
-| `linearmouse.json` | LinearMouse config — disables pointer acceleration on external mice |
 
 ## Checklist
 
@@ -308,14 +307,12 @@ mkdir -p ~/.config/karabiner
 cp karabiner.json ~/.config/karabiner/karabiner.json
 ```
 
-#### LinearMouse (mouse acceleration and scroll)
+#### Mouse settings
 
 Disables pointer acceleration on external mice (trackpad unaffected):
 
 ```bash
-brew install --cask linearmouse
-mkdir -p ~/.config/linearmouse
-cp linearmouse.json ~/.config/linearmouse/linearmouse.json
+defaults write .GlobalPreferences com.apple.mouse.scaling -1
 ```
 
 ## Use it yourself

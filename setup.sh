@@ -886,12 +886,22 @@ setup_peripheral \
   "karabiner.json" \
   "$HOME/.config/karabiner/karabiner.json"
 
-setup_peripheral \
-  "LinearMouse" \
-  "linearmouse" \
-  "/Applications/LinearMouse.app" \
-  "linearmouse.json" \
-  "$HOME/.config/linearmouse/linearmouse.json"
+# Mouse settings
+if $DRY_RUN; then
+  would "disable mouse acceleration (com.apple.mouse.scaling = -1)"
+else
+  if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "-1" ]; then
+    ok "Mouse settings already configured"
+    PERIPH_OK+=("Mouse")
+  else
+    read -r -p "  Apply mouse settings (disable acceleration)? [y/N] " r
+    if [[ "$r" =~ ^[yY] ]]; then
+      defaults write .GlobalPreferences com.apple.mouse.scaling -1
+      ok "Mouse: acceleration disabled"
+      PERIPH_OK+=("Mouse")
+    fi
+  fi
+fi
 
 [ ${#PERIPH_OK[@]} -gt 0 ] && SUM_PERIPHERALS="${GREEN}✔${RESET} $(join_arr ' · ' "${PERIPH_OK[@]}")"
 
