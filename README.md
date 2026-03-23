@@ -308,8 +308,6 @@ mkdir -p ~/.config/karabiner
 cp karabiner.json ~/.config/karabiner/karabiner.json
 ```
 
-After installing, launch Karabiner-Elements and grant **Accessibility** and **Input Monitoring** permissions in System Settings → Privacy & Security. No restart required.
-
 #### LinearMouse (mouse acceleration and scroll)
 
 Disables pointer acceleration on external mice (trackpad unaffected):
@@ -319,8 +317,6 @@ brew install --cask linearmouse
 mkdir -p ~/.config/linearmouse
 cp linearmouse.json ~/.config/linearmouse/linearmouse.json
 ```
-
-After installing, launch LinearMouse and grant **Accessibility** permission in System Settings → Privacy & Security. No restart required.
 
 ## Use it yourself
 Fork this repo, or just copy-paste things you need, and make it your own. **Please be sure to change your `.gitconfig` name and email address though!**
