@@ -152,6 +152,9 @@ osascript -e 'tell application "Terminal" to set background color of settings se
 /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLInTitle' true" "$TERM_PLIST"
 /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLPathInTitle' false" "$TERM_PLIST"
 
+# Disable automatic locale environment variables
+defaults write com.apple.Terminal SetLocaleEnvironmentVariables -bool false
+
 # Set as default
 defaults write com.apple.Terminal "Default Window Settings" -string "Pedro's Default"
 defaults write com.apple.Terminal "Startup Window Settings" -string "Pedro's Default"
@@ -165,6 +168,7 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 brew install --cask google-chrome
 brew install --cask spotify
 brew install --cask 1password
+brew install --cask istat-menus
 ```
 
 ### 10. macOS Preferences

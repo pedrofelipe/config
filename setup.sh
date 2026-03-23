@@ -150,6 +150,7 @@ brew_cask() {
             BREW_UPDATED=$((BREW_UPDATED+1))
           else
             warn "Failed to upgrade $cask"
+            return 1
           fi
         else
           ok "$cask upgrade skipped"
@@ -470,10 +471,9 @@ else
   elif [ -n "$latest_lts" ] && [ "$prev_node" != "none" ]; then
     read -r -p "  Upgrade Node.js $prev_node → $latest_lts? [y/N] " r
     if [[ "$r" =~ ^[yY] ]]; then
-      if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
-        NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
-        updated "Node.js LTS $prev_node → $NODE_VERSION"
-        SUM_NODE="${BLUE}↑${RESET} $NODE_VERSION"
+      if nvm install "$latest_lts" >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
+        updated "Node.js LTS $prev_node → $latest_lts"
+        SUM_NODE="${BLUE}↑${RESET} $latest_lts"
       else
         warn "Failed to upgrade Node.js LTS"
         SUM_NODE="${YELLOW}⚠${RESET} upgrade failed"
