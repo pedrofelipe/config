@@ -53,6 +53,7 @@ brew install yarn
 brew install gh
 brew install dockutil
 brew install --cask claude-code
+brew install --cask font-fira-code
 ```
 
 ### 3. Copy or create SSH keys
@@ -96,14 +97,7 @@ nvm install --lts
 nvm alias default node
 ```
 
-### 6. Install the Fira Code font
-- [ ] Install [Fira Code](https://github.com/tonsky/FiraCode/wiki/Installing) font
-
-```bash
-brew install --cask font-fira-code
-```
-
-### 7. Set up VS Code
+### 6. Set up VS Code
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com) via Homebrew
 
 ```bash
@@ -127,6 +121,15 @@ brew install --cask visual-studio-code
   - [ ] [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
 - [ ] Apply [`settings.json`](/settings.json)
 - [ ] Apply [`keybindings.json`](/keybindings.json)
+
+### 7. Install apps
+
+```bash
+brew install --cask google-chrome
+brew install --cask spotify
+brew install --cask 1password
+brew install --cask istat-menus
+```
 
 ### 8. Set up Terminal
 
@@ -161,16 +164,7 @@ defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
 defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 ```
 
-### 9. Install apps
-
-```bash
-brew install --cask google-chrome
-brew install --cask spotify
-brew install --cask 1password
-brew install --cask istat-menus
-```
-
-### 10. macOS Preferences
+### 9. macOS Preferences
 
 ```bash
   # Dock
