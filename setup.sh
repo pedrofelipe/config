@@ -96,12 +96,18 @@ brew_formula() {
       would "brew upgrade $pkg (if outdated)"
     else
       if brew outdated --formula | grep -q "^$pkg$"; then
-        if brew upgrade "$pkg" &>/dev/null; then
-          updated "$pkg"
-          BREW_UPDATED=$((BREW_UPDATED+1))
+        read -r -p "  Upgrade $pkg? [y/N] " r
+        if [[ "$r" =~ ^[yY] ]]; then
+          if brew upgrade "$pkg" &>/dev/null; then
+            updated "$pkg"
+            BREW_UPDATED=$((BREW_UPDATED+1))
+          else
+            warn "Failed to upgrade $pkg"
+            return 1
+          fi
         else
-          warn "Failed to upgrade $pkg"
-          return 1
+          ok "$pkg upgrade skipped"
+          BREW_OK=$((BREW_OK+1))
         fi
       else
         ok "$pkg already up to date"
@@ -137,11 +143,17 @@ brew_cask() {
       would "brew upgrade --cask $cask (if outdated)"
     else
       if brew outdated --cask | grep -q "^$cask$"; then
-        if brew upgrade --cask "$cask" &>/dev/null; then
-          updated "$cask"
-          BREW_UPDATED=$((BREW_UPDATED+1))
+        read -r -p "  Upgrade $cask? [y/N] " r
+        if [[ "$r" =~ ^[yY] ]]; then
+          if brew upgrade --cask "$cask" &>/dev/null; then
+            updated "$cask"
+            BREW_UPDATED=$((BREW_UPDATED+1))
+          else
+            warn "Failed to upgrade $cask"
+          fi
         else
-          warn "Failed to upgrade $cask"
+          ok "$cask upgrade skipped"
+          BREW_OK=$((BREW_OK+1))
         fi
       else
         ok "$cask already up to date"
@@ -410,13 +422,36 @@ fi
 # -------------------------------------------------------
 step "Installing Node.js"
 
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
 if [ -d "$HOME/.nvm" ]; then
-  ok "nvm already installed"
+  current_nvm=$(nvm --version 2>/dev/null)
+  if [ "$current_nvm" = "${NVM_VERSION#v}" ]; then
+    ok "nvm $NVM_VERSION"
+  else
+    if $DRY_RUN; then
+      would "update nvm $current_nvm → $NVM_VERSION"
+    else
+      read -r -p "  Upgrade nvm $current_nvm → $NVM_VERSION? [y/N] " r
+      if [[ "$r" =~ ^[yY] ]]; then
+        if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash &>/dev/null; then
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          updated "nvm $current_nvm → $NVM_VERSION"
+        else
+          warn "Failed to update nvm"
+        fi
+      else
+        ok "nvm upgrade skipped"
+      fi
+    fi
+  fi
 else
   if $DRY_RUN; then
     would "install nvm $NVM_VERSION"
   else
-    if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash; then
+    if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash &>/dev/null; then
+      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
       installed "nvm $NVM_VERSION"
     else
       warn "Failed to install nvm"
@@ -424,19 +459,38 @@ else
   fi
 fi
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-
 if $DRY_RUN; then
   would "nvm install --lts && nvm alias default node"
 else
-  if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
-    NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
-    ok "Node.js LTS installed ($NODE_VERSION)"
-    SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
+  prev_node=$(node --version 2>/dev/null || echo "none")
+  latest_lts=$(nvm version-remote --lts 2>/dev/null)
+  if [ "$prev_node" = "$latest_lts" ]; then
+    ok "Node.js LTS ($prev_node)"
+    SUM_NODE="${GREEN}✔${RESET} $prev_node"
+  elif [ -n "$latest_lts" ] && [ "$prev_node" != "none" ]; then
+    read -r -p "  Upgrade Node.js $prev_node → $latest_lts? [y/N] " r
+    if [[ "$r" =~ ^[yY] ]]; then
+      if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
+        NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
+        updated "Node.js LTS $prev_node → $NODE_VERSION"
+        SUM_NODE="${BLUE}↑${RESET} $NODE_VERSION"
+      else
+        warn "Failed to upgrade Node.js LTS"
+        SUM_NODE="${YELLOW}⚠${RESET} upgrade failed"
+      fi
+    else
+      ok "Node.js upgrade skipped"
+      SUM_NODE="${GREEN}✔${RESET} $prev_node"
+    fi
   else
-    warn "Failed to install Node.js LTS"
-    SUM_NODE="${YELLOW}⚠${RESET} install failed"
+    if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
+      NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
+      installed "Node.js LTS ($NODE_VERSION)"
+      SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
+    else
+      warn "Failed to install Node.js LTS"
+      SUM_NODE="${YELLOW}⚠${RESET} install failed"
+    fi
   fi
 fi
 
@@ -543,9 +597,11 @@ APP_OK=()
 install_app() {
   local name=$1 cask=$2 app=$3
   if $DRY_RUN; then
-    would "brew install --cask $cask"
-  elif brew list --cask "$cask" &>/dev/null || [ -d "$app" ]; then
-    ok "$name already installed"
+    would "brew install --cask $cask (or upgrade if outdated)"
+  elif brew list --cask "$cask" &>/dev/null; then
+    brew_cask "$cask" && APP_OK+=("$name")
+  elif [ -d "$app" ]; then
+    ok "$name already installed (not Homebrew-managed)"
     APP_OK+=("$name")
   else
     read -r -p "  Install $name? [y/N] " r
@@ -560,6 +616,7 @@ install_app() {
 install_app "Google Chrome" "google-chrome" "/Applications/Google Chrome.app"
 install_app "Spotify"       "spotify"       "/Applications/Spotify.app"
 install_app "1Password"     "1password"     "/Applications/1Password.app"
+install_app "iStat Menus"   "istat-menus"   "/Applications/iStat Menus.app"
 [ ${#APP_OK[@]} -gt 0 ] && SUM_APPS="${GREEN}✔${RESET} $(join_arr ' · ' "${APP_OK[@]}")"
 
 # -------------------------------------------------------
