@@ -810,7 +810,7 @@ else
 fi # end macOS preferences section
 
 # -------------------------------------------------------
-# 11. External Peripherals (Windows keyboard/mouse on Mac)
+# 10. External Peripherals (Windows keyboard/mouse on Mac)
 # -------------------------------------------------------
 step "External peripherals"
 echo -e "  ${YELLOW}Only needed when using a Windows keyboard or mouse on a Mac.${RESET}"
@@ -828,8 +828,8 @@ deploy_peripheral_config() {
     fi
     echo "  Diff for $name config:"
     diff --color=always "$dst" "$src"
-    read -r -p "  $name config already exists. Overwrite? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    read -r -p "  $name config already exists. Overwrite? [y/N] " r
+    if [[ ! "$r" =~ ^[yY] ]]; then
       ok "$name config unchanged"
       return 0
     fi
@@ -838,6 +838,7 @@ deploy_peripheral_config() {
     ok "$name config deployed"
   else
     warn "Failed to deploy $name config"
+    return 1
   fi
 }
 
@@ -871,8 +872,9 @@ setup_peripheral() {
       return 1
     fi
   fi
-  deploy_peripheral_config "$config_src" "$config_dst" "$name"
-  PERIPH_OK+=("$name")
+  if deploy_peripheral_config "$config_src" "$config_dst" "$name"; then
+    PERIPH_OK+=("$name")
+  fi
 }
 
 setup_peripheral \

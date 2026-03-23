@@ -294,7 +294,7 @@ brew install --cask istat-menus
   killall Dock
 ```
 
-### 11. External peripherals
+### 10. External peripherals
 
 > Only needed when using a Windows keyboard or mouse on a Mac.
 
