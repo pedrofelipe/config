@@ -270,6 +270,9 @@ brew install --cask istat-menus
   # Disable translucent menu bar
   defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
 
+  # Disable window tiling when dragging to screen edge
+  defaults write -g EnableTilingByEdgeDrag -bool false
+
   # Finder
   # Don't warn when changing a file extension
   defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
