@@ -1,5 +1,5 @@
 {
-  "$schema": "https://schema.linearmouse.app/schema.json",
+  "$schema": "https://schema.linearmouse.app/0.10.4",
   "schemes": [
     {
       "if": {
@@ -8,15 +8,7 @@
         }
       },
       "pointer": {
-        "disableAcceleration": true,
-        "speed": 0.5
-      },
-      "scrolling": {
-        "linearized": true,
-        "distance": {
-          "value": 3,
-          "unit": "line"
-        }
+        "disableAcceleration": true
       }
     }
   ]
