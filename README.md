@@ -12,6 +12,14 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 ./setup.sh --dry-run
 ```
 
+Pass `--verbose` to see per-item detail for each step.
+
+```bash
+./setup.sh --verbose
+```
+
+![setup.sh running in Terminal](setup.png)
+
 ## Contents
 | File | Description |
 | --- | --- |
@@ -310,11 +318,11 @@ cp karabiner.json ~/.config/karabiner/karabiner.json
 
 #### Mouse settings
 
-Disables pointer and scroll acceleration on external mice (trackpad unaffected):
+Sets pointer tracking speed and scroll speed on external mice (trackpad unaffected):
 
 ```bash
-defaults write .GlobalPreferences com.apple.mouse.scaling -1
-defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
+defaults write .GlobalPreferences com.apple.mouse.scaling 0.5
+defaults write .GlobalPreferences com.apple.scrollwheel.scaling 0.5
 ```
 
 ## Use it yourself
