@@ -280,9 +280,6 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   # Save to Desktop
   defaults write com.apple.screencapture location -string "$HOME/Desktop"
 
-  # Disable drop shadow
-  defaults write com.apple.screencapture disable-shadow -bool true
-
   # Disable floating thumbnail preview
   defaults write com.apple.screencapture show-thumbnail -bool false
 

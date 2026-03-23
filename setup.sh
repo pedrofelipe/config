@@ -772,7 +772,6 @@ system_current=true
 screenshot_current=true
 _sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
 { [ "$_sc_loc" = "$HOME/Desktop" ] &&
-  [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"  = "1" ] &&
   [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"  = "0" ]; } || screenshot_current=false
 unset _sc_loc
 
@@ -852,7 +851,6 @@ else
 
   # Screenshots
   defaults write com.apple.screencapture location -string "$HOME/Desktop"
-  defaults write com.apple.screencapture disable-shadow -bool true
   defaults write com.apple.screencapture show-thumbnail -bool false
   if $screenshot_current; then ok "Screenshots already configured"; else updated "Screenshots"; fi
 
