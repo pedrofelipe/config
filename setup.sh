@@ -59,6 +59,7 @@ SUM_VSCODE=""
 SUM_APPS=""
 SUM_TERMINAL=""
 SUM_MACOS=""
+SUM_PERIPHERALS=""
 
 # Brew counters (shared across brew_formula/brew_cask calls)
 BREW_OK=0
@@ -809,6 +810,88 @@ else
 fi # end macOS preferences section
 
 # -------------------------------------------------------
+# 11. External Peripherals (Windows keyboard/mouse on Mac)
+# -------------------------------------------------------
+step "External peripherals"
+echo -e "  ${YELLOW}Only needed when using a Windows keyboard or mouse on a Mac.${RESET}"
+
+PERIPH_OK=()
+
+deploy_peripheral_config() {
+  local src="$DOTFILES_DIR/$1" dst="$2" name="$3"
+  $DRY_RUN && { would "deploy $1 to $dst"; return 0; }
+  mkdir -p "$(dirname "$dst")"
+  if [ -f "$dst" ]; then
+    if diff -q "$dst" "$src" &>/dev/null; then
+      ok "$name config already up to date"
+      return 0
+    fi
+    echo "  Diff for $name config:"
+    diff --color=always "$dst" "$src"
+    read -r -p "  $name config already exists. Overwrite? [Y/n] " r
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "$name config unchanged"
+      return 0
+    fi
+  fi
+  if cp "$src" "$dst"; then
+    ok "$name config deployed"
+  else
+    warn "Failed to deploy $name config"
+  fi
+}
+
+setup_peripheral() {
+  local name=$1 cask=$2 app=$3 config_src=$4 config_dst=$5
+  if $DRY_RUN; then
+    would "brew install --cask $cask && deploy $config_src to $config_dst"
+    return
+  fi
+  if brew list --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+    ok "$name already installed"
+  elif brew list --cask "$cask" &>/dev/null && [ ! -d "$app" ]; then
+    warn "$name registered with Homebrew but app missing, reinstalling..."
+    if brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+      installed "$name"
+      echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}"
+    else
+      warn "Failed to reinstall $name"
+      return 1
+    fi
+  else
+    read -r -p "  Set up $name? [y/N] " r
+    if [[ ! "$r" =~ ^[yY] ]]; then
+      return
+    fi
+    if brew install --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+      installed "$name"
+      echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}"
+    else
+      warn "Failed to install $name"
+      return 1
+    fi
+  fi
+  deploy_peripheral_config "$config_src" "$config_dst" "$name"
+  PERIPH_OK+=("$name")
+}
+
+setup_peripheral \
+  "Karabiner-Elements" \
+  "karabiner-elements" \
+  "/Applications/Karabiner-Elements.app" \
+  "karabiner.json" \
+  "$HOME/.config/karabiner/karabiner.json"
+
+setup_peripheral \
+  "LinearMouse" \
+  "linearmouse" \
+  "/Applications/LinearMouse.app" \
+  "linearmouse.json" \
+  "$HOME/.config/linearmouse/linearmouse.json"
+
+[ ${#PERIPH_OK[@]} -gt 0 ] && SUM_PERIPHERALS="${GREEN}✔${RESET} $(join_arr ' · ' "${PERIPH_OK[@]}")"
+
+# -------------------------------------------------------
 # Summary
 # -------------------------------------------------------
 echo ""
@@ -836,6 +919,7 @@ section_line "VS Code"       "$SUM_VSCODE"
 section_line "Apps"          "$SUM_APPS"
 section_line "Terminal"      "$SUM_TERMINAL"
 section_line "macOS"         "$SUM_MACOS"
+section_line "Peripherals"   "$SUM_PERIPHERALS"
 echo ""
 $DRY_RUN || echo -e "${GREEN}${BOLD}All done! Restart your terminal to apply all changes.${RESET}"
 echo ""

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://schema.linearmouse.app/schema.json",
+  "schemes": [
+    {
+      "if": {
+        "device": {
+          "category": "mouse"
+        }
+      },
+      "pointer": {
+        "disableAcceleration": true,
+        "speed": 0.5
+      },
+      "scrolling": {
+        "linearized": true,
+        "distance": {
+          "value": 3,
+          "unit": "line"
+        }
+      }
+    }
+  ]
+}
