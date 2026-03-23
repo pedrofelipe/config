@@ -888,16 +888,18 @@ setup_peripheral \
 
 # Mouse settings
 if $DRY_RUN; then
-  would "disable mouse acceleration (com.apple.mouse.scaling = -1)"
+  would "disable mouse acceleration and scroll acceleration"
 else
-  if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "-1" ]; then
+  if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "-1" ] &&
+     [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "-1" ]; then
     ok "Mouse settings already configured"
     PERIPH_OK+=("Mouse")
   else
-    read -r -p "  Apply mouse settings (disable acceleration)? [y/N] " r
+    read -r -p "  Apply mouse settings (disable pointer and scroll acceleration)? [y/N] " r
     if [[ "$r" =~ ^[yY] ]]; then
       defaults write .GlobalPreferences com.apple.mouse.scaling -1
-      ok "Mouse: acceleration disabled"
+      defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
+      ok "Mouse: pointer and scroll acceleration disabled"
       PERIPH_OK+=("Mouse")
     fi
   fi

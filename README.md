@@ -309,10 +309,11 @@ cp karabiner.json ~/.config/karabiner/karabiner.json
 
 #### Mouse settings
 
-Disables pointer acceleration on external mice (trackpad unaffected):
+Disables pointer and scroll acceleration on external mice (trackpad unaffected):
 
 ```bash
 defaults write .GlobalPreferences com.apple.mouse.scaling -1
+defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
 ```
 
 ## Use it yourself
