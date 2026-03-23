@@ -772,7 +772,6 @@ system_current=true
 screenshot_current=true
 _sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
 { [ "$_sc_loc" = "$HOME/Desktop" ] &&
-  [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"  = "1" ] &&
   [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"  = "0" ]; } || screenshot_current=false
 unset _sc_loc
 
@@ -852,7 +851,6 @@ else
 
   # Screenshots
   defaults write com.apple.screencapture location -string "$HOME/Desktop"
-  defaults write com.apple.screencapture disable-shadow -bool true
   defaults write com.apple.screencapture show-thumbnail -bool false
   if $screenshot_current; then ok "Screenshots already configured"; else updated "Screenshots"; fi
 
@@ -952,18 +950,18 @@ setup_peripheral \
 
 # Mouse settings
 if $DRY_RUN; then
-  would "disable mouse acceleration and scroll acceleration"
+  would "set mouse tracking speed and disable scroll acceleration"
 else
-  if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "-1" ] &&
+  if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "0.5" ] &&
      [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "-1" ]; then
     ok "Mouse settings already configured"
     PERIPH_OK+=("Mouse")
   else
-    read -r -p "  Apply mouse settings (disable pointer and scroll acceleration)? [y/N] " r
+    read -r -p "  Apply mouse settings (tracking speed 0.5, disable scroll acceleration)? [y/N] " r
     if [[ "$r" =~ ^[yY] ]]; then
-      defaults write .GlobalPreferences com.apple.mouse.scaling -1
+      defaults write .GlobalPreferences com.apple.mouse.scaling 0.5
       defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
-      ok "Mouse: pointer and scroll acceleration disabled"
+      ok "Mouse: tracking speed set to 0.5, scroll acceleration disabled"
       PERIPH_OK+=("Mouse")
     fi
   fi
