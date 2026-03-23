@@ -852,7 +852,6 @@ else
 
   # Screenshots
   defaults write com.apple.screencapture location -string "$HOME/Desktop"
-  defaults write com.apple.screencapture disable-shadow -bool true
   defaults write com.apple.screencapture show-thumbnail -bool false
   if $screenshot_current; then ok "Screenshots already configured"; else updated "Screenshots"; fi
 
