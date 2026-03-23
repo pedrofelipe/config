@@ -13,6 +13,34 @@
       "complex_modifications": {
         "rules": [
           {
+            "description": "External keyboard: Left Ctrl+C → Ctrl+C in Terminal (cancel command)",
+            "manipulators": [
+              {
+                "type": "basic",
+                "conditions": [
+                  {
+                    "type": "device_unless",
+                    "identifiers": [{ "is_built_in_keyboard": true }]
+                  },
+                  {
+                    "type": "frontmost_application_if",
+                    "bundle_identifiers": ["^com\\.apple\\.Terminal$"]
+                  }
+                ],
+                "from": {
+                  "key_code": "c",
+                  "modifiers": { "mandatory": ["left_control"] }
+                },
+                "to": [
+                  {
+                    "key_code": "c",
+                    "modifiers": ["left_control"]
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "description": "External keyboard: Swap Left Ctrl ↔ Left Command",
             "manipulators": [
               {
