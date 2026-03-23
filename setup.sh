@@ -308,6 +308,12 @@ fi
 brew_cask "claude-code" "claude"
 brew_cask "font-fira-code"
 
+HB_PARTS=()
+[ $BREW_INSTALLED -gt 0 ] && HB_PARTS+=("${BREW_INSTALLED} installed")
+[ $BREW_UPDATED -gt 0 ]   && HB_PARTS+=("${BREW_UPDATED} updated")
+[ $BREW_OK -gt 0 ]        && HB_PARTS+=("${BREW_OK} up to date")
+[ ${#HB_PARTS[@]} -gt 0 ] && SUM_HOMEBREW="${GREEN}✔${RESET} $(join_arr ' · ' "${HB_PARTS[@]}")"
+
 # -------------------------------------------------------
 # 3. SSH keys
 # -------------------------------------------------------
@@ -362,13 +368,6 @@ else
     fi
   fi
 fi
-
-# Build Homebrew summary (after all brew_formula/brew_cask calls in this section)
-HB_PARTS=()
-[ $BREW_INSTALLED -gt 0 ] && HB_PARTS+=("${BREW_INSTALLED} installed")
-[ $BREW_UPDATED -gt 0 ]   && HB_PARTS+=("${BREW_UPDATED} updated")
-[ $BREW_OK -gt 0 ]        && HB_PARTS+=("${BREW_OK} up to date")
-[ ${#HB_PARTS[@]} -gt 0 ] && SUM_HOMEBREW="${GREEN}✔${RESET} $(join_arr ' · ' "${HB_PARTS[@]}")"
 
 # -------------------------------------------------------
 # 4. Switch to Homebrew bash
@@ -600,7 +599,8 @@ install_app() {
   if $DRY_RUN; then
     would "brew install --cask $cask (or upgrade if outdated)"
   elif brew list --cask "$cask" &>/dev/null; then
-    brew_cask "$cask" && APP_OK+=("$name")
+    brew_cask "$cask"
+    APP_OK+=("$name")
   elif [ -d "$app" ]; then
     ok "$name already installed (not Homebrew-managed)"
     APP_OK+=("$name")
@@ -667,11 +667,20 @@ step "Setting up Terminal"
 TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
 TERM_PROFILE="Pedro's Default"
 
+terminal_current() {
+  [ -f "$TERM_PLIST" ] &&
+  [ "$(defaults read com.apple.Terminal 'Default Window Settings' 2>/dev/null)" = "$TERM_PROFILE" ] &&
+  /usr/libexec/PlistBuddy -c "Print ':Window Settings:Pedro'\''s Default:name'" "$TERM_PLIST" &>/dev/null
+}
+
 if $DRY_RUN; then
   would "create Terminal profile '$TERM_PROFILE' with SF Mono 14pt, black background, and title bar settings"
 elif [ ! -f "$TERM_PLIST" ]; then
   warn "Terminal preferences not found — open Terminal.app first, then re-run"
   SUM_TERMINAL="${YELLOW}⚠${RESET} plist not found"
+elif terminal_current; then
+  ok "Terminal profile '$TERM_PROFILE' already configured"
+  SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
 else
   # Create the profile by duplicating Basic, then rename it
   /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
@@ -718,46 +727,57 @@ fi
 # -------------------------------------------------------
 step "Applying macOS preferences"
 
+# Per-group state (computed once, used for both idempotency check and change reporting)
+dock_current=true
+{ [ "$(defaults read com.apple.dock orientation 2>/dev/null)"              = "left" ] &&
+  [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                 = "40"   ] &&
+  [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"           = "1"    ] &&
+  [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"  = "1"    ] &&
+  [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"             = "0"    ] &&
+  [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"          = "1"    ] &&
+  [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"          = "1"    ] &&
+  [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"          = "1"    ] &&
+  [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"    ]; } || dock_current=false
+
+finder_current=true
+{ [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "true" ] &&
+  [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                        = "1"    ] &&
+  [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                     = "0"    ] &&
+  [ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null)"               = "icnv" ] &&
+  [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                    = "PfHm" ] &&
+  [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"               = "SCcf" ] &&
+  [ "$(defaults read com.apple.finder ShowExternalHardDrivesOnDesktop 2>/dev/null)"    = "1"    ] &&
+  [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"            = "1"    ] &&
+  [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"  = "1"    ] &&
+  [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"     = "0"    ]; } || finder_current=false
+
+system_current=true
+{ [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)" = "1"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"          = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"              = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"            = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"          = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"           = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                        = "1"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                           = "Dark"     ] &&
+  [ "$(defaults read NSGlobalDomain com.apple.swipescrolldirection 2>/dev/null)"                = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
+  [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                     = "5"        ] &&
+  [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                              = "25"       ] &&
+  [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                 = "0"        ] &&
+  [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                = "0"        ] &&
+  [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                    = "0"        ] &&
+  [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                     = "0"        ]; } || system_current=false
+
+screenshot_current=true
+_sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
+{ [ "$_sc_loc" = "$HOME/Desktop" ] &&
+  [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"  = "1" ] &&
+  [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"  = "0" ]; } || screenshot_current=false
+unset _sc_loc
+
 macos_prefs_current() {
-  local loc; loc=$(defaults read com.apple.screencapture location 2>/dev/null)
-  [ "$(defaults read com.apple.dock orientation 2>/dev/null)"                                         = "left"     ] &&
-  [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                                            = "40"       ] &&
-  [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"                                      = "1"        ] &&
-  [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"                             = "1"        ] &&
-  [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"                                        = "0"        ] &&
-  [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"                                     = "1"        ] &&
-  [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"                                     = "1"        ] &&
-  [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"                                     = "1"        ] &&
-  [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"                                     = "1"        ] &&
-  [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                                 = "true"     ] &&
-  [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                                       = "1"        ] &&
-  [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                                    = "0"        ] &&
-  [ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null)"                              = "icnv"     ] &&
-  [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                                   = "PfHm"     ] &&
-  [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"                              = "SCcf"     ] &&
-  [ "$(defaults read com.apple.finder ShowExternalHardDrivesOnDesktop 2>/dev/null)"                   = "1"        ] &&
-  [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"                           = "1"        ] &&
-  [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"                 = "1"        ] &&
-  [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"                    = "0"        ] &&
-  [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)"        = "1"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"                = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"                    = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"                  = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"                = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"                 = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                              = "1"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                                 = "Dark"     ] &&
-  [ "$(defaults read NSGlobalDomain com.apple.swipescrolldirection 2>/dev/null)"                      = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                            = "Minimize" ] &&
-  [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                           = "5"        ] &&
-  [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                                    = "25"       ] &&
-  [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                       = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                      = "0"        ] &&
-  [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                         = "0"        ] &&
-  [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                          = "0"        ] &&
-  [ "$loc" = "$HOME/Desktop" ]                                                                                      &&
-  [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"                             = "1"        ] &&
-  [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"                             = "0"        ]
+  $dock_current && $finder_current && $system_current && $screenshot_current
 }
 
 if $DRY_RUN; then
@@ -773,62 +793,13 @@ else
     SUM_MACOS="${CYAN}✔${RESET} unchanged"
   else
 
-  # Check which groups need updating
-  dock_current=true
-  { [ "$(defaults read com.apple.dock orientation 2>/dev/null)"              = "left" ] &&
-    [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                 = "40"   ] &&
-    [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"           = "1"    ] &&
-    [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"  = "1"    ] &&
-    [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"             = "0"    ] &&
-    [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"          = "1"    ] &&
-    [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"          = "1"    ] &&
-    [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"          = "1"    ] &&
-    [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"    ]; } || dock_current=false
-
-  finder_current=true
-  { [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                        = "true" ] &&
-    [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                              = "1"    ] &&
-    [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                           = "0"    ] &&
-    [ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null)"                     = "icnv" ] &&
-    [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                          = "PfHm" ] &&
-    [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"                     = "SCcf" ] &&
-    [ "$(defaults read com.apple.finder ShowExternalHardDrivesOnDesktop 2>/dev/null)"          = "1"    ] &&
-    [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"                  = "1"    ] &&
-    [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"        = "1"    ] &&
-    [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"           = "0"    ]; } || finder_current=false
-
-  system_current=true
-  { [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)" = "1"        ] &&
-    [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"          = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"              = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"            = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"          = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"           = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                        = "1"        ] &&
-    [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                           = "Dark"     ] &&
-    [ "$(defaults read NSGlobalDomain com.apple.swipescrolldirection 2>/dev/null)"               = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
-    [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                     = "5"        ] &&
-    [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                              = "25"       ] &&
-    [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                = "0"        ] &&
-    [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"               = "0"        ] &&
-    [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                   = "0"        ] &&
-    [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                    = "0"        ]; } || system_current=false
-
-  screenshot_current=true
-  _sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
-  { [ "$_sc_loc" = "$HOME/Desktop" ] &&
-    [ "$(defaults read com.apple.screencapture disable-shadow 2>/dev/null)"  = "1" ] &&
-    [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"  = "0" ]; } || screenshot_current=false
-  unset _sc_loc
-
   # Dock
   defaults write com.apple.dock orientation left
   defaults write com.apple.dock tilesize -integer 40
   defaults write com.apple.dock size-immutable -bool true
   defaults write com.apple.dock minimize-to-application -bool true
   defaults write com.apple.dock show-recents -bool false
-  $dock_current && ok "Dock already configured" || updated "Dock"
+  if $dock_current; then ok "Dock already configured"; else updated "Dock"; fi
 
   # Dock app layout
   if command -v dockutil &>/dev/null; then
@@ -858,7 +829,7 @@ else
   defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
   defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-  $finder_current && ok "Finder already configured" || updated "Finder"
+  if $finder_current; then ok "Finder already configured"; else updated "Finder"; fi
 
   # System Settings
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
@@ -877,20 +848,29 @@ else
   defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
   defaults write -g EnableTilingByEdgeDrag -bool false
   defaults write -g EnableTilingByMenuBar -bool false
-  $system_current && ok "System settings already configured" || updated "System settings"
+  if $system_current; then ok "System settings already configured"; else updated "System settings"; fi
 
   # Screenshots
   defaults write com.apple.screencapture location -string "$HOME/Desktop"
   defaults write com.apple.screencapture disable-shadow -bool true
   defaults write com.apple.screencapture show-thumbnail -bool false
-  $screenshot_current && ok "Screenshots already configured" || updated "Screenshots"
+  if $screenshot_current; then ok "Screenshots already configured"; else updated "Screenshots"; fi
 
   # Restart Finder and Dock
   killall Finder
   killall Dock
   ok "Finder and Dock restarted"
 
-  SUM_MACOS="${GREEN}✔${RESET} applied"
+  MACOS_UPDATED=()
+  $dock_current       || MACOS_UPDATED+=("Dock")
+  $finder_current     || MACOS_UPDATED+=("Finder")
+  $system_current     || MACOS_UPDATED+=("System settings")
+  $screenshot_current || MACOS_UPDATED+=("Screenshots")
+  if [ ${#MACOS_UPDATED[@]} -gt 0 ]; then
+    SUM_MACOS="${BLUE}↑${RESET} $(join_arr ' · ' "${MACOS_UPDATED[@]}")"
+  else
+    SUM_MACOS="${GREEN}✔${RESET} already configured"
+  fi
 
   fi # end apply macOS preferences
 fi # end macOS preferences section
