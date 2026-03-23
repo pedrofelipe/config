@@ -619,19 +619,39 @@ install_app "Spotify"       "spotify"       "/Applications/Spotify.app"
 install_app "1Password"     "1password"     "/Applications/1Password.app"
 install_app "iStat Menus"   "istat-menus"   "/Applications/iStat Menus.app"
 
-# Deploy iStat Menus settings
+# Deploy iStat Menus settings (merges preference keys, preserves license and device data)
 ISTATMENUS_PLIST="$HOME/Library/Preferences/com.bjango.istatmenus.menubar.7.plist"
+istatmenus_settings_current() {
+  [ -f "$ISTATMENUS_PLIST" ] && python3 - <<PYEOF
+import plistlib, sys
+with open("$DOTFILES_DIR/istatmenus.menubar.plist", "rb") as f: src = plistlib.load(f)
+with open("$ISTATMENUS_PLIST", "rb") as f: dst = plistlib.load(f)
+sys.exit(0 if all(dst.get(k) == v for k, v in src.items()) else 1)
+PYEOF
+}
+istatmenus_settings_apply() {
+  python3 - <<PYEOF
+import plistlib
+with open("$DOTFILES_DIR/istatmenus.menubar.plist", "rb") as f: src = plistlib.load(f)
+dst = {}
+try:
+  with open("$ISTATMENUS_PLIST", "rb") as f: dst = plistlib.load(f)
+except FileNotFoundError: pass
+dst.update(src)
+with open("$ISTATMENUS_PLIST", "wb") as f: plistlib.dump(dst, f)
+PYEOF
+}
 if $DRY_RUN; then
-  would "deploy istatmenus.menubar.plist to $ISTATMENUS_PLIST"
+  would "merge istatmenus.menubar.plist into $ISTATMENUS_PLIST"
 elif [ ! -f "/Applications/iStat Menus.app/Contents/Info.plist" ]; then
   : # app not installed, skip
-elif diff -q "$ISTATMENUS_PLIST" "$DOTFILES_DIR/istatmenus.menubar.plist" &>/dev/null; then
+elif istatmenus_settings_current; then
   ok "iStat Menus settings already up to date"
   APP_OK+=("iStat Menus settings")
 else
   read -r -p "  Apply iStat Menus settings? [Y/n] " r
   if [[ ! "$r" =~ ^[nN] ]]; then
-    cp "$DOTFILES_DIR/istatmenus.menubar.plist" "$ISTATMENUS_PLIST"
+    istatmenus_settings_apply
     ok "iStat Menus settings applied (restart iStat Menus to take effect)"
     APP_OK+=("iStat Menus settings")
   fi
