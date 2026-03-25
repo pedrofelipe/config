@@ -250,9 +250,6 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   # Enable dark mode
   defaults write NSGlobalDomain AppleInterfaceStyle Dark
 
-  # Disable natural scroll direction
-  defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
-
   # Minimize window on title bar double-click
   defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
 

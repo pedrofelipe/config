@@ -762,8 +762,7 @@ system_current=true
   [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"           = "0"        ] &&
   [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                        = "1"        ] &&
   [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                           = "Dark"     ] &&
-  [ "$(defaults read NSGlobalDomain com.apple.swipescrolldirection 2>/dev/null)"                = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
+[ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
   [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                     = "5"        ] &&
   [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                              = "25"       ] &&
   [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                 = "0"        ] &&
@@ -841,8 +840,7 @@ else
   defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
   defaults write NSGlobalDomain AppleShowAllExtensions -bool true
   defaults write NSGlobalDomain AppleInterfaceStyle Dark
-  defaults write NSGlobalDomain com.apple.swipescrolldirection -bool false
-  defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
+defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
   defaults write NSGlobalDomain KeyRepeat -int 5
   defaults write NSGlobalDomain InitialKeyRepeat -int 25
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
