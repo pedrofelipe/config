@@ -72,19 +72,9 @@ mkdir -p ~/.ssh && chmod 700 ~/.ssh
 cp ssh_config ~/.ssh/config && chmod 600 ~/.ssh/config
 ```
 
-- [ ] Copy existing SSH keys to `~/.ssh`, or generate new ones and add to GitHub
+- [ ] Copy existing SSH keys to `~/.ssh`, or let the setup script generate new ones
 
-If generating manually:
-
-```bash
-ssh-keygen -t ed25519
-chmod 600 ~/.ssh/id_ed25519
-chmod 600 ~/.ssh/id_ed25519.pub
-ssh-add --apple-use-keychain ~/.ssh/id_ed25519
-gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname | sed 's/\.local$//')"
-```
-
-Then confirm it was added at [github.com/settings/keys](https://github.com/settings/keys).
+If no key exists, `setup.sh` generates `~/.ssh/id_ed25519`, adds it to the macOS keychain agent, and uploads it to GitHub via `gh ssh-key add` (prompting for `gh auth login` if needed). Confirm at [github.com/settings/keys](https://github.com/settings/keys).
 
 ### 4. Switch from zsh to bash
 - [ ] Set Homebrew bash as the default shell
@@ -138,6 +128,8 @@ brew install --cask spotify
 brew install --cask 1password
 brew install --cask istat-menus
 ```
+
+After installing iStat Menus, `setup.sh` merges [`istatmenus.menubar.plist`](/istatmenus.menubar.plist) into the app's preferences using Python — updating only the display settings while preserving any existing license and device data.
 
 ### 8. Set up Terminal
 
@@ -287,9 +279,6 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   # Screenshots
   # Save to Desktop
   defaults write com.apple.screencapture location -string "$HOME/Desktop"
-
-  # Disable drop shadow
-  defaults write com.apple.screencapture disable-shadow -bool true
 
   # Disable floating thumbnail preview
   defaults write com.apple.screencapture show-thumbnail -bool false

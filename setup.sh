@@ -10,15 +10,17 @@ RESET='\033[0m'
 
 # Parse flags
 DRY_RUN=false
+VERBOSE=false
 for arg in "$@"; do
   [[ "$arg" == "--dry-run" ]] && DRY_RUN=true
+  [[ "$arg" == "--verbose" ]] && VERBOSE=true
 done
 
 # nvm version — update manually when a new stable release is available
 NVM_VERSION="v0.40.4"
 
 # ASCII art
-echo -e "${CYAN}${BOLD}"
+printf "${CYAN}${BOLD}"
 cat << 'EOF'
  _     _   _                  _               _
 | |__ | |_| |_ _ __   ___  __| |_ __ ___   __| | _____   __
@@ -68,7 +70,7 @@ BREW_INSTALLED=0
 
 step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
-ok()        { echo -e "${CYAN}✔ $1${RESET}"; }
+ok()        { $VERBOSE && echo -e "${CYAN}✔ $1${RESET}"; }
 updated()   { echo -e "${BLUE}↑ Updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
@@ -950,18 +952,18 @@ setup_peripheral \
 
 # Mouse settings
 if $DRY_RUN; then
-  would "set mouse tracking speed and disable scroll acceleration"
+  would "set mouse tracking speed and scroll speed"
 else
   if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "0.5" ] &&
-     [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "-1" ]; then
+     [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "0.5" ]; then
     ok "Mouse settings already configured"
     PERIPH_OK+=("Mouse")
   else
-    read -r -p "  Apply mouse settings (tracking speed 0.5, disable scroll acceleration)? [y/N] " r
+    read -r -p "  Apply mouse settings (tracking speed 0.5, scroll speed 0.5)? [y/N] " r
     if [[ "$r" =~ ^[yY] ]]; then
       defaults write .GlobalPreferences com.apple.mouse.scaling 0.5
-      defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
-      ok "Mouse: tracking speed set to 0.5, scroll acceleration disabled"
+      defaults write .GlobalPreferences com.apple.scrollwheel.scaling 0.5
+      ok "Mouse: tracking speed set to 0.5, scroll speed set to 0.5"
       PERIPH_OK+=("Mouse")
     fi
   fi
