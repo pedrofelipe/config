@@ -12,12 +12,6 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 ./setup.sh --dry-run
 ```
 
-Pass `--verbose` to see per-item detail for each step.
-
-```bash
-./setup.sh --verbose
-```
-
 ![setup.sh running in Terminal](setup.png)
 
 ## Contents

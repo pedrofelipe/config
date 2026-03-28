@@ -10,10 +10,8 @@ RESET='\033[0m'
 
 # Parse flags
 DRY_RUN=false
-VERBOSE=false
 for arg in "$@"; do
   [[ "$arg" == "--dry-run" ]] && DRY_RUN=true
-  [[ "$arg" == "--verbose" ]] && VERBOSE=true
 done
 
 # nvm version — update manually when a new stable release is available
@@ -70,7 +68,7 @@ BREW_INSTALLED=0
 
 step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
-ok()        { $VERBOSE && echo -e "${CYAN}✔ $1${RESET}"; }
+ok()        { echo -e "${CYAN}✔ $1${RESET}"; }
 updated()   { echo -e "${BLUE}↑ Updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
