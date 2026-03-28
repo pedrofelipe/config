@@ -48,7 +48,7 @@
   "gitlens.graph.statusBar.enabled": false,
   "gitlens.hovers.enabled": false,
   "gitlens.integrations.enabled": false,
-  "gitlens.showWelcomeOnInstall": false,
+  "gitlens.advanced.skipOnboarding": true,
   "gitlens.showWhatsNewAfterUpgrades": false,
   "gitlens.statusBar.enabled": true,
   "gitlens.telemetry.enabled": false,
