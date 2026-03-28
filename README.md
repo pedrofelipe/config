@@ -12,7 +12,7 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 ./setup.sh --dry-run
 ```
 
-![setup.sh running in Terminal](setup.png)
+<video src="https://github.com/user-attachments/assets/ca4d390e-609a-4d15-872a-1edfc0e91f47" autoplay loop muted playsinline></video>
 
 ## Contents
 | File | Description |
