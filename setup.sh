@@ -776,12 +776,26 @@ _sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
   [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"  = "0" ]; } || screenshot_current=false
 unset _sc_loc
 
+menubar_current=true
+{ [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible BentoBox" 2>/dev/null)"       = "1" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible FaceTime" 2>/dev/null)"        = "0" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible NowPlaying" 2>/dev/null)"      = "0" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" 2>/dev/null)" = "0" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" 2>/dev/null)"     = "1" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Clock" 2>/dev/null)"         = "1" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Sound" 2>/dev/null)"         = "1" ] &&
+  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC WiFi" 2>/dev/null)"          = "1" ] &&
+  [ "$(defaults read com.apple.menuextra.clock IsAnalog 2>/dev/null)"                             = "0" ] &&
+  [ "$(defaults read com.apple.menuextra.clock ShowAMPM 2>/dev/null)"                             = "1" ] &&
+  [ "$(defaults read com.apple.menuextra.clock ShowDate 2>/dev/null)"                             = "0" ] &&
+  [ "$(defaults read com.apple.menuextra.clock ShowDayOfWeek 2>/dev/null)"                        = "1" ]; } || menubar_current=false
+
 macos_prefs_current() {
-  $dock_current && $finder_current && $system_current && $screenshot_current
+  $dock_current && $finder_current && $system_current && $screenshot_current && $menubar_current
 }
 
 if $DRY_RUN; then
-  would "configure Dock, Finder, and System Settings"
+  would "configure Dock, Finder, System Settings, and menu bar"
   would "reset Dock to: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
 elif macos_prefs_current; then
   ok "macOS preferences already configured"
@@ -854,16 +868,35 @@ defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
   defaults write com.apple.screencapture show-thumbnail -bool false
   if $screenshot_current; then ok "Screenshots already configured"; else updated "Screenshots"; fi
 
-  # Restart Finder and Dock
+  # Menu bar — visible items
+  defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true
+  defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
+  defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
+  defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
+  # Menu bar — Control Center items
+  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" -bool true
+  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
+  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
+  defaults write com.apple.controlcenter "NSStatusItem VisibleCC WiFi" -bool true
+  # Menu bar — clock format (digital, day of week + AM/PM, no date)
+  defaults write com.apple.menuextra.clock IsAnalog -bool false
+  defaults write com.apple.menuextra.clock ShowAMPM -bool true
+  defaults write com.apple.menuextra.clock ShowDate -bool false
+  defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
+  if $menubar_current; then ok "Menu bar already configured"; else updated "Menu bar"; fi
+
+  # Restart Finder, Dock, and menu bar
   killall Finder
   killall Dock
-  ok "Finder and Dock restarted"
+  killall SystemUIServer
+  ok "Finder, Dock, and menu bar restarted"
 
   MACOS_UPDATED=()
   $dock_current       || MACOS_UPDATED+=("Dock")
   $finder_current     || MACOS_UPDATED+=("Finder")
   $system_current     || MACOS_UPDATED+=("System settings")
   $screenshot_current || MACOS_UPDATED+=("Screenshots")
+  $menubar_current    || MACOS_UPDATED+=("Menu bar")
   if [ ${#MACOS_UPDATED[@]} -gt 0 ]; then
     SUM_MACOS="${BLUE}↑${RESET} $(join_arr ' · ' "${MACOS_UPDATED[@]}")"
   else
