@@ -848,10 +848,12 @@ menubar_current=true
   [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible FaceTime" 2>/dev/null)"        = "0" ] &&
   [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible NowPlaying" 2>/dev/null)"      = "0" ] &&
   [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" 2>/dev/null)" = "0" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" 2>/dev/null)"     = "1" ] &&
+  [ "$(defaults -currentHost read com.apple.controlcenter Bluetooth 2>/dev/null)"                 = "18" ] &&
+  [ "$(defaults -currentHost read com.apple.controlcenter Spotlight 2>/dev/null)"                 = "18" ] &&
+  [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)"                   = "18" ] &&
   [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Clock" 2>/dev/null)"         = "1" ] &&
   [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Sound" 2>/dev/null)"         = "1" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC WiFi" 2>/dev/null)"          = "1" ] &&
+  [ "$(defaults -currentHost read com.apple.controlcenter WiFi 2>/dev/null)"                      = "18" ] &&
   [ "$(defaults read com.apple.menuextra.clock IsAnalog 2>/dev/null)"                             = "0" ] &&
   [ "$(defaults read com.apple.menuextra.clock ShowAMPM 2>/dev/null)"                             = "1" ] &&
   [ "$(defaults read com.apple.menuextra.clock ShowDate 2>/dev/null)"                             = "0" ] &&
@@ -862,6 +864,15 @@ _pref_diff() {
   local label="$1" domain="$2" key="$3" expected="$4"
   local actual pad
   actual=$(defaults read "$domain" "$key" 2>/dev/null)
+  if [ "$actual" != "$expected" ]; then
+    pad=$(( 26 - ${#label} )); [ $pad -lt 1 ] && pad=1
+    printf "    %s%*s%s → %s\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
+  fi
+}
+_pref_diff_host() {
+  local label="$1" domain="$2" key="$3" expected="$4"
+  local actual pad
+  actual=$(defaults -currentHost read "$domain" "$key" 2>/dev/null)
   if [ "$actual" != "$expected" ]; then
     pad=$(( 26 - ${#label} )); [ $pad -lt 1 ] && pad=1
     printf "    %s%*s%s → %s\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
@@ -1021,10 +1032,12 @@ else
     _pref_diff "FaceTime visible"        com.apple.controlcenter "NSStatusItem Visible FaceTime"       0
     _pref_diff "Now Playing visible"     com.apple.controlcenter "NSStatusItem Visible NowPlaying"     0
     _pref_diff "Screen Mirroring visible" com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" 0
-    _pref_diff "Bluetooth visible"       com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth"    1
+    _pref_diff_host "Bluetooth visible"    com.apple.controlcenter Bluetooth                          18
+    _pref_diff_host "Spotlight visible"  com.apple.controlcenter Spotlight                            18
+    _pref_diff_host "Weather visible"    com.apple.controlcenter Weather                              18
     _pref_diff "Clock visible"           com.apple.controlcenter "NSStatusItem VisibleCC Clock"        1
     _pref_diff "Sound visible"           com.apple.controlcenter "NSStatusItem VisibleCC Sound"        1
-    _pref_diff "WiFi visible"            com.apple.controlcenter "NSStatusItem VisibleCC WiFi"         1
+    _pref_diff_host "WiFi visible"       com.apple.controlcenter WiFi                                 18
     _pref_diff "clock analog"            com.apple.menuextra.clock IsAnalog                            0
     _pref_diff "clock AM/PM"             com.apple.menuextra.clock ShowAMPM                            1
     _pref_diff "clock date"              com.apple.menuextra.clock ShowDate                            0
@@ -1035,10 +1048,12 @@ else
       defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
       defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
       defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
-      defaults write com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" -bool true
+      defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
+      defaults -currentHost write com.apple.controlcenter Spotlight -int 18
+      defaults -currentHost write com.apple.controlcenter Weather -int 18
       defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
       defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
-      defaults write com.apple.controlcenter "NSStatusItem VisibleCC WiFi" -bool true
+      defaults -currentHost write com.apple.controlcenter WiFi -int 18
       defaults write com.apple.menuextra.clock IsAnalog -bool false
       defaults write com.apple.menuextra.clock ShowAMPM -bool true
       defaults write com.apple.menuextra.clock ShowDate -bool false
@@ -1051,7 +1066,7 @@ else
 
   # Restart affected services
   if $NEEDS_RESTART; then
-    killall Finder 2>/dev/null; killall Dock 2>/dev/null; killall SystemUIServer 2>/dev/null
+    killall Finder 2>/dev/null; killall Dock 2>/dev/null; killall SystemUIServer 2>/dev/null; killall ControlCenter 2>/dev/null
     ok "Finder, Dock, and menu bar restarted"
   fi
 
@@ -1060,7 +1075,7 @@ else
   else
     SUM_MACOS="${GREEN}✔${RESET} already configured"
   fi
-  unset -f _pref_diff
+  unset -f _pref_diff _pref_diff_host
 fi # end macOS preferences section
 
 # -------------------------------------------------------
