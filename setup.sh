@@ -205,7 +205,7 @@ fi
 step "Loading config files"
 
 CF_OK=()
-for file in .bash_profile .gitconfig .inputrc; do
+for file in .bash_profile .inputrc; do
   if [ -f "$DOTFILES_DIR/$file" ]; then
     if $DRY_RUN; then
       would "cp $file to $HOME/$file"
@@ -233,6 +233,44 @@ for file in .bash_profile .gitconfig .inputrc; do
     warn "$file not found, skipping"
   fi
 done
+# Git config (deployed separately to prompt for name and email)
+if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
+  if $DRY_RUN; then
+    would "cp .gitconfig to ~/.gitconfig and set user.name / user.email"
+  else
+    _gitconfig_needs_copy=true
+    _current_email=$(git config --global user.email 2>/dev/null)
+    if [ -f "$HOME/.gitconfig" ]; then
+      _files_match=false
+      diff -q "$HOME/.gitconfig" "$DOTFILES_DIR/.gitconfig" &>/dev/null && _files_match=true
+      if $_files_match && [ -n "$_current_email" ] && [[ "$_current_email" != *"YOUR_"* ]]; then
+        _gitconfig_needs_copy=false
+      elif ! $_files_match; then
+        echo "  Diff for .gitconfig:"
+        diff --color=always "$HOME/.gitconfig" "$DOTFILES_DIR/.gitconfig"
+        read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
+        [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
+      fi
+    fi
+    if $_gitconfig_needs_copy; then
+      read -r -p "  Git name [Pedro Menezes]: " git_name
+      git_name="${git_name:-Pedro Menezes}"
+      while true; do
+        read -r -p "  Git email: " git_email
+        [ -n "$git_email" ] && break
+        echo "  Email cannot be empty."
+      done
+      cp "$DOTFILES_DIR/.gitconfig" "$HOME/.gitconfig"
+      git config --global user.name "$git_name"
+      git config --global user.email "$git_email"
+      installed ".gitconfig ($git_name <$git_email>)"
+    else
+      ok ".gitconfig already up to date"
+    fi
+    CF_OK+=(".gitconfig")
+    unset _gitconfig_needs_copy _current_email _files_match
+  fi
+fi
 # SSH config (deploys to ~/.ssh/config, not $HOME directly)
 if [ -f "$DOTFILES_DIR/ssh_config" ]; then
   if $DRY_RUN; then
@@ -1027,18 +1065,18 @@ setup_peripheral \
 
 # Mouse settings
 if $DRY_RUN; then
-  would "set mouse tracking speed and scroll speed"
+  would "set mouse tracking speed 0.5, disable scroll acceleration"
 else
   if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "0.5" ] &&
-     [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "0.5" ]; then
+     [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "-1" ]; then
     ok "Mouse settings already configured"
     PERIPH_OK+=("Mouse")
   else
-    read -r -p "  Apply mouse settings (tracking speed 0.5, scroll speed 0.5)? [y/N] " r
+    read -r -p "  Apply mouse settings (tracking speed 0.5, scroll linear/no acceleration)? [y/N] " r
     if [[ "$r" =~ ^[yY] ]]; then
       defaults write .GlobalPreferences com.apple.mouse.scaling 0.5
-      defaults write .GlobalPreferences com.apple.scrollwheel.scaling 0.5
-      ok "Mouse: tracking speed set to 0.5, scroll speed set to 0.5"
+      defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
+      ok "Mouse: tracking speed set to 0.5, scroll acceleration disabled"
       PERIPH_OK+=("Mouse")
     fi
   fi
