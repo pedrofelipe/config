@@ -1,10 +1,11 @@
 #!/bin/bash
 
 # Colors
-GREEN='\033[0;32m'
+GREEN='\033[38;5;84m'
 YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
+BLUE='\033[38;5;75m'
+PURPLE='\033[38;5;141m'
+GREY='\033[38;5;244m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
@@ -18,7 +19,7 @@ done
 NVM_VERSION="v0.40.4"
 
 # ASCII art
-printf "${CYAN}${BOLD}"
+printf "${PURPLE}${BOLD}"
 cat << 'EOF'
  _     _   _                  _               _
 | |__ | |_| |_ _ __   ___  __| |_ __ ___   __| | _____   __
@@ -28,9 +29,8 @@ cat << 'EOF'
               |_|
 EOF
 echo -e "${RESET}"
-echo -e "${BOLD}macOS Setup Script${RESET}"
+echo -e "${BOLD}macOS Setup${RESET}"
 $DRY_RUN && echo -e "\n${YELLOW}${BOLD}Dry run — no changes will be made${RESET}"
-echo "-----------------------------------"
 echo ""
 
 # Close System Preferences/Settings to prevent it from overriding defaults
@@ -39,7 +39,7 @@ osascript -e 'tell application "System Settings" to quit' 2>/dev/null
 
 # Ask for sudo password upfront and keep it alive for the duration of the script
 if ! $DRY_RUN; then
-  sudo -v
+  sudo -v || exit 1
   while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
 fi
 
@@ -66,9 +66,9 @@ BREW_OK=0
 BREW_UPDATED=0
 BREW_INSTALLED=0
 
-step()      { echo -e "\n${CYAN}${BOLD}▶ $1${RESET}"; }
-installed() { echo -e "${GREEN}✔ installed $1${RESET}"; INSTALLED+=("$1"); }
-ok()        { echo -e "${CYAN}✔ $1${RESET}"; }
+step()      { echo -e "\n${BLUE}${BOLD}▶ $1${RESET}"; }
+installed() { echo -e "${GREEN}✔ Installed $1${RESET}"; INSTALLED+=("$1"); }
+ok()        { echo -e "${GREY}✔ $1${RESET}"; }
 updated()   { echo -e "${BLUE}↑ Updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
@@ -240,12 +240,13 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
     _current_email=$(git config --global user.email 2>/dev/null)
     if [ -f "$HOME/.gitconfig" ]; then
       _files_match=false
-      diff -q "$HOME/.gitconfig" "$DOTFILES_DIR/.gitconfig" &>/dev/null && _files_match=true
+      _strip_identity() { grep -vE '^\s*(name|email)\s*=' "$1"; }
+      diff -q <(_strip_identity "$HOME/.gitconfig") <(_strip_identity "$DOTFILES_DIR/.gitconfig") &>/dev/null && _files_match=true
       if $_files_match && [ -n "$_current_email" ] && [[ "$_current_email" != *"YOUR_"* ]]; then
         _gitconfig_needs_copy=false
       elif ! $_files_match; then
         echo "  Diff for .gitconfig:"
-        diff --color=always "$HOME/.gitconfig" "$DOTFILES_DIR/.gitconfig"
+        diff --color=always <(_strip_identity "$HOME/.gitconfig") <(_strip_identity "$DOTFILES_DIR/.gitconfig")
         read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
       fi
@@ -267,6 +268,7 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
     fi
     CF_OK+=(".gitconfig")
     unset _gitconfig_needs_copy _current_email _files_match
+    unset -f _strip_identity
   fi
 fi
 # SSH config (deploys to ~/.ssh/config, not $HOME directly)
@@ -798,6 +800,13 @@ dock_current=true
   [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"          = "1"    ] &&
   [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"          = "1"    ] &&
   [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"    ]; } || dock_current=false
+if $dock_current && command -v dockutil &>/dev/null; then
+  _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
+  for _app in "Google Chrome" "Visual Studio Code" "Terminal" "1Password" "Spotify"; do
+    echo "$_dock_list" | grep -q "$_app" || { dock_current=false; break; }
+  done
+  unset _dock_list _app
+fi
 
 finder_current=true
 { [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "true" ] &&
@@ -849,6 +858,16 @@ menubar_current=true
   [ "$(defaults read com.apple.menuextra.clock ShowDayOfWeek 2>/dev/null)"                        = "1" ]; } || menubar_current=false
 
 
+_pref_diff() {
+  local label="$1" domain="$2" key="$3" expected="$4"
+  local actual pad
+  actual=$(defaults read "$domain" "$key" 2>/dev/null)
+  if [ "$actual" != "$expected" ]; then
+    pad=$(( 26 - ${#label} )); [ $pad -lt 1 ] && pad=1
+    printf "    %s%*s%s → %s\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
+  fi
+}
+
 if $DRY_RUN; then
   would "configure Dock, Finder, System Settings, Screenshots, and menu bar"
   would "reset Dock to: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
@@ -860,6 +879,24 @@ else
   if $dock_current; then
     ok "Dock already configured"
   else
+    if command -v dockutil &>/dev/null; then
+      _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
+      _missing=()
+      for _app in "Google Chrome" "Visual Studio Code" "Terminal" "1Password" "Spotify"; do
+        echo "$_dock_list" | grep -q "$_app" || _missing+=("$_app")
+      done
+      [ ${#_missing[@]} -gt 0 ] && echo "  Missing from Dock: $(IFS=', '; echo "${_missing[*]}")"
+      unset _dock_list _app _missing
+    fi
+    _pref_diff "position"            com.apple.dock orientation             left
+    _pref_diff "icon size"           com.apple.dock tilesize                40
+    _pref_diff "size locked"         com.apple.dock size-immutable          1
+    _pref_diff "minimize to app"     com.apple.dock minimize-to-application 1
+    _pref_diff "show recents"        com.apple.dock show-recents            0
+    _pref_diff "top-left corner"     com.apple.dock wvous-tl-corner         1
+    _pref_diff "top-right corner"    com.apple.dock wvous-tr-corner         1
+    _pref_diff "bottom-left corner"  com.apple.dock wvous-bl-corner         1
+    _pref_diff "bottom-right corner" com.apple.dock wvous-br-corner         1
     read -r -p "  Apply Dock settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.dock orientation left
@@ -890,6 +927,16 @@ else
   if $finder_current; then
     ok "Finder already configured"
   else
+    _pref_diff "show all files"           com.apple.finder AppleShowAllFiles              true
+    _pref_diff "path bar"                 com.apple.finder ShowPathbar                    1
+    _pref_diff "recent tags"              com.apple.finder ShowRecentTags                 0
+    _pref_diff "view style"               com.apple.finder FXPreferredViewStyle            icnv
+    _pref_diff "new window target"        com.apple.finder NewWindowTarget                PfHm
+    _pref_diff "search scope"             com.apple.finder FXDefaultSearchScope           SCcf
+    _pref_diff "external drives on desk"  com.apple.finder ShowExternalHardDrivesOnDesktop 1
+    _pref_diff "hard drives on desk"      com.apple.finder ShowHardDrivesOnDesktop        1
+    _pref_diff "no .DS_Store on network"  com.apple.desktopservices DSDontWriteNetworkStores 1
+    _pref_diff "extension change warning" com.apple.finder FXEnableExtensionChangeWarning 0
     read -r -p "  Apply Finder settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.finder AppleShowAllFiles true
@@ -912,6 +959,21 @@ else
   if $system_current; then
     ok "System settings already configured"
   else
+    _pref_diff "tap to click"          com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 1
+    _pref_diff "autocorrect"           NSGlobalDomain NSAutomaticSpellingCorrectionEnabled  0
+    _pref_diff "autocapitalize"        NSGlobalDomain NSAutomaticCapitalizationEnabled      0
+    _pref_diff "smart dashes"          NSGlobalDomain NSAutomaticDashSubstitutionEnabled    0
+    _pref_diff "smart periods"         NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled  0
+    _pref_diff "smart quotes"          NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled   0
+    _pref_diff "show all extensions"   NSGlobalDomain AppleShowAllExtensions                1
+    _pref_diff "interface style"       NSGlobalDomain AppleInterfaceStyle                  Dark
+    _pref_diff "double-click action"   NSGlobalDomain AppleActionOnDoubleClick             Minimize
+    _pref_diff "key repeat"            NSGlobalDomain KeyRepeat                            5
+    _pref_diff "initial key repeat"    NSGlobalDomain InitialKeyRepeat                     25
+    _pref_diff "alert sound"           NSGlobalDomain com.apple.sound.beep.feedback        0
+    _pref_diff "menu bar transparency" NSGlobalDomain AppleEnableMenuBarTransparency       0
+    _pref_diff "tiling by edge drag"   NSGlobalDomain EnableTilingByEdgeDrag               0
+    _pref_diff "tiling by menu bar"    NSGlobalDomain EnableTilingByMenuBar                0
     read -r -p "  Apply System settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
@@ -939,6 +1001,8 @@ else
   if $screenshot_current; then
     ok "Screenshots already configured"
   else
+    _pref_diff "save location"  com.apple.screencapture location       "$HOME/Desktop"
+    _pref_diff "thumbnail"      com.apple.screencapture show-thumbnail 0
     read -r -p "  Apply Screenshots settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.screencapture location -string "$HOME/Desktop"
@@ -953,6 +1017,18 @@ else
   if $menubar_current; then
     ok "Menu bar already configured"
   else
+    _pref_diff "BentoBox visible"        com.apple.controlcenter "NSStatusItem Visible BentoBox"       1
+    _pref_diff "FaceTime visible"        com.apple.controlcenter "NSStatusItem Visible FaceTime"       0
+    _pref_diff "Now Playing visible"     com.apple.controlcenter "NSStatusItem Visible NowPlaying"     0
+    _pref_diff "Screen Mirroring visible" com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" 0
+    _pref_diff "Bluetooth visible"       com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth"    1
+    _pref_diff "Clock visible"           com.apple.controlcenter "NSStatusItem VisibleCC Clock"        1
+    _pref_diff "Sound visible"           com.apple.controlcenter "NSStatusItem VisibleCC Sound"        1
+    _pref_diff "WiFi visible"            com.apple.controlcenter "NSStatusItem VisibleCC WiFi"         1
+    _pref_diff "clock analog"            com.apple.menuextra.clock IsAnalog                            0
+    _pref_diff "clock AM/PM"             com.apple.menuextra.clock ShowAMPM                            1
+    _pref_diff "clock date"              com.apple.menuextra.clock ShowDate                            0
+    _pref_diff "clock day of week"       com.apple.menuextra.clock ShowDayOfWeek                       1
     read -r -p "  Apply menu bar settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true
@@ -984,13 +1060,14 @@ else
   else
     SUM_MACOS="${GREEN}✔${RESET} already configured"
   fi
+  unset -f _pref_diff
 fi # end macOS preferences section
 
 # -------------------------------------------------------
 # 10. External Peripherals (Windows keyboard/mouse on Mac)
 # -------------------------------------------------------
 step "External peripherals"
-echo -e "  ${YELLOW}Only needed when using a Windows keyboard or mouse on a Mac.${RESET}"
+echo -e "  ${GREY}Only needed when using a Windows keyboard or mouse on a Mac.${RESET}"
 
 PERIPH_OK=()
 
@@ -1086,9 +1163,7 @@ fi
 # Summary
 # -------------------------------------------------------
 echo ""
-echo -e "${BOLD}-----------------------------------${RESET}"
 echo -e "${BOLD}Summary${RESET}"
-echo -e "${BOLD}-----------------------------------${RESET}"
 [ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET}  $(printf '%s, ' "${INSTALLED[@]}" | sed 's/, $//')"
 [ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET}    $(printf '%s, ' "${UPDATED[@]}" | sed 's/, $//')"
 [ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET}   $(printf '%s, ' "${WARNINGS[@]}" | sed 's/, $//')"
@@ -1096,7 +1171,7 @@ echo -e "${BOLD}-----------------------------------${RESET}"
 section_line() {
   local label=$1 value=$2 pad
   pad=$(( 16 - ${#label} )); [ $pad -lt 1 ] && pad=1
-  [ -n "$value" ] && echo -e "${BOLD}${label}${RESET}$(printf '%*s' $pad '')${value}"
+  [ -n "$value" ] && echo -e "${GREY}${label}${RESET}$(printf '%*s' $pad '')${value}"
 }
 
 echo ""

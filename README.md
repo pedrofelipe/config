@@ -305,8 +305,7 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 #### Karabiner-Elements (keyboard remapping)
 
 Remaps modifier keys on external keyboards only (built-in keyboard unaffected):
-- Left Ctrl → Command; Left Windows key → Control (swap disabled for built-in keyboard)
-- In Terminal: Ctrl+C/V → copy/paste; Windows+C → close window (Cmd+W)
+- Left Ctrl → Command; Left Windows key → Control (global, including Terminal)
 - Alt+Tab → Cmd+Tab (app switcher)
 
 ```bash
