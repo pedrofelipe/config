@@ -280,11 +280,15 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
   defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
 
+  # Menu bar — pin items (18 = show in menu bar, 8 = Control Center only)
+  defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
+  defaults -currentHost write com.apple.controlcenter Spotlight -int 18
+  defaults -currentHost write com.apple.controlcenter Weather -int 18
+  defaults -currentHost write com.apple.controlcenter WiFi -int 18
+
   # Menu bar — Control Center items
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" -bool true
   defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
   defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC WiFi" -bool true
 
   # Menu bar — clock format (digital, day of week + AM/PM, no date)
   defaults write com.apple.menuextra.clock IsAnalog -bool false
@@ -296,6 +300,7 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   killall Finder
   killall Dock
   killall SystemUIServer
+  killall ControlCenter
 ```
 
 ### 10. External peripherals
