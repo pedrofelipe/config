@@ -855,18 +855,9 @@ menubar_current=true
 
 
 _pref_diff() {
-  local label="$1" domain="$2" key="$3" expected="$4"
+  local label="$1" domain="$2" key="$3" expected="$4" host="${5:-}"
   local actual pad
-  actual=$(defaults read "$domain" "$key" 2>/dev/null)
-  if [ "$actual" != "$expected" ]; then
-    pad=$(( 26 - ${#label} )); [ $pad -lt 1 ] && pad=1
-    printf "    %s%*s%s → %s\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
-  fi
-}
-_pref_diff_host() {
-  local label="$1" domain="$2" key="$3" expected="$4"
-  local actual pad
-  actual=$(defaults -currentHost read "$domain" "$key" 2>/dev/null)
+  actual=$(defaults ${host:+-currentHost} read "$domain" "$key" 2>/dev/null)
   if [ "$actual" != "$expected" ]; then
     pad=$(( 26 - ${#label} )); [ $pad -lt 1 ] && pad=1
     printf "    %s%*s%s → %s\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
@@ -1022,10 +1013,10 @@ else
   if $menubar_current; then
     ok "Menu bar already configured"
   else
-    _pref_diff_host "Bluetooth visible"  com.apple.controlcenter Bluetooth                            18
-    _pref_diff_host "Spotlight visible"  com.apple.controlcenter Spotlight                            18
-    _pref_diff_host "Weather visible"    com.apple.controlcenter Weather                              18
-    _pref_diff_host "WiFi visible"       com.apple.controlcenter WiFi                                 18
+    _pref_diff "Bluetooth visible"       com.apple.controlcenter Bluetooth                            18 host
+    _pref_diff "Spotlight visible"       com.apple.controlcenter Spotlight                            18 host
+    _pref_diff "Weather visible"         com.apple.controlcenter Weather                              18 host
+    _pref_diff "WiFi visible"            com.apple.controlcenter WiFi                                 18 host
     _pref_diff "clock analog"            com.apple.menuextra.clock IsAnalog                            0
     _pref_diff "clock AM/PM"             com.apple.menuextra.clock ShowAMPM                            1
     _pref_diff "clock date"              com.apple.menuextra.clock ShowDate                            0
@@ -1057,7 +1048,7 @@ else
   else
     SUM_MACOS="${GREEN}✔${RESET} already configured"
   fi
-  unset -f _pref_diff _pref_diff_host
+  unset -f _pref_diff
 fi # end macOS preferences section
 
 # -------------------------------------------------------
