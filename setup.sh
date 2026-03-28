@@ -452,7 +452,7 @@ else
         fi
       else
         ok "Shell unchanged"
-        SUM_SHELL="${BLUE}✔${RESET} unchanged"
+        SUM_SHELL="${GREEN}✔${RESET} unchanged"
       fi
     fi
   fi
@@ -741,7 +741,7 @@ else
   read -r -p "  Set up Terminal profile '$TERM_PROFILE'? [Y/n] " r
   if [[ "$r" =~ ^[nN] ]]; then
     ok "Terminal unchanged"
-    SUM_TERMINAL="${BLUE}✔${RESET} unchanged"
+    SUM_TERMINAL="${GREEN}✔${RESET} unchanged"
   else
     # Create the profile by duplicating Basic, then rename it
     /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
