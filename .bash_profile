@@ -1,7 +1,11 @@
-# History
+# Locale — set explicitly to prevent bash warnings from Terminal.app's partial LC_* injection
+export LANG=en_US.UTF-8
+export LC_ALL=en_US.UTF-8
+
+# History — append on exit, keep 1k entries (default: 500), skip duplicates and space-prefixed lines
 shopt -s histappend
-HISTSIZE=10000
-HISTFILESIZE=20000
+HISTSIZE=1000
+HISTFILESIZE=1000
 HISTCONTROL=ignoreboth:erasedups
 
 # Shell behavior
