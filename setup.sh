@@ -523,23 +523,39 @@ else
 
   VSCODE_EXT_OK=0
   VSCODE_EXT_NEW=0
-  $DRY_RUN || installed_exts=$(code --list-extensions 2>/dev/null)
 
-  for ext in "${extensions[@]}"; do
-    if $DRY_RUN; then
+  if $DRY_RUN; then
+    for ext in "${extensions[@]}"; do
       would "code --install-extension $ext"
+    done
+  else
+    installed_exts=$(code --list-extensions 2>/dev/null)
+    exts_missing=()
+    for ext in "${extensions[@]}"; do
+      echo "$installed_exts" | grep -qix "$ext" || exts_missing+=("$ext")
+    done
+    VSCODE_EXT_OK=$(( ${#extensions[@]} - ${#exts_missing[@]} ))
+
+    if [ ${#exts_missing[@]} -eq 0 ]; then
+      ok "All ${#extensions[@]} extensions already installed"
     else
-      if echo "$installed_exts" | grep -qix "$ext"; then
-        ok "$ext"
-        VSCODE_EXT_OK=$((VSCODE_EXT_OK+1))
-      elif code --install-extension "$ext" &>/dev/null; then
-        installed "$ext"
-        VSCODE_EXT_NEW=$((VSCODE_EXT_NEW+1))
+      read -r -p "  Install ${#exts_missing[@]} VS Code extension(s)? [Y/n] " r
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "Extensions unchanged"
       else
-        warn "Failed to install extension $ext"
+        for ext in "${extensions[@]}"; do
+          if echo "$installed_exts" | grep -qix "$ext"; then
+            ok "$ext"
+          elif code --install-extension "$ext" &>/dev/null; then
+            installed "$ext"
+            VSCODE_EXT_NEW=$((VSCODE_EXT_NEW+1))
+          else
+            warn "Failed to install extension $ext"
+          fi
+        done
       fi
     fi
-  done
+  fi
 
   VSCODE_DIR="$HOME/Library/Application Support/Code/User"
   VSCODE_SETTINGS_OK=()
@@ -684,14 +700,19 @@ elif terminal_current; then
   ok "Terminal profile '$TERM_PROFILE' already configured"
   SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
 else
-  # Create the profile by duplicating Basic, then rename it
-  /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default' dict" "$TERM_PLIST" 2>/dev/null
-  /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
-    || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:name' string 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null
+  read -r -p "  Set up Terminal profile '$TERM_PROFILE'? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "Terminal unchanged"
+    SUM_TERMINAL="${CYAN}✔${RESET} unchanged"
+  else
+    # Create the profile by duplicating Basic, then rename it
+    /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
+      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default' dict" "$TERM_PLIST" 2>/dev/null
+    /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
+      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:name' string 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null
 
-  # Font and background via AppleScript
-  osascript &>/dev/null <<'APPLESCRIPT'
+    # Font and background via AppleScript
+    osascript &>/dev/null <<'APPLESCRIPT'
 tell application "Terminal"
   set font name of settings set "Pedro's Default" to "SFMonoTerminal-Regular"
   set font size of settings set "Pedro's Default" to 14
@@ -699,29 +720,30 @@ tell application "Terminal"
 end tell
 APPLESCRIPT
 
-  # Profile settings via PlistBuddy
-  pb_set() {
-    /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:$1' $2" "$TERM_PLIST" 2>/dev/null \
-      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:$1' $3 $2" "$TERM_PLIST" 2>/dev/null
-  }
-  pb_set BackgroundBlur                    0.5   real
-  pb_set shellExitAction                   0     integer
-  pb_set ShowActiveProcessInTitle          false bool
-  pb_set ShowDimensionsInTitle             false bool
-  pb_set ShowShellCommandInTitle           false bool
-  pb_set ShowWindowSettingsNameInTitle     false bool
-  pb_set ShowRepresentedURLInTitle         true  bool
-  pb_set ShowRepresentedURLPathInTitle     false bool
-  unset -f pb_set
+    # Profile settings via PlistBuddy
+    pb_set() {
+      /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:$1' $2" "$TERM_PLIST" 2>/dev/null \
+        || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:$1' $3 $2" "$TERM_PLIST" 2>/dev/null
+    }
+    pb_set BackgroundBlur                    0.5   real
+    pb_set shellExitAction                   0     integer
+    pb_set ShowActiveProcessInTitle          false bool
+    pb_set ShowDimensionsInTitle             false bool
+    pb_set ShowShellCommandInTitle           false bool
+    pb_set ShowWindowSettingsNameInTitle     false bool
+    pb_set ShowRepresentedURLInTitle         true  bool
+    pb_set ShowRepresentedURLPathInTitle     false bool
+    unset -f pb_set
 
-  # Set as default profile
-  defaults write com.apple.Terminal "Default Window Settings" -string "$TERM_PROFILE"
-  defaults write com.apple.Terminal "Startup Window Settings" -string "$TERM_PROFILE"
-  defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
-  defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
+    # Set as default profile
+    defaults write com.apple.Terminal "Default Window Settings" -string "$TERM_PROFILE"
+    defaults write com.apple.Terminal "Startup Window Settings" -string "$TERM_PROFILE"
+    defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
+    defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 
-  ok "Terminal profile '$TERM_PROFILE' configured"
-  SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
+    ok "Terminal profile '$TERM_PROFILE' configured"
+    SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
+  fi # end apply Terminal profile
 fi
 
 # -------------------------------------------------------
@@ -790,120 +812,142 @@ menubar_current=true
   [ "$(defaults read com.apple.menuextra.clock ShowDate 2>/dev/null)"                             = "0" ] &&
   [ "$(defaults read com.apple.menuextra.clock ShowDayOfWeek 2>/dev/null)"                        = "1" ]; } || menubar_current=false
 
-macos_prefs_current() {
-  $dock_current && $finder_current && $system_current && $screenshot_current && $menubar_current
-}
 
 if $DRY_RUN; then
-  would "configure Dock, Finder, System Settings, and menu bar"
+  would "configure Dock, Finder, System Settings, Screenshots, and menu bar"
   would "reset Dock to: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
-elif macos_prefs_current; then
-  ok "macOS preferences already configured"
-  SUM_MACOS="${GREEN}✔${RESET} already configured"
 else
-  read -r -p "  Apply macOS preferences? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
-    ok "macOS preferences unchanged"
-    SUM_MACOS="${CYAN}✔${RESET} unchanged"
-  else
+  MACOS_UPDATED=()
+  NEEDS_RESTART=false
 
   # Dock
-  defaults write com.apple.dock orientation left
-  defaults write com.apple.dock tilesize -integer 40
-  defaults write com.apple.dock size-immutable -bool true
-  defaults write com.apple.dock minimize-to-application -bool true
-  defaults write com.apple.dock show-recents -bool false
-  if $dock_current; then ok "Dock already configured"; else updated "Dock"; fi
-
-  # Dock app layout
-  if command -v dockutil &>/dev/null; then
-    dockutil --remove all --no-restart &>/dev/null
-    [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
-    [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
-    [[ -d "/System/Applications/Utilities/Terminal.app" ]] && dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart &>/dev/null
-    [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
-    [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
-    ok "Dock apps set: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
+  if $dock_current; then
+    ok "Dock already configured"
+  else
+    read -r -p "  Apply Dock settings? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      defaults write com.apple.dock orientation left
+      defaults write com.apple.dock tilesize -integer 40
+      defaults write com.apple.dock size-immutable -bool true
+      defaults write com.apple.dock minimize-to-application -bool true
+      defaults write com.apple.dock show-recents -bool false
+      defaults write com.apple.dock wvous-tl-corner -int 1
+      defaults write com.apple.dock wvous-tr-corner -int 1
+      defaults write com.apple.dock wvous-bl-corner -int 1
+      defaults write com.apple.dock wvous-br-corner -int 1
+      if command -v dockutil &>/dev/null; then
+        dockutil --remove all --no-restart &>/dev/null
+        [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
+        [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
+        [[ -d "/System/Applications/Utilities/Terminal.app" ]] && dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart &>/dev/null
+        [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
+        [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
+        ok "Dock apps set: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
+      fi
+      updated "Dock"; MACOS_UPDATED+=("Dock"); NEEDS_RESTART=true
+    else
+      ok "Dock unchanged"
+    fi
   fi
 
-  # Hot corners (disabled)
-  defaults write com.apple.dock wvous-tl-corner -int 1
-  defaults write com.apple.dock wvous-tr-corner -int 1
-  defaults write com.apple.dock wvous-bl-corner -int 1
-  defaults write com.apple.dock wvous-br-corner -int 1
-
   # Finder
-  defaults write com.apple.finder AppleShowAllFiles true
-  defaults write com.apple.finder ShowPathbar -bool true
-  defaults write com.apple.finder ShowRecentTags -bool false
-  defaults write com.apple.finder FXPreferredViewStyle -string "icnv"
-  defaults write com.apple.finder NewWindowTarget -string "PfHm"
-  defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-  defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
-  defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
-  defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
-  defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-  if $finder_current; then ok "Finder already configured"; else updated "Finder"; fi
+  if $finder_current; then
+    ok "Finder already configured"
+  else
+    read -r -p "  Apply Finder settings? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      defaults write com.apple.finder AppleShowAllFiles true
+      defaults write com.apple.finder ShowPathbar -bool true
+      defaults write com.apple.finder ShowRecentTags -bool false
+      defaults write com.apple.finder FXPreferredViewStyle -string "icnv"
+      defaults write com.apple.finder NewWindowTarget -string "PfHm"
+      defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
+      defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
+      defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
+      defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+      defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+      updated "Finder"; MACOS_UPDATED+=("Finder"); NEEDS_RESTART=true
+    else
+      ok "Finder unchanged"
+    fi
+  fi
 
   # System Settings
-  defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-  defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-  defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
-  defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
-  defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
-  defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
-  defaults write NSGlobalDomain AppleShowAllExtensions -bool true
-  defaults write NSGlobalDomain AppleInterfaceStyle Dark
-defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
-  defaults write NSGlobalDomain KeyRepeat -int 5
-  defaults write NSGlobalDomain InitialKeyRepeat -int 25
-  defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
-  defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
-  defaults write -g EnableTilingByEdgeDrag -bool false
-  defaults write -g EnableTilingByMenuBar -bool false
-  if $system_current; then ok "System settings already configured"; else updated "System settings"; fi
+  if $system_current; then
+    ok "System settings already configured"
+  else
+    read -r -p "  Apply System settings? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+      defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+      defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+      defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+      defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
+      defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
+      defaults write NSGlobalDomain AppleShowAllExtensions -bool true
+      defaults write NSGlobalDomain AppleInterfaceStyle Dark
+      defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
+      defaults write NSGlobalDomain KeyRepeat -int 5
+      defaults write NSGlobalDomain InitialKeyRepeat -int 25
+      defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
+      defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
+      defaults write -g EnableTilingByEdgeDrag -bool false
+      defaults write -g EnableTilingByMenuBar -bool false
+      updated "System settings"; MACOS_UPDATED+=("System settings")
+    else
+      ok "System settings unchanged"
+    fi
+  fi
 
   # Screenshots
-  defaults write com.apple.screencapture location -string "$HOME/Desktop"
-  defaults write com.apple.screencapture show-thumbnail -bool false
-  if $screenshot_current; then ok "Screenshots already configured"; else updated "Screenshots"; fi
+  if $screenshot_current; then
+    ok "Screenshots already configured"
+  else
+    read -r -p "  Apply Screenshots settings? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      defaults write com.apple.screencapture location -string "$HOME/Desktop"
+      defaults write com.apple.screencapture show-thumbnail -bool false
+      updated "Screenshots"; MACOS_UPDATED+=("Screenshots")
+    else
+      ok "Screenshots unchanged"
+    fi
+  fi
 
-  # Menu bar — visible items
-  defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true
-  defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
-  defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
-  defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
-  # Menu bar — Control Center items
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" -bool true
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC WiFi" -bool true
-  # Menu bar — clock format (digital, day of week + AM/PM, no date)
-  defaults write com.apple.menuextra.clock IsAnalog -bool false
-  defaults write com.apple.menuextra.clock ShowAMPM -bool true
-  defaults write com.apple.menuextra.clock ShowDate -bool false
-  defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
-  if $menubar_current; then ok "Menu bar already configured"; else updated "Menu bar"; fi
+  # Menu bar
+  if $menubar_current; then
+    ok "Menu bar already configured"
+  else
+    read -r -p "  Apply menu bar settings? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true
+      defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
+      defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
+      defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
+      defaults write com.apple.controlcenter "NSStatusItem VisibleCC Bluetooth" -bool true
+      defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
+      defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
+      defaults write com.apple.controlcenter "NSStatusItem VisibleCC WiFi" -bool true
+      defaults write com.apple.menuextra.clock IsAnalog -bool false
+      defaults write com.apple.menuextra.clock ShowAMPM -bool true
+      defaults write com.apple.menuextra.clock ShowDate -bool false
+      defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
+      updated "Menu bar"; MACOS_UPDATED+=("Menu bar"); NEEDS_RESTART=true
+    else
+      ok "Menu bar unchanged"
+    fi
+  fi
 
-  # Restart Finder, Dock, and menu bar
-  killall Finder
-  killall Dock
-  killall SystemUIServer
-  ok "Finder, Dock, and menu bar restarted"
+  # Restart affected services
+  if $NEEDS_RESTART; then
+    killall Finder 2>/dev/null; killall Dock 2>/dev/null; killall SystemUIServer 2>/dev/null
+    ok "Finder, Dock, and menu bar restarted"
+  fi
 
-  MACOS_UPDATED=()
-  $dock_current       || MACOS_UPDATED+=("Dock")
-  $finder_current     || MACOS_UPDATED+=("Finder")
-  $system_current     || MACOS_UPDATED+=("System settings")
-  $screenshot_current || MACOS_UPDATED+=("Screenshots")
-  $menubar_current    || MACOS_UPDATED+=("Menu bar")
   if [ ${#MACOS_UPDATED[@]} -gt 0 ]; then
     SUM_MACOS="${BLUE}↑${RESET} $(join_arr ' · ' "${MACOS_UPDATED[@]}")"
   else
     SUM_MACOS="${GREEN}✔${RESET} already configured"
   fi
-
-  fi # end apply macOS preferences
 fi # end macOS preferences section
 
 # -------------------------------------------------------
