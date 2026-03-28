@@ -274,21 +274,11 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   # Disable floating thumbnail preview
   defaults write com.apple.screencapture show-thumbnail -bool false
 
-  # Menu bar — visible items
-  defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true       # iStat Menus
-  defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
-  defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
-  defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
-
   # Menu bar — pin items (18 = show in menu bar, 8 = Control Center only)
   defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
   defaults -currentHost write com.apple.controlcenter Spotlight -int 18
   defaults -currentHost write com.apple.controlcenter Weather -int 18
   defaults -currentHost write com.apple.controlcenter WiFi -int 18
-
-  # Menu bar — Control Center items
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
-  defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
 
   # Menu bar — clock format (digital, day of week + AM/PM, no date)
   defaults write com.apple.menuextra.clock IsAnalog -bool false

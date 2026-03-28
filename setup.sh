@@ -844,15 +844,9 @@ _sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
 unset _sc_loc
 
 menubar_current=true
-{ [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible BentoBox" 2>/dev/null)"       = "1" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible FaceTime" 2>/dev/null)"        = "0" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible NowPlaying" 2>/dev/null)"      = "0" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" 2>/dev/null)" = "0" ] &&
-  [ "$(defaults -currentHost read com.apple.controlcenter Bluetooth 2>/dev/null)"                 = "18" ] &&
+{ [ "$(defaults -currentHost read com.apple.controlcenter Bluetooth 2>/dev/null)"                 = "18" ] &&
   [ "$(defaults -currentHost read com.apple.controlcenter Spotlight 2>/dev/null)"                 = "18" ] &&
   [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)"                   = "18" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Clock" 2>/dev/null)"         = "1" ] &&
-  [ "$(defaults read com.apple.controlcenter "NSStatusItem VisibleCC Sound" 2>/dev/null)"         = "1" ] &&
   [ "$(defaults -currentHost read com.apple.controlcenter WiFi 2>/dev/null)"                      = "18" ] &&
   [ "$(defaults read com.apple.menuextra.clock IsAnalog 2>/dev/null)"                             = "0" ] &&
   [ "$(defaults read com.apple.menuextra.clock ShowAMPM 2>/dev/null)"                             = "1" ] &&
@@ -1028,15 +1022,9 @@ else
   if $menubar_current; then
     ok "Menu bar already configured"
   else
-    _pref_diff "BentoBox visible"        com.apple.controlcenter "NSStatusItem Visible BentoBox"       1
-    _pref_diff "FaceTime visible"        com.apple.controlcenter "NSStatusItem Visible FaceTime"       0
-    _pref_diff "Now Playing visible"     com.apple.controlcenter "NSStatusItem Visible NowPlaying"     0
-    _pref_diff "Screen Mirroring visible" com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" 0
-    _pref_diff_host "Bluetooth visible"    com.apple.controlcenter Bluetooth                          18
+    _pref_diff_host "Bluetooth visible"  com.apple.controlcenter Bluetooth                            18
     _pref_diff_host "Spotlight visible"  com.apple.controlcenter Spotlight                            18
     _pref_diff_host "Weather visible"    com.apple.controlcenter Weather                              18
-    _pref_diff "Clock visible"           com.apple.controlcenter "NSStatusItem VisibleCC Clock"        1
-    _pref_diff "Sound visible"           com.apple.controlcenter "NSStatusItem VisibleCC Sound"        1
     _pref_diff_host "WiFi visible"       com.apple.controlcenter WiFi                                 18
     _pref_diff "clock analog"            com.apple.menuextra.clock IsAnalog                            0
     _pref_diff "clock AM/PM"             com.apple.menuextra.clock ShowAMPM                            1
@@ -1044,15 +1032,9 @@ else
     _pref_diff "clock day of week"       com.apple.menuextra.clock ShowDayOfWeek                       1
     read -r -p "  Apply menu bar settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
-      defaults write com.apple.controlcenter "NSStatusItem Visible BentoBox" -bool true
-      defaults write com.apple.controlcenter "NSStatusItem Visible FaceTime" -bool false
-      defaults write com.apple.controlcenter "NSStatusItem Visible NowPlaying" -bool false
-      defaults write com.apple.controlcenter "NSStatusItem Visible ScreenMirroring" -bool false
       defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
       defaults -currentHost write com.apple.controlcenter Spotlight -int 18
       defaults -currentHost write com.apple.controlcenter Weather -int 18
-      defaults write com.apple.controlcenter "NSStatusItem VisibleCC Clock" -bool true
-      defaults write com.apple.controlcenter "NSStatusItem VisibleCC Sound" -bool true
       defaults -currentHost write com.apple.controlcenter WiFi -int 18
       defaults write com.apple.menuextra.clock IsAnalog -bool false
       defaults write com.apple.menuextra.clock ShowAMPM -bool true
