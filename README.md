@@ -54,6 +54,7 @@ brew install bash-completion@2
 brew install yarn
 brew install gh
 brew install dockutil
+
 brew install --cask claude-code
 brew install --cask font-fira-code
 ```
@@ -99,17 +100,17 @@ brew install --cask visual-studio-code
 - [ ] Install the `code` CLI: open VS Code, open the Command Palette (`Cmd+Shift+P`), and run `Shell Command: Install 'code' command in PATH`
 - [ ] Install extensions
   - [ ] [Auto Close Tag](https://marketplace.visualstudio.com/items?itemName=formulahendry.auto-close-tag)
-  - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=Yummygum.city-lights-icon-vsc)
+  - [ ] [City Lights Icon](https://marketplace.visualstudio.com/items?itemName=yummygum.city-lights-icon-vsc)
   - [ ] [Claude Code](https://marketplace.visualstudio.com/items?itemName=anthropic.claude-code)
   - [ ] [Colorize](https://marketplace.visualstudio.com/items?itemName=kamikillerto.vscode-colorize)
   - [ ] [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint)
-  - [ ] [GitHub Theme](https://marketplace.visualstudio.com/items?itemName=GitHub.github-vscode-theme)
+  - [ ] [GitHub Theme](https://marketplace.visualstudio.com/items?itemName=github.github-vscode-theme)
   - [ ] [GitLens](https://marketplace.visualstudio.com/items?itemName=eamodio.gitlens)
   - [ ] [Import Cost](https://marketplace.visualstudio.com/items?itemName=wix.vscode-import-cost)
   - [ ] [npm Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.npm-intellisense)
   - [ ] [Path Intellisense](https://marketplace.visualstudio.com/items?itemName=christian-kohler.path-intellisense)
   - [ ] [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
-  - [ ] [Sort Lines](https://marketplace.visualstudio.com/items?itemName=Tyriar.sort-lines)
+  - [ ] [Sort Lines](https://marketplace.visualstudio.com/items?itemName=tyriar.sort-lines)
   - [ ] [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss)
 - [ ] Apply [`settings.json`](/settings.json)
 - [ ] Apply [`keybindings.json`](/keybindings.json)
