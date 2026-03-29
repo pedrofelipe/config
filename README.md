@@ -12,7 +12,7 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 ./setup.sh --dry-run
 ```
 
-<video src="https://github.com/user-attachments/assets/ca4d390e-609a-4d15-872a-1edfc0e91f47" autoplay loop muted playsinline></video>
+<video src="https://github.com/user-attachments/assets/86e67cd3-ade5-46e7-a4b6-b244670a7590" autoplay loop muted playsinline></video>
 
 ## Contents
 | File | Description |
