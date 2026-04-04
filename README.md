@@ -161,19 +161,19 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 
 ```bash
   # Dock
-  # Move Dock to the left side
+  # Move to left side
   defaults write com.apple.dock orientation left
 
-  # Set Dock icon size
+  # Set icon size
   defaults write com.apple.dock tilesize -integer 40
 
-  # Lock Dock from being resized
+  # Lock icon size
   defaults write com.apple.dock size-immutable -bool true
 
-  # Minimize windows to app icon
+  # Minimize to app icon
   defaults write com.apple.dock minimize-to-application -bool true
 
-  # Don’t show recent applications in Dock
+  # Hide recent apps
   defaults write com.apple.dock show-recents -bool false
 
   # Set Dock app layout (requires dockutil)
@@ -184,48 +184,48 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   dockutil --add "/Applications/1Password.app" --no-restart
   dockutil --add "/Applications/Spotify.app" --no-restart
 
-  # Disable hot corners
+  # Disable top-left corner
   defaults write com.apple.dock wvous-tl-corner -int 1
+  # Disable top-right corner
   defaults write com.apple.dock wvous-tr-corner -int 1
+  # Disable bottom-left corner
   defaults write com.apple.dock wvous-bl-corner -int 1
+  # Disable bottom-right corner
   defaults write com.apple.dock wvous-br-corner -int 1
 
   # Finder
-  # Show hidden files in Finder
-  defaults write com.apple.finder AppleShowAllFiles true
+  # Show hidden files
+  defaults write com.apple.finder AppleShowAllFiles -bool true
 
-  # Show path bar in Finder
+  # Show path bar
   defaults write com.apple.finder ShowPathbar -bool true
 
-  # Hide recent tags in Finder sidebar
+  # Hide recent tags
   defaults write com.apple.finder ShowRecentTags -bool false
 
-  # Use icon view by default
-  defaults write com.apple.finder FXPreferredViewStyle -string "icnv"
-
-  # Open new Finder windows to Home folder
+  # Open windows to home
   defaults write com.apple.finder NewWindowTarget -string "PfHm"
 
-  # When performing a search, search the current folder by default
+  # Search current folder
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
-  # Show external drives on desktop
-  defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
-
-  # Show hard drives on desktop
+  # Show hard drives
   defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
 
-  # Prevent .DS_Store files on network drives
+  # Prevent .DS_Store on network
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 
+  # Disable extension warning
+  defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+
   # System Settings
-  # Enable tap to click for trackpad
+  # Enable tap to click
   defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
 
-  # Disable keyboard autocorrect
+  # Disable autocorrect
   defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
 
-  # Disable autocapitalization
+  # Disable autocapitalize
   defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
 
   # Disable smart dashes
@@ -243,46 +243,32 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   # Enable dark mode
   defaults write NSGlobalDomain AppleInterfaceStyle Dark
 
-  # Minimize window on title bar double-click
+  # Double-click to minimize
   defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
 
-  # Faster key repeat
+  # Increase key repeat speed
   defaults write NSGlobalDomain KeyRepeat -int 5
+  # Reduce initial key repeat
   defaults write NSGlobalDomain InitialKeyRepeat -int 25
 
-  # Mute volume change feedback sound
+  # Mute volume feedback sound
   defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
 
   # Disable translucent menu bar
   defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
 
-  # Disable window tiling when dragging to screen edge
+  # Disable tiling on edge drag
   defaults write -g EnableTilingByEdgeDrag -bool false
 
-  # Disable window filling when dragging title bar to menu bar
+  # Disable tiling on menu bar
   defaults write -g EnableTilingByMenuBar -bool false
 
-  # Finder
-  # Don't warn when changing a file extension
-  defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
-
   # Screenshots
-  # Save to Desktop
-  defaults write com.apple.screencapture location -string "$HOME/Desktop"
-
-  # Disable floating thumbnail preview
+  # Disable thumbnail preview
   defaults write com.apple.screencapture show-thumbnail -bool false
 
-  # Menu bar — pin items (18 = show in menu bar, 8 = Control Center only)
-  defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
-  defaults -currentHost write com.apple.controlcenter Spotlight -int 18
+  # Pin Weather to menu bar
   defaults -currentHost write com.apple.controlcenter Weather -int 18
-  defaults -currentHost write com.apple.controlcenter WiFi -int 18
-
-  # Menu bar — clock format (digital, day of week, no date)
-  defaults write com.apple.menuextra.clock IsAnalog -bool false
-  defaults write com.apple.menuextra.clock ShowDate -bool false
-  defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
 
   # Restart Finder, Dock, and menu bar
   killall Finder

@@ -34,8 +34,10 @@ $DRY_RUN && echo -e "\n${YELLOW}${BOLD}Dry run — no changes will be made${RESE
 echo ""
 
 # Close System Preferences/Settings to prevent it from overriding defaults
-osascript -e 'tell application "System Preferences" to quit' 2>/dev/null
-osascript -e 'tell application "System Settings" to quit' 2>/dev/null
+if ! $DRY_RUN; then
+  osascript -e 'tell application "System Preferences" to quit' 2>/dev/null
+  osascript -e 'tell application "System Settings" to quit' 2>/dev/null
+fi
 
 # Ask for sudo password upfront and keep it alive for the duration of the script
 if ! $DRY_RUN; then
@@ -215,7 +217,7 @@ for file in .bash_profile .inputrc; do
           continue
         fi
         echo "  Diff for $file:"
-        diff --color=always "$HOME/$file" "$DOTFILES_DIR/$file"
+        diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$HOME/$file" "$DOTFILES_DIR/$file"
         read -r -p "  $file already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$file unchanged"
@@ -246,7 +248,7 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
         _gitconfig_needs_copy=false
       elif ! $_files_match; then
         echo "  Diff for .gitconfig:"
-        diff --color=always <(_strip_identity "$HOME/.gitconfig") <(_strip_identity "$DOTFILES_DIR/.gitconfig")
+        diff -y --suppress-common-lines --width=$(( $(tput cols) )) <(_strip_identity "$HOME/.gitconfig") <(_strip_identity "$DOTFILES_DIR/.gitconfig")
         read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
       fi
@@ -284,7 +286,7 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
         CF_OK+=("ssh_config")
       else
         echo "  Diff for ~/.ssh/config:"
-        diff --color=always "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
+        diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
         read -r -p "  ~/.ssh/config already exists. Overwrite? [Y/n] " r
         if [[ ! "$r" =~ ^[nN] ]]; then
           cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
@@ -368,43 +370,48 @@ else
   if $DRY_RUN; then
     would "generate SSH key, add to GitHub with title $(hostname | sed 's/\.local$//')"
   else
-    SSH_KEY_TITLE="$(hostname)"
-    SSH_KEY_TITLE="${SSH_KEY_TITLE%.local}"
-    mkdir -p "$HOME/.ssh"
-    chmod 700 "$HOME/.ssh"
-    if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH"; then
-      chmod 600 "$SSH_KEY_PATH"
-      chmod 600 "${SSH_KEY_PATH}.pub"
-      installed "SSH key (~/.ssh/id_ed25519)"
-      ssh-add --apple-use-keychain "$SSH_KEY_PATH" 2>/dev/null && ok "SSH key added to keychain agent"
-      SUM_SSH="${GREEN}✔${RESET} key generated"
-      if gh auth status &>/dev/null 2>&1; then
-        if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
-          installed "SSH key on GitHub"
-          SUM_SSH="${GREEN}✔${RESET} key generated · added to GitHub"
-        else
-          warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
-        fi
-      else
-        read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
-        if [[ ! "$r" =~ ^[nN] ]]; then
-          gh auth login
-          if gh auth status &>/dev/null 2>&1; then
-            if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
-              installed "SSH key on GitHub"
-              SUM_SSH="${GREEN}✔${RESET} key generated · added to GitHub"
-            else
-              warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
-            fi
+    read -r -p "  Generate SSH key (~/.ssh/id_ed25519)? [Y/n] " r
+    if [[ ! "$r" =~ ^[nN] ]]; then
+      SSH_KEY_TITLE="$(hostname)"
+      SSH_KEY_TITLE="${SSH_KEY_TITLE%.local}"
+      mkdir -p "$HOME/.ssh"
+      chmod 700 "$HOME/.ssh"
+      if ssh-keygen -t ed25519 -f "$SSH_KEY_PATH"; then
+        chmod 600 "$SSH_KEY_PATH"
+        chmod 600 "${SSH_KEY_PATH}.pub"
+        installed "SSH key (~/.ssh/id_ed25519)"
+        ssh-add --apple-use-keychain "$SSH_KEY_PATH" 2>/dev/null && ok "SSH key added to keychain agent"
+        SUM_SSH="${GREEN}✔${RESET} key generated"
+        if gh auth status &>/dev/null 2>&1; then
+          if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
+            installed "SSH key on GitHub"
+            SUM_SSH="${GREEN}✔${RESET} key generated · added to GitHub"
           else
-            warn "Still not authenticated — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+            warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
           fi
         else
-          warn "Skipped GitHub login — run manually: gh auth login && gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+          read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
+          if [[ ! "$r" =~ ^[nN] ]]; then
+            gh auth login
+            if gh auth status &>/dev/null 2>&1; then
+              if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
+                installed "SSH key on GitHub"
+                SUM_SSH="${GREEN}✔${RESET} key generated · added to GitHub"
+              else
+                warn "Failed to add SSH key to GitHub — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+              fi
+            else
+              warn "Still not authenticated — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+            fi
+          else
+            warn "Skipped GitHub login — run manually: gh auth login && gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+          fi
         fi
+      else
+        warn "Failed to generate SSH key"
       fi
     else
-      warn "Failed to generate SSH key"
+      ok "SSH key generation skipped"
     fi
   fi
 fi
@@ -609,7 +616,7 @@ else
           continue
         fi
         echo "  Diff for $config_file:"
-        diff --color=always "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
+        diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
         read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$config_file unchanged"
@@ -807,13 +814,11 @@ if $dock_current && command -v dockutil &>/dev/null; then
 fi
 
 finder_current=true
-{ [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "true" ] &&
+{ [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "1"    ] &&
   [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                        = "1"    ] &&
   [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                     = "0"    ] &&
-  [ "$(defaults read com.apple.finder FXPreferredViewStyle 2>/dev/null)"               = "icnv" ] &&
   [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                    = "PfHm" ] &&
   [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"               = "SCcf" ] &&
-  [ "$(defaults read com.apple.finder ShowExternalHardDrivesOnDesktop 2>/dev/null)"    = "1"    ] &&
   [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"            = "1"    ] &&
   [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"  = "1"    ] &&
   [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"     = "0"    ]; } || finder_current=false
@@ -836,19 +841,10 @@ system_current=true
   [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                     = "0"        ]; } || system_current=false
 
 screenshot_current=true
-_sc_loc=$(defaults read com.apple.screencapture location 2>/dev/null)
-{ [ "$_sc_loc" = "$HOME/Desktop" ] &&
-  [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)"  = "0" ]; } || screenshot_current=false
-unset _sc_loc
+{ [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)" = "0" ]; } || screenshot_current=false
 
 menubar_current=true
-{ [ "$(defaults -currentHost read com.apple.controlcenter Bluetooth 2>/dev/null)"                 = "18" ] &&
-  [ "$(defaults -currentHost read com.apple.controlcenter Spotlight 2>/dev/null)"                 = "18" ] &&
-  [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)"                   = "18" ] &&
-  [ "$(defaults -currentHost read com.apple.controlcenter WiFi 2>/dev/null)"                      = "18" ] &&
-  [ "$(defaults read com.apple.menuextra.clock IsAnalog 2>/dev/null)"                             = "0" ] &&
-  [ "$(defaults read com.apple.menuextra.clock ShowDate 2>/dev/null)"                             = "0" ] &&
-  [ "$(defaults read com.apple.menuextra.clock ShowDayOfWeek 2>/dev/null)"                        = "1" ]; } || menubar_current=false
+{ [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)" = "18" ]; } || menubar_current=false
 
 
 _pref_diff() {
@@ -856,8 +852,8 @@ _pref_diff() {
   local actual pad
   actual=$(defaults ${host:+-currentHost} read "$domain" "$key" 2>/dev/null)
   if [ "$actual" != "$expected" ]; then
-    pad=$(( 26 - ${#label} )); [ $pad -lt 1 ] && pad=1
-    printf "    %s%*s%s → %s\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
+    pad=$(( 28 - ${#label} )); [ $pad -lt 1 ] && pad=1
+    printf "    %s%*s${RED}%s${RESET} → ${GREEN}%s${RESET}\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
   fi
 }
 
@@ -881,15 +877,15 @@ else
       [ ${#_missing[@]} -gt 0 ] && echo "  Missing from Dock: $(IFS=', '; echo "${_missing[*]}")"
       unset _dock_list _app _missing
     fi
-    _pref_diff "position"            com.apple.dock orientation             left
-    _pref_diff "icon size"           com.apple.dock tilesize                40
-    _pref_diff "size locked"         com.apple.dock size-immutable          1
-    _pref_diff "minimize to app"     com.apple.dock minimize-to-application 1
-    _pref_diff "show recents"        com.apple.dock show-recents            0
-    _pref_diff "top-left corner"     com.apple.dock wvous-tl-corner         1
-    _pref_diff "top-right corner"    com.apple.dock wvous-tr-corner         1
-    _pref_diff "bottom-left corner"  com.apple.dock wvous-bl-corner         1
-    _pref_diff "bottom-right corner" com.apple.dock wvous-br-corner         1
+    _pref_diff "Move to left side"       com.apple.dock orientation             left
+    _pref_diff "Set icon size"           com.apple.dock tilesize                40
+    _pref_diff "Lock icon size"          com.apple.dock size-immutable          1
+    _pref_diff "Minimize to app icon"    com.apple.dock minimize-to-application 1
+    _pref_diff "Hide recent apps"        com.apple.dock show-recents            0
+    _pref_diff "Disable top-left corner"    com.apple.dock wvous-tl-corner      1
+    _pref_diff "Disable top-right corner"   com.apple.dock wvous-tr-corner      1
+    _pref_diff "Disable bottom-left corner" com.apple.dock wvous-bl-corner      1
+    _pref_diff "Disable bottom-right corner" com.apple.dock wvous-br-corner     1
     read -r -p "  Apply Dock settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.dock orientation left
@@ -920,25 +916,21 @@ else
   if $finder_current; then
     ok "Finder already configured"
   else
-    _pref_diff "show all files"           com.apple.finder AppleShowAllFiles              true
-    _pref_diff "path bar"                 com.apple.finder ShowPathbar                    1
-    _pref_diff "recent tags"              com.apple.finder ShowRecentTags                 0
-    _pref_diff "view style"               com.apple.finder FXPreferredViewStyle            icnv
-    _pref_diff "new window target"        com.apple.finder NewWindowTarget                PfHm
-    _pref_diff "search scope"             com.apple.finder FXDefaultSearchScope           SCcf
-    _pref_diff "external drives on desk"  com.apple.finder ShowExternalHardDrivesOnDesktop 1
-    _pref_diff "hard drives on desk"      com.apple.finder ShowHardDrivesOnDesktop        1
-    _pref_diff "no .DS_Store on network"  com.apple.desktopservices DSDontWriteNetworkStores 1
-    _pref_diff "extension change warning" com.apple.finder FXEnableExtensionChangeWarning 0
+    _pref_diff "Show hidden files"          com.apple.finder AppleShowAllFiles              1
+    _pref_diff "Show path bar"             com.apple.finder ShowPathbar                    1
+    _pref_diff "Hide recent tags"          com.apple.finder ShowRecentTags                 0
+    _pref_diff "Open windows to home"      com.apple.finder NewWindowTarget                PfHm
+    _pref_diff "Search current folder"     com.apple.finder FXDefaultSearchScope           SCcf
+    _pref_diff "Show hard drives"          com.apple.finder ShowHardDrivesOnDesktop        1
+    _pref_diff "Prevent .DS_Store on network" com.apple.desktopservices DSDontWriteNetworkStores 1
+    _pref_diff "Disable extension warning" com.apple.finder FXEnableExtensionChangeWarning 0
     read -r -p "  Apply Finder settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
-      defaults write com.apple.finder AppleShowAllFiles true
+      defaults write com.apple.finder AppleShowAllFiles -bool true
       defaults write com.apple.finder ShowPathbar -bool true
       defaults write com.apple.finder ShowRecentTags -bool false
-      defaults write com.apple.finder FXPreferredViewStyle -string "icnv"
       defaults write com.apple.finder NewWindowTarget -string "PfHm"
       defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-      defaults write com.apple.finder ShowExternalHardDrivesOnDesktop -bool true
       defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
       defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
       defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
@@ -952,21 +944,21 @@ else
   if $system_current; then
     ok "System settings already configured"
   else
-    _pref_diff "tap to click"          com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 1
-    _pref_diff "autocorrect"           NSGlobalDomain NSAutomaticSpellingCorrectionEnabled  0
-    _pref_diff "autocapitalize"        NSGlobalDomain NSAutomaticCapitalizationEnabled      0
-    _pref_diff "smart dashes"          NSGlobalDomain NSAutomaticDashSubstitutionEnabled    0
-    _pref_diff "smart periods"         NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled  0
-    _pref_diff "smart quotes"          NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled   0
-    _pref_diff "show all extensions"   NSGlobalDomain AppleShowAllExtensions                1
-    _pref_diff "interface style"       NSGlobalDomain AppleInterfaceStyle                  Dark
-    _pref_diff "double-click action"   NSGlobalDomain AppleActionOnDoubleClick             Minimize
-    _pref_diff "key repeat"            NSGlobalDomain KeyRepeat                            5
-    _pref_diff "initial key repeat"    NSGlobalDomain InitialKeyRepeat                     25
-    _pref_diff "alert sound"           NSGlobalDomain com.apple.sound.beep.feedback        0
-    _pref_diff "menu bar transparency" NSGlobalDomain AppleEnableMenuBarTransparency       0
-    _pref_diff "tiling by edge drag"   NSGlobalDomain EnableTilingByEdgeDrag               0
-    _pref_diff "tiling by menu bar"    NSGlobalDomain EnableTilingByMenuBar                0
+    _pref_diff "Enable tap to click"       com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 1
+    _pref_diff "Disable autocorrect"       NSGlobalDomain NSAutomaticSpellingCorrectionEnabled  0
+    _pref_diff "Disable autocapitalize"    NSGlobalDomain NSAutomaticCapitalizationEnabled      0
+    _pref_diff "Disable smart dashes"      NSGlobalDomain NSAutomaticDashSubstitutionEnabled    0
+    _pref_diff "Disable smart periods"     NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled  0
+    _pref_diff "Disable smart quotes"      NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled   0
+    _pref_diff "Show all file extensions"  NSGlobalDomain AppleShowAllExtensions                1
+    _pref_diff "Enable dark mode"          NSGlobalDomain AppleInterfaceStyle                  Dark
+    _pref_diff "Double-click to minimize"  NSGlobalDomain AppleActionOnDoubleClick             Minimize
+    _pref_diff "Increase key repeat speed" NSGlobalDomain KeyRepeat                            5
+    _pref_diff "Reduce initial key repeat" NSGlobalDomain InitialKeyRepeat                     25
+    _pref_diff "Mute volume feedback sound" NSGlobalDomain com.apple.sound.beep.feedback       0
+    _pref_diff "Disable translucent menu bar" NSGlobalDomain AppleEnableMenuBarTransparency    0
+    _pref_diff "Disable tiling on edge drag" NSGlobalDomain EnableTilingByEdgeDrag             0
+    _pref_diff "Disable tiling on menu bar" NSGlobalDomain EnableTilingByMenuBar               0
     read -r -p "  Apply System settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
       defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
@@ -984,7 +976,7 @@ else
       defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
       defaults write -g EnableTilingByEdgeDrag -bool false
       defaults write -g EnableTilingByMenuBar -bool false
-      updated "System settings"; MACOS_UPDATED+=("System settings")
+      updated "System settings"; MACOS_UPDATED+=("System settings"); NEEDS_RESTART=true
     else
       ok "System settings unchanged"
     fi
@@ -994,11 +986,9 @@ else
   if $screenshot_current; then
     ok "Screenshots already configured"
   else
-    _pref_diff "save location"  com.apple.screencapture location       "$HOME/Desktop"
-    _pref_diff "thumbnail"      com.apple.screencapture show-thumbnail 0
+    _pref_diff "Disable thumbnail preview"  com.apple.screencapture show-thumbnail 0
     read -r -p "  Apply Screenshots settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
-      defaults write com.apple.screencapture location -string "$HOME/Desktop"
       defaults write com.apple.screencapture show-thumbnail -bool false
       updated "Screenshots"; MACOS_UPDATED+=("Screenshots")
     else
@@ -1010,22 +1000,10 @@ else
   if $menubar_current; then
     ok "Menu bar already configured"
   else
-    _pref_diff "Bluetooth visible"       com.apple.controlcenter Bluetooth                            18 host
-    _pref_diff "Spotlight visible"       com.apple.controlcenter Spotlight                            18 host
-    _pref_diff "Weather visible"         com.apple.controlcenter Weather                              18 host
-    _pref_diff "WiFi visible"            com.apple.controlcenter WiFi                                 18 host
-    _pref_diff "clock analog"            com.apple.menuextra.clock IsAnalog                            0
-    _pref_diff "clock date"              com.apple.menuextra.clock ShowDate                            0
-    _pref_diff "clock day of week"       com.apple.menuextra.clock ShowDayOfWeek                       1
+    _pref_diff "Pin Weather to menu bar"  com.apple.controlcenter Weather                             18 host
     read -r -p "  Apply menu bar settings? [Y/n] " r
     if [[ ! "$r" =~ ^[nN] ]]; then
-      defaults -currentHost write com.apple.controlcenter Bluetooth -int 18
-      defaults -currentHost write com.apple.controlcenter Spotlight -int 18
       defaults -currentHost write com.apple.controlcenter Weather -int 18
-      defaults -currentHost write com.apple.controlcenter WiFi -int 18
-      defaults write com.apple.menuextra.clock IsAnalog -bool false
-      defaults write com.apple.menuextra.clock ShowDate -bool false
-      defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
       updated "Menu bar"; MACOS_UPDATED+=("Menu bar"); NEEDS_RESTART=true
     else
       ok "Menu bar unchanged"
@@ -1064,7 +1042,7 @@ deploy_peripheral_config() {
       return 0
     fi
     echo "  Diff for $name config:"
-    diff --color=always "$dst" "$src"
+    diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$dst" "$src"
     read -r -p "  $name config already exists. Overwrite? [y/N] " r
     if [[ ! "$r" =~ ^[yY] ]]; then
       ok "$name config unchanged"
