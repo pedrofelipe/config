@@ -1,11 +1,12 @@
 #!/bin/bash
 
 # Colors
-GREEN='\033[38;5;84m'
-YELLOW='\033[1;33m'
-BLUE='\033[38;5;75m'
-PURPLE='\033[38;5;141m'
-GREY='\033[38;5;244m'
+GREEN='\033[38;2;78;186;101m'
+YELLOW='\033[38;2;255;193;7m'
+RED='\033[38;2;255;107;128m'
+BLUE='\033[38;2;87;105;247m'
+PURPLE='\033[38;2;175;135;255m'
+GREY='\033[38;2;102;102;102m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
@@ -89,7 +90,7 @@ DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Install or upgrade a Homebrew formula
 brew_formula() {
-  local pkg=$1
+  local pkg=$1 r
   if ! command -v brew &>/dev/null; then
     $DRY_RUN && would "brew install $pkg"
     return
@@ -100,7 +101,10 @@ brew_formula() {
     else
       if brew outdated --formula | grep -q "^$pkg$"; then
         read -r -p "  Upgrade $pkg? [Y/n] " r
-        if [[ ! "$r" =~ ^[nN] ]]; then
+        if [[ "$r" =~ ^[nN] ]]; then
+          ok "$pkg upgrade skipped"
+          BREW_OK=$((BREW_OK+1))
+        else
           if brew upgrade "$pkg" &>/dev/null; then
             updated "$pkg"
             BREW_UPDATED=$((BREW_UPDATED+1))
@@ -108,9 +112,6 @@ brew_formula() {
             warn "Failed to upgrade $pkg"
             return 1
           fi
-        else
-          ok "$pkg upgrade skipped"
-          BREW_OK=$((BREW_OK+1))
         fi
       else
         ok "$pkg already up to date"
@@ -136,7 +137,7 @@ brew_formula() {
 # Pass a second argument (CLI command name) to detect installs outside Homebrew
 brew_cask() {
   local cask=$1
-  local cmd=$2
+  local cmd=$2 r
   if ! command -v brew &>/dev/null; then
     $DRY_RUN && would "brew install --cask $cask"
     return
@@ -147,7 +148,10 @@ brew_cask() {
     else
       if brew outdated --cask | grep -q "^$cask$"; then
         read -r -p "  Upgrade $cask? [Y/n] " r
-        if [[ ! "$r" =~ ^[nN] ]]; then
+        if [[ "$r" =~ ^[nN] ]]; then
+          ok "$cask upgrade skipped"
+          BREW_OK=$((BREW_OK+1))
+        else
           if brew upgrade --cask "$cask" &>/dev/null; then
             updated "$cask"
             BREW_UPDATED=$((BREW_UPDATED+1))
@@ -155,9 +159,6 @@ brew_cask() {
             warn "Failed to upgrade $cask"
             return 1
           fi
-        else
-          ok "$cask upgrade skipped"
-          BREW_OK=$((BREW_OK+1))
         fi
       else
         ok "$cask already up to date"
@@ -216,8 +217,7 @@ for file in .bash_profile .inputrc; do
           CF_OK+=("$file")
           continue
         fi
-        echo "  Diff for $file:"
-        diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$HOME/$file" "$DOTFILES_DIR/$file"
+        git diff --no-index --color "$HOME/$file" "$DOTFILES_DIR/$file"
         read -r -p "  $file already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$file unchanged"
@@ -247,8 +247,11 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
       if $_files_match && [ -n "$_current_email" ] && [[ "$_current_email" != *"YOUR_"* ]]; then
         _gitconfig_needs_copy=false
       elif ! $_files_match; then
-        echo "  Diff for .gitconfig:"
-        diff -y --suppress-common-lines --width=$(( $(tput cols) )) <(_strip_identity "$HOME/.gitconfig") <(_strip_identity "$DOTFILES_DIR/.gitconfig")
+        _diff_dir=$(mktemp -d)
+        _strip_identity "$HOME/.gitconfig" > "$_diff_dir/.gitconfig"
+        _strip_identity "$DOTFILES_DIR/.gitconfig" > "$_diff_dir/.gitconfig.incoming"
+        git diff --no-index --color "$_diff_dir/.gitconfig" "$_diff_dir/.gitconfig.incoming"
+        rm -rf "$_diff_dir"; unset _diff_dir
         read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
       fi
@@ -285,15 +288,14 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
         ok "~/.ssh/config already up to date"
         CF_OK+=("ssh_config")
       else
-        echo "  Diff for ~/.ssh/config:"
-        diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
+        git diff --no-index --color "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
         read -r -p "  ~/.ssh/config already exists. Overwrite? [Y/n] " r
-        if [[ ! "$r" =~ ^[nN] ]]; then
+        if [[ "$r" =~ ^[nN] ]]; then
+          ok "~/.ssh/config unchanged"
+        else
           cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
           chmod 600 "$HOME/.ssh/config"
           installed "~/.ssh/config"
-        else
-          ok "~/.ssh/config unchanged"
         fi
         CF_OK+=("ssh_config")
       fi
@@ -371,7 +373,9 @@ else
     would "generate SSH key, add to GitHub with title $(hostname | sed 's/\.local$//')"
   else
     read -r -p "  Generate SSH key (~/.ssh/id_ed25519)? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "SSH key generation skipped"
+    else
       SSH_KEY_TITLE="$(hostname)"
       SSH_KEY_TITLE="${SSH_KEY_TITLE%.local}"
       mkdir -p "$HOME/.ssh"
@@ -391,7 +395,9 @@ else
           fi
         else
           read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
-          if [[ ! "$r" =~ ^[nN] ]]; then
+          if [[ "$r" =~ ^[nN] ]]; then
+            warn "Skipped GitHub login — run manually: gh auth login && gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
+          else
             gh auth login
             if gh auth status &>/dev/null 2>&1; then
               if gh ssh-key add "${SSH_KEY_PATH}.pub" --title "$SSH_KEY_TITLE"; then
@@ -403,15 +409,11 @@ else
             else
               warn "Still not authenticated — run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
             fi
-          else
-            warn "Skipped GitHub login — run manually: gh auth login && gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
           fi
         fi
       else
         warn "Failed to generate SSH key"
       fi
-    else
-      ok "SSH key generation skipped"
     fi
   fi
 fi
@@ -449,7 +451,10 @@ else
       would "chsh -s $HOMEBREW_BASH"
     else
       read -r -p "  Switch default shell to Homebrew bash? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "Shell unchanged"
+        SUM_SHELL="${GREEN}✔${RESET} unchanged"
+      else
         if chsh -s "$HOMEBREW_BASH"; then
           installed "default shell → $HOMEBREW_BASH"
           SUM_SHELL="${GREEN}✔${RESET} switched to Homebrew bash"
@@ -457,9 +462,6 @@ else
           warn "Failed to set default shell — try manually: chsh -s $HOMEBREW_BASH"
           SUM_SHELL="${YELLOW}⚠${RESET} switch failed"
         fi
-      else
-        ok "Shell unchanged"
-        SUM_SHELL="${GREEN}✔${RESET} unchanged"
       fi
     fi
   fi
@@ -482,15 +484,15 @@ if [ -d "$HOME/.nvm" ]; then
       would "update nvm $current_nvm → $NVM_VERSION"
     else
       read -r -p "  Upgrade nvm $current_nvm → $NVM_VERSION? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "nvm upgrade skipped"
+      else
         if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash &>/dev/null; then
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           updated "nvm $current_nvm → $NVM_VERSION"
         else
           warn "Failed to update nvm"
         fi
-      else
-        ok "nvm upgrade skipped"
       fi
     fi
   fi
@@ -517,7 +519,10 @@ else
     SUM_NODE="${GREEN}✔${RESET} $prev_node"
   elif [ -n "$latest_lts" ] && [ "$prev_node" != "none" ]; then
     read -r -p "  Upgrade Node.js $prev_node → $latest_lts? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Node.js upgrade skipped"
+      SUM_NODE="${GREEN}✔${RESET} $prev_node"
+    else
       if nvm install "$latest_lts" >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
         updated "Node.js LTS $prev_node → $latest_lts"
         SUM_NODE="${BLUE}↑${RESET} $latest_lts"
@@ -525,9 +530,6 @@ else
         warn "Failed to upgrade Node.js LTS"
         SUM_NODE="${YELLOW}⚠${RESET} upgrade failed"
       fi
-    else
-      ok "Node.js upgrade skipped"
-      SUM_NODE="${GREEN}✔${RESET} $prev_node"
     fi
   else
     if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
@@ -615,8 +617,7 @@ else
           VSCODE_SETTINGS_OK+=("$config_file")
           continue
         fi
-        echo "  Diff for $config_file:"
-        diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
+        git diff --no-index --color "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
         read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$config_file unchanged"
@@ -656,7 +657,7 @@ step "Installing apps"
 APP_OK=()
 
 install_app() {
-  local name=$1 cask=$2 app=$3
+  local name=$1 cask=$2 app=$3 r
   if $DRY_RUN; then
     would "brew install --cask $cask (or upgrade if outdated)"
   elif brew list --cask "$cask" &>/dev/null; then
@@ -667,7 +668,9 @@ install_app() {
     APP_OK+=("$name")
   else
     read -r -p "  Install $name? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "$name skipped"
+    else
       if brew_cask "$cask"; then
         APP_OK+=("$name")
       fi
@@ -711,7 +714,9 @@ elif istatmenus_settings_current; then
   APP_OK+=("iStat Menus settings")
 else
   read -r -p "  Apply iStat Menus settings? [Y/n] " r
-  if [[ ! "$r" =~ ^[nN] ]]; then
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "iStat Menus settings skipped"
+  else
     istatmenus_settings_apply
     ok "iStat Menus settings applied (restart iStat Menus to take effect)"
     APP_OK+=("iStat Menus settings")
@@ -796,15 +801,15 @@ step "Applying macOS preferences"
 
 # Per-group state (computed once, used for both idempotency check and change reporting)
 dock_current=true
-{ [ "$(defaults read com.apple.dock orientation 2>/dev/null)"              = "left" ] &&
-  [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                 = "40"   ] &&
-  [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"           = "1"    ] &&
-  [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"  = "1"    ] &&
-  [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"             = "0"    ] &&
-  [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"          = "1"    ] &&
-  [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"          = "1"    ] &&
-  [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"          = "1"    ] &&
-  [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"    ]; } || dock_current=false
+{ [ "$(defaults read com.apple.dock orientation 2>/dev/null)"              = "left"  ] &&
+  [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                 = "40"    ] &&
+  [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"           = "true"  ] &&
+  [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"  = "true"  ] &&
+  [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"             = "false" ] &&
+  [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"          = "1"     ] &&
+  [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"          = "1"     ] &&
+  [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"          = "1"     ] &&
+  [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"     ]; } || dock_current=false
 if $dock_current && command -v dockutil &>/dev/null; then
   _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
   for _app in "Google Chrome" "Visual Studio Code" "Terminal" "1Password" "Spotify"; do
@@ -814,34 +819,34 @@ if $dock_current && command -v dockutil &>/dev/null; then
 fi
 
 finder_current=true
-{ [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "1"    ] &&
-  [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                        = "1"    ] &&
-  [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                     = "0"    ] &&
-  [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                    = "PfHm" ] &&
-  [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"               = "SCcf" ] &&
-  [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"            = "1"    ] &&
-  [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"  = "1"    ] &&
-  [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"     = "0"    ]; } || finder_current=false
+{ [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "true"  ] &&
+  [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                        = "true"  ] &&
+  [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                     = "false" ] &&
+  [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                    = "PfHm"  ] &&
+  [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"               = "SCcf"  ] &&
+  [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"            = "true"  ] &&
+  [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"  = "true"  ] &&
+  [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"     = "false" ]; } || finder_current=false
 
 system_current=true
-{ [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)" = "1"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"          = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"              = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"            = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"          = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"           = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                        = "1"        ] &&
+{ [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)" = "true"     ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"          = "false"    ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"              = "false"    ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"            = "false"    ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"          = "false"    ] &&
+  [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"           = "false"    ] &&
+  [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                        = "true"     ] &&
   [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                           = "Dark"     ] &&
-[ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
+  [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
   [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                     = "5"        ] &&
   [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                              = "25"       ] &&
   [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                 = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                = "0"        ] &&
-  [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                    = "0"        ] &&
-  [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                     = "0"        ]; } || system_current=false
+  [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                = "false"    ] &&
+  [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                    = "false"    ] &&
+  [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                     = "false"    ]; } || system_current=false
 
 screenshot_current=true
-{ [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)" = "0" ]; } || screenshot_current=false
+{ [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)" = "false" ]; } || screenshot_current=false
 
 menubar_current=true
 { [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)" = "18" ]; } || menubar_current=false
@@ -879,16 +884,18 @@ else
     fi
     _pref_diff "Move to left side"       com.apple.dock orientation             left
     _pref_diff "Set icon size"           com.apple.dock tilesize                40
-    _pref_diff "Lock icon size"          com.apple.dock size-immutable          1
-    _pref_diff "Minimize to app icon"    com.apple.dock minimize-to-application 1
-    _pref_diff "Hide recent apps"        com.apple.dock show-recents            0
+    _pref_diff "Lock icon size"          com.apple.dock size-immutable          true
+    _pref_diff "Minimize to app icon"    com.apple.dock minimize-to-application true
+    _pref_diff "Hide recent apps"        com.apple.dock show-recents            false
     _pref_diff "Disable top-left corner"    com.apple.dock wvous-tl-corner      1
     _pref_diff "Disable top-right corner"   com.apple.dock wvous-tr-corner      1
     _pref_diff "Disable bottom-left corner" com.apple.dock wvous-bl-corner      1
     _pref_diff "Disable bottom-right corner" com.apple.dock wvous-br-corner     1
     read -r -p "  Apply Dock settings? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
-      defaults write com.apple.dock orientation left
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Dock unchanged"
+    else
+      defaults write com.apple.dock orientation -string left
       defaults write com.apple.dock tilesize -integer 40
       defaults write com.apple.dock size-immutable -bool true
       defaults write com.apple.dock minimize-to-application -bool true
@@ -907,8 +914,6 @@ else
         ok "Dock apps set: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
       fi
       updated "Dock"; MACOS_UPDATED+=("Dock"); NEEDS_RESTART=true
-    else
-      ok "Dock unchanged"
     fi
   fi
 
@@ -916,16 +921,18 @@ else
   if $finder_current; then
     ok "Finder already configured"
   else
-    _pref_diff "Show hidden files"          com.apple.finder AppleShowAllFiles              1
-    _pref_diff "Show path bar"             com.apple.finder ShowPathbar                    1
-    _pref_diff "Hide recent tags"          com.apple.finder ShowRecentTags                 0
+    _pref_diff "Show hidden files"          com.apple.finder AppleShowAllFiles              true
+    _pref_diff "Show path bar"             com.apple.finder ShowPathbar                    true
+    _pref_diff "Hide recent tags"          com.apple.finder ShowRecentTags                 false
     _pref_diff "Open windows to home"      com.apple.finder NewWindowTarget                PfHm
     _pref_diff "Search current folder"     com.apple.finder FXDefaultSearchScope           SCcf
-    _pref_diff "Show hard drives"          com.apple.finder ShowHardDrivesOnDesktop        1
-    _pref_diff "Prevent .DS_Store on network" com.apple.desktopservices DSDontWriteNetworkStores 1
-    _pref_diff "Disable extension warning" com.apple.finder FXEnableExtensionChangeWarning 0
+    _pref_diff "Show hard drives"          com.apple.finder ShowHardDrivesOnDesktop        true
+    _pref_diff "Prevent .DS_Store on network" com.apple.desktopservices DSDontWriteNetworkStores true
+    _pref_diff "Disable extension warning" com.apple.finder FXEnableExtensionChangeWarning false
     read -r -p "  Apply Finder settings? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Finder unchanged"
+    else
       defaults write com.apple.finder AppleShowAllFiles -bool true
       defaults write com.apple.finder ShowPathbar -bool true
       defaults write com.apple.finder ShowRecentTags -bool false
@@ -935,8 +942,6 @@ else
       defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
       defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
       updated "Finder"; MACOS_UPDATED+=("Finder"); NEEDS_RESTART=true
-    else
-      ok "Finder unchanged"
     fi
   fi
 
@@ -944,23 +949,25 @@ else
   if $system_current; then
     ok "System settings already configured"
   else
-    _pref_diff "Enable tap to click"       com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 1
-    _pref_diff "Disable autocorrect"       NSGlobalDomain NSAutomaticSpellingCorrectionEnabled  0
-    _pref_diff "Disable autocapitalize"    NSGlobalDomain NSAutomaticCapitalizationEnabled      0
-    _pref_diff "Disable smart dashes"      NSGlobalDomain NSAutomaticDashSubstitutionEnabled    0
-    _pref_diff "Disable smart periods"     NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled  0
-    _pref_diff "Disable smart quotes"      NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled   0
-    _pref_diff "Show all file extensions"  NSGlobalDomain AppleShowAllExtensions                1
+    _pref_diff "Enable tap to click"       com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking true
+    _pref_diff "Disable autocorrect"       NSGlobalDomain NSAutomaticSpellingCorrectionEnabled  false
+    _pref_diff "Disable autocapitalize"    NSGlobalDomain NSAutomaticCapitalizationEnabled      false
+    _pref_diff "Disable smart dashes"      NSGlobalDomain NSAutomaticDashSubstitutionEnabled    false
+    _pref_diff "Disable smart periods"     NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled  false
+    _pref_diff "Disable smart quotes"      NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled   false
+    _pref_diff "Show all file extensions"  NSGlobalDomain AppleShowAllExtensions                true
     _pref_diff "Enable dark mode"          NSGlobalDomain AppleInterfaceStyle                  Dark
     _pref_diff "Double-click to minimize"  NSGlobalDomain AppleActionOnDoubleClick             Minimize
     _pref_diff "Increase key repeat speed" NSGlobalDomain KeyRepeat                            5
     _pref_diff "Reduce initial key repeat" NSGlobalDomain InitialKeyRepeat                     25
     _pref_diff "Mute volume feedback sound" NSGlobalDomain com.apple.sound.beep.feedback       0
-    _pref_diff "Disable translucent menu bar" NSGlobalDomain AppleEnableMenuBarTransparency    0
-    _pref_diff "Disable tiling on edge drag" NSGlobalDomain EnableTilingByEdgeDrag             0
-    _pref_diff "Disable tiling on menu bar" NSGlobalDomain EnableTilingByMenuBar               0
+    _pref_diff "Disable translucent menu bar" NSGlobalDomain AppleEnableMenuBarTransparency    false
+    _pref_diff "Disable tiling on edge drag" NSGlobalDomain EnableTilingByEdgeDrag             false
+    _pref_diff "Disable tiling on menu bar" NSGlobalDomain EnableTilingByMenuBar               false
     read -r -p "  Apply System settings? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "System settings unchanged"
+    else
       defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
       defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
       defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
@@ -968,8 +975,8 @@ else
       defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
       defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
       defaults write NSGlobalDomain AppleShowAllExtensions -bool true
-      defaults write NSGlobalDomain AppleInterfaceStyle Dark
-      defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
+      defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
+      defaults write NSGlobalDomain AppleActionOnDoubleClick -string Minimize
       defaults write NSGlobalDomain KeyRepeat -int 5
       defaults write NSGlobalDomain InitialKeyRepeat -int 25
       defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
@@ -977,8 +984,6 @@ else
       defaults write -g EnableTilingByEdgeDrag -bool false
       defaults write -g EnableTilingByMenuBar -bool false
       updated "System settings"; MACOS_UPDATED+=("System settings"); NEEDS_RESTART=true
-    else
-      ok "System settings unchanged"
     fi
   fi
 
@@ -986,13 +991,13 @@ else
   if $screenshot_current; then
     ok "Screenshots already configured"
   else
-    _pref_diff "Disable thumbnail preview"  com.apple.screencapture show-thumbnail 0
+    _pref_diff "Disable thumbnail preview"  com.apple.screencapture show-thumbnail false
     read -r -p "  Apply Screenshots settings? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Screenshots unchanged"
+    else
       defaults write com.apple.screencapture show-thumbnail -bool false
       updated "Screenshots"; MACOS_UPDATED+=("Screenshots")
-    else
-      ok "Screenshots unchanged"
     fi
   fi
 
@@ -1002,11 +1007,11 @@ else
   else
     _pref_diff "Pin Weather to menu bar"  com.apple.controlcenter Weather                             18 host
     read -r -p "  Apply menu bar settings? [Y/n] " r
-    if [[ ! "$r" =~ ^[nN] ]]; then
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Menu bar unchanged"
+    else
       defaults -currentHost write com.apple.controlcenter Weather -int 18
       updated "Menu bar"; MACOS_UPDATED+=("Menu bar"); NEEDS_RESTART=true
-    else
-      ok "Menu bar unchanged"
     fi
   fi
 
@@ -1033,7 +1038,7 @@ echo -e "  ${GREY}Only needed when using a Windows keyboard or mouse on a Mac.${
 PERIPH_OK=()
 
 deploy_peripheral_config() {
-  local src="$DOTFILES_DIR/$1" dst="$2" name="$3"
+  local src="$DOTFILES_DIR/$1" dst="$2" name="$3" r
   $DRY_RUN && { would "deploy $1 to $dst"; return 0; }
   mkdir -p "$(dirname "$dst")"
   if [ -f "$dst" ]; then
@@ -1041,8 +1046,7 @@ deploy_peripheral_config() {
       ok "$name config already up to date"
       return 0
     fi
-    echo "  Diff for $name config:"
-    diff -y --suppress-common-lines --width=$(( $(tput cols) )) "$dst" "$src"
+    git diff --no-index --color "$dst" "$src"
     read -r -p "  $name config already exists. Overwrite? [y/N] " r
     if [[ ! "$r" =~ ^[yY] ]]; then
       ok "$name config unchanged"
@@ -1058,7 +1062,7 @@ deploy_peripheral_config() {
 }
 
 setup_peripheral() {
-  local name=$1 cask=$2 app=$3 config_src=$4 config_dst=$5
+  local name=$1 cask=$2 app=$3 config_src=$4 config_dst=$5 r
   if $DRY_RUN; then
     would "brew install --cask $cask && deploy $config_src to $config_dst"
     return

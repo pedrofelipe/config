@@ -162,7 +162,7 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
 ```bash
   # Dock
   # Move to left side
-  defaults write com.apple.dock orientation left
+  defaults write com.apple.dock orientation -string left
 
   # Set icon size
   defaults write com.apple.dock tilesize -integer 40
@@ -241,10 +241,10 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   defaults write NSGlobalDomain AppleShowAllExtensions -bool true
 
   # Enable dark mode
-  defaults write NSGlobalDomain AppleInterfaceStyle Dark
+  defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
 
   # Double-click to minimize
-  defaults write NSGlobalDomain AppleActionOnDoubleClick Minimize
+  defaults write NSGlobalDomain AppleActionOnDoubleClick -string Minimize
 
   # Increase key repeat speed
   defaults write NSGlobalDomain KeyRepeat -int 5
