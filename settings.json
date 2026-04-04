@@ -1,26 +1,12 @@
 {
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "[javascript][json][typescript][typescriptreact]": {
+    "editor.defaultFormatter": "oxc.oxc-vscode"
   },
   "claudeCode.preferredLocation": "panel",
-  "colorize.languages": [
-    "typescript",
-    "javascript",
-    "css"
-  ],
   "debug.internalConsoleOptions": "neverOpen",
   "editor.bracketPairColorization.enabled": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.oxc": "explicit"
   },
   "editor.detectIndentation": false,
   "editor.fontFamily": "'Fira Code'",
@@ -39,10 +25,14 @@
   "editor.tabSize": 2,
   "editor.unicodeHighlight.nonBasicASCII": false,
   "explorer.compactFolders": false,
+  "explorer.confirmDelete": true,
+  "explorer.confirmDragAndDrop": true,
   "extensions.ignoreRecommendations": true,
-  "git.confirmSync": false,
-  "gitlens.advanced.skipOnboarding": true,
+  "files.exclude": {
+    "**/.yarn": true
+  },
   "gitlens.ai.enabled": false,
+  "gitlens.advanced.skipOnboarding": true,
   "gitlens.cloudIntegrations.enabled": false,
   "gitlens.codeLens.enabled": false,
   "gitlens.currentLine.enabled": true,
@@ -55,9 +45,6 @@
   "gitlens.telemetry.enabled": false,
   "js/ts.suggest.autoImports": false,
   "js/ts.updateImportsOnFileMove.enabled": "always",
-  "less.validate": false,
-  "prettier.prettierPath": "./node_modules/prettier",
-  "prettier.requireConfig": true,
   "search.sortOrder": "modified",
   "security.workspace.trust.enabled": false,
   "sortLines.filterBlankLines": true,
@@ -66,6 +53,6 @@
   "workbench.editor.labelFormat": "medium",
   "workbench.iconTheme": "city-lights-icons-vsc",
   "workbench.startupEditor": "newUntitledFile",
-  "workbench.tree.indent": 15,
+  "workbench.tree.indent": 5,
   "workbench.tree.renderIndentGuides": "always",
 }
