@@ -279,9 +279,8 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   defaults -currentHost write com.apple.controlcenter Weather -int 18
   defaults -currentHost write com.apple.controlcenter WiFi -int 18
 
-  # Menu bar — clock format (digital, day of week + AM/PM, no date)
+  # Menu bar — clock format (digital, day of week, no date)
   defaults write com.apple.menuextra.clock IsAnalog -bool false
-  defaults write com.apple.menuextra.clock ShowAMPM -bool true
   defaults write com.apple.menuextra.clock ShowDate -bool false
   defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
 

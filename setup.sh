@@ -847,7 +847,6 @@ menubar_current=true
   [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)"                   = "18" ] &&
   [ "$(defaults -currentHost read com.apple.controlcenter WiFi 2>/dev/null)"                      = "18" ] &&
   [ "$(defaults read com.apple.menuextra.clock IsAnalog 2>/dev/null)"                             = "0" ] &&
-  [ "$(defaults read com.apple.menuextra.clock ShowAMPM 2>/dev/null)"                             = "1" ] &&
   [ "$(defaults read com.apple.menuextra.clock ShowDate 2>/dev/null)"                             = "0" ] &&
   [ "$(defaults read com.apple.menuextra.clock ShowDayOfWeek 2>/dev/null)"                        = "1" ]; } || menubar_current=false
 
@@ -1016,7 +1015,6 @@ else
     _pref_diff "Weather visible"         com.apple.controlcenter Weather                              18 host
     _pref_diff "WiFi visible"            com.apple.controlcenter WiFi                                 18 host
     _pref_diff "clock analog"            com.apple.menuextra.clock IsAnalog                            0
-    _pref_diff "clock AM/PM"             com.apple.menuextra.clock ShowAMPM                            1
     _pref_diff "clock date"              com.apple.menuextra.clock ShowDate                            0
     _pref_diff "clock day of week"       com.apple.menuextra.clock ShowDayOfWeek                       1
     read -r -p "  Apply menu bar settings? [Y/n] " r
@@ -1026,7 +1024,6 @@ else
       defaults -currentHost write com.apple.controlcenter Weather -int 18
       defaults -currentHost write com.apple.controlcenter WiFi -int 18
       defaults write com.apple.menuextra.clock IsAnalog -bool false
-      defaults write com.apple.menuextra.clock ShowAMPM -bool true
       defaults write com.apple.menuextra.clock ShowDate -bool false
       defaults write com.apple.menuextra.clock ShowDayOfWeek -bool true
       updated "Menu bar"; MACOS_UPDATED+=("Menu bar"); NEEDS_RESTART=true
