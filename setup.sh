@@ -548,12 +548,10 @@ else
     bradlc.vscode-tailwindcss
     christian-kohler.npm-intellisense
     christian-kohler.path-intellisense
-    dbaeumer.vscode-eslint
     eamodio.gitlens
-    esbenp.prettier-vscode
     formulahendry.auto-close-tag
     github.github-vscode-theme
-    kamikillerto.vscode-colorize
+    oxc.oxc-vscode
     tyriar.sort-lines
     wix.vscode-import-cost
     yummygum.city-lights-icon-vsc
