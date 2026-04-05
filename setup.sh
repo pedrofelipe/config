@@ -824,7 +824,6 @@ finder_current=true
   [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                     = "false" ] &&
   [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                    = "PfHm"  ] &&
   [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"               = "SCcf"  ] &&
-  [ "$(defaults read com.apple.finder ShowHardDrivesOnDesktop 2>/dev/null)"            = "true"  ] &&
   [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"  = "true"  ] &&
   [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"     = "false" ]; } || finder_current=false
 
@@ -926,7 +925,6 @@ else
     _pref_diff "Hide recent tags"          com.apple.finder ShowRecentTags                 false
     _pref_diff "Open windows to home"      com.apple.finder NewWindowTarget                PfHm
     _pref_diff "Search current folder"     com.apple.finder FXDefaultSearchScope           SCcf
-    _pref_diff "Show hard drives"          com.apple.finder ShowHardDrivesOnDesktop        true
     _pref_diff "Prevent .DS_Store on network" com.apple.desktopservices DSDontWriteNetworkStores true
     _pref_diff "Disable extension warning" com.apple.finder FXEnableExtensionChangeWarning false
     read -r -p "  Apply Finder settings? [Y/n] " r
@@ -938,7 +936,6 @@ else
       defaults write com.apple.finder ShowRecentTags -bool false
       defaults write com.apple.finder NewWindowTarget -string "PfHm"
       defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-      defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
       defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
       defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
       updated "Finder"; MACOS_UPDATED+=("Finder"); NEEDS_RESTART=true

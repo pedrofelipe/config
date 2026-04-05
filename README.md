@@ -209,9 +209,6 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   # Search current folder
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
-  # Show hard drives
-  defaults write com.apple.finder ShowHardDrivesOnDesktop -bool true
-
   # Prevent .DS_Store on network
   defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
 
