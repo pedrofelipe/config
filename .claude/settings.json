@@ -1,0 +1,175 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "env": {
+    "DISABLE_AUTOUPDATER": "1"
+  },
+  "permissions": {
+    "allow": [
+      "WebFetch(*)",
+      "Edit",
+      "Write",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git branch *)",
+      "Bash(git show *)",
+      "Bash(git stash list *)",
+      "Bash(git remote *)",
+      "Bash(git fetch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git checkout *)",
+      "Bash(git switch *)",
+      "Bash(git merge *)",
+      "Bash(git clone *)",
+      "Bash(git pull *)",
+      "Bash(git init *)",
+      "Bash(git worktree *)",
+      "Bash(git rebase *)",
+      "Bash(git reset --soft *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(find *)",
+      "Bash(rg *)",
+      "Bash(grep *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(sort *)",
+      "Bash(uniq *)",
+      "Bash(wc *)",
+      "Bash(cut *)",
+      "Bash(awk *)",
+      "Bash(sed *)",
+      "Bash(tr *)",
+      "Bash(xargs *)",
+      "Bash(tee *)",
+      "Bash(diff *)",
+      "Bash(comm *)",
+      "Bash(paste *)",
+      "Bash(column *)",
+      "Bash(which *)",
+      "Bash(type *)",
+      "Bash(file *)",
+      "Bash(stat *)",
+      "Bash(du *)",
+      "Bash(df *)",
+      "Bash(env)",
+      "Bash(printenv *)",
+      "Bash(uname *)",
+      "Bash(hostname)",
+      "Bash(whoami)",
+      "Bash(id)",
+      "Bash(date *)",
+      "Bash(pwd)",
+      "Bash(echo *)",
+      "Bash(printf *)",
+      "Bash(pnpm *)",
+      "Bash(npm *)",
+      "Bash(npx *)",
+      "Bash(node *)",
+      "Bash(yarn *)",
+      "Bash(gh pr list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr diff *)",
+      "Bash(gh pr checks *)",
+      "Bash(gh pr status *)",
+      "Bash(gh issue list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue status *)",
+      "Bash(gh repo view *)",
+      "Bash(gh repo clone *)",
+      "Bash(gh api *)",
+      "Bash(gh search *)",
+      "Bash(gh status)",
+      "Bash(gh status *)",
+      "Bash(gh run list *)",
+      "Bash(gh run view *)",
+      "Bash(gh run watch *)",
+      "Bash(gh workflow list *)",
+      "Bash(gh workflow view *)",
+      "Bash(gh cache list *)",
+      "Bash(gh release list *)",
+      "Bash(gh release view *)",
+      "Bash(gh gist list *)",
+      "Bash(gh gist view *)",
+      "Bash(gh label list *)",
+      "Bash(gh ruleset list *)",
+      "Bash(gh ruleset view *)",
+      "Bash(gh pr create *)",
+      "Bash(gh issue create *)",
+      "Bash(glab mr list *)",
+      "Bash(glab mr view *)",
+      "Bash(glab mr diff *)",
+      "Bash(glab mr checkout *)",
+      "Bash(glab issue list *)",
+      "Bash(glab issue view *)",
+      "Bash(glab repo view *)",
+      "Bash(glab auth *)",
+      "Bash(glab mr create *)",
+      "Bash(glab issue create *)",
+      "Bash(jq *)",
+      "Bash(curl *)",
+      "Bash(make *)",
+      "Bash(lsof *)",
+      "Bash(open *)",
+      "Bash(pbcopy)",
+      "Bash(pbpaste)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(wrangler *)",
+      "Bash(rm *)"
+    ],
+    "deny": [
+      "Bash(git reset --hard *)",
+      "Bash(git push --force *)",
+      "Bash(gh release delete *)",
+      "Read(*.env)",
+      "Read(.env.*)",
+      "Read(*.dev.vars)"
+    ],
+    "additionalDirectories": [
+      "~/.claude",
+      "~/.config/ghostty",
+      "~/.config/opencode",
+      "~/projects"
+    ],
+    "defaultMode": "auto"
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "input=$(cat); cmd=$(echo \"$input\" | jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -q 'ssh-keygen'; then echo '{\"continue\": false, \"stopReason\": \"SSH key creation requires your confirmation. To proceed, explicitly ask me to create SSH keys.\"}'; fi",
+            "statusMessage": "Checking for SSH key operations..."
+          },
+          {
+            "type": "command",
+            "command": "input=$(cat); cmd=$(echo \"$input\" | jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -qE 'brew install'; then echo '{\"continue\": false, \"stopReason\": \"Package installation requires your confirmation. To proceed, explicitly ask me to install the package.\"}'; fi",
+            "statusMessage": "Checking for brew installs..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "cloudflare@cloudflare": true
+  },
+  "extraKnownMarketplaces": {
+    "cloudflare": {
+      "source": {
+        "source": "github",
+        "repo": "cloudflare/skills"
+      }
+    }
+  },
+  "effortLevel": "xhigh",
+  "remoteControlAtStartup": true,
+  "agentPushNotifEnabled": true
+}

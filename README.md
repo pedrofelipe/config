@@ -17,15 +17,20 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 ## Contents
 | File | Description |
 | --- | --- |
-| `.bash_profile` | Customizes the Terminal.app prompt and shows the currently checked-out Git branch |
+| `.bash_profile` | Customizes the terminal prompt and shows the currently checked-out Git branch |
 | `.gitconfig` | Global Git configuration with my name, email, aliases, colors, and more |
 | `.inputrc` | Makes tab completion case-insensitive |
-| `ssh_config` | SSH client config — persists keys in the macOS keychain agent across reboots |
+| `ssh_config` | SSH client config. Persists keys in the macOS keychain agent across reboots |
 | `settings.json` | Custom settings for Visual Studio Code |
 | `keybindings.json` | Custom set of key bindings for Visual Studio Code |
 | `setup.sh` | Automated setup script for a fresh macOS install |
-| `karabiner.json` | Karabiner-Elements config — remaps Ctrl↔Cmd and Alt+Tab on external keyboards |
-| `istatmenus.menubar.plist` | iStat Menus display preferences — which modules show in the menubar and menu |
+| `karabiner.json` | Karabiner-Elements config. Remaps Ctrl↔Cmd and Alt+Tab on external keyboards |
+| `istatmenus.menubar.plist` | iStat Menus display preferences. Which modules show in the menubar and menu |
+| `.claude/settings.json` | Global Claude Code settings. Permissions, hooks, plugins |
+| `.config/ghostty/config` | Ghostty terminal settings. Theme, font, keybinds, shell integration |
+| `.config/opencode/opencode.jsonc` | OpenCode settings. Model, MCP servers, permissions, autoupdate |
+| `.config/opencode/agents/` | Global OpenCode agents (copilot workflow) |
+| `.config/opencode/skills/` | Global OpenCode skills |
 
 ## Checklist
 
@@ -55,7 +60,6 @@ brew install yarn
 brew install gh
 brew install dockutil
 
-brew install --cask claude-code
 brew install --cask font-fira-code
 ```
 
@@ -122,42 +126,75 @@ brew install --cask 1password
 brew install --cask istat-menus
 ```
 
-After installing iStat Menus, `setup.sh` merges [`istatmenus.menubar.plist`](/istatmenus.menubar.plist) into the app's preferences using Python — updating only the display settings while preserving any existing license and device data.
+After installing iStat Menus, `setup.sh` merges [`istatmenus.menubar.plist`](/istatmenus.menubar.plist) into the app's preferences using Python. It updates only the display settings while preserving any existing license and device data.
 
-### 8. Set up Terminal
+### 8. Set up AI tools
 
-The setup script configures Terminal automatically. To do it manually:
+#### Claude Code
 
 ```bash
-TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
-
-# Duplicate Basic profile and rename
-/usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST"
-
-# Font and background
-osascript -e 'tell application "Terminal" to set font name of settings set "Pedro'\''s Default" to "SFMonoTerminal-Regular"'
-osascript -e 'tell application "Terminal" to set font size of settings set "Pedro'\''s Default" to 14'
-osascript -e 'tell application "Terminal" to set background color of settings set "Pedro'\''s Default" to {0, 0, 0}'
-
-# Profile settings
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:BackgroundBlur' 0.5" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:shellExitAction' 0" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowActiveProcessInTitle' false" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowDimensionsInTitle' false" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowShellCommandInTitle' false" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowWindowSettingsNameInTitle' false" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLInTitle' true" "$TERM_PLIST"
-/usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:ShowRepresentedURLPathInTitle' false" "$TERM_PLIST"
-
-# Set as default
-defaults write com.apple.Terminal "Default Window Settings" -string "Pedro's Default"
-defaults write com.apple.Terminal "Startup Window Settings" -string "Pedro's Default"
-defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
-defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
+brew install --cask claude-code
 ```
 
-### 9. macOS Preferences
+- [ ] Copy [`.claude/settings.json`](/.claude/settings.json) to `~/.claude/`
+- [ ] Add global MCP servers
+
+```bash
+claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics
+```
+
+#### OpenCode
+
+```bash
+brew install anomalyco/tap/opencode
+```
+
+- [ ] Copy [`.config/opencode/opencode.jsonc`](/.config/opencode/opencode.jsonc) to `~/.config/opencode/`
+- [ ] Copy [`.config/opencode/agents/`](/.config/opencode/agents) to `~/.config/opencode/agents/`
+- [ ] Copy [`.config/opencode/skills/`](/.config/opencode/skills) to `~/.config/opencode/skills/`
+
+**Agents**
+
+| Agent | Description |
+| --- | --- |
+| `@copilot` | Orchestrates the development workflow from description to pull request |
+| &nbsp;&nbsp;↳ `@planner` | Creates an implementation plan from a description |
+| &nbsp;&nbsp;↳ `@developer` | Implements code for a single todo item |
+| &nbsp;&nbsp;↳ `@reviewer` | Reviews code changes against todo requirements |
+| &nbsp;&nbsp;↳ `@publisher` | Handles branch setup, git commits, and pull request creation |
+| &nbsp;&nbsp;↳ `@tester` | Generates manual QA test plans for code changes |
+| &nbsp;&nbsp;↳ `@learner` | Reflects on completed work and proposes updates to AGENTS.md files |
+
+**Skills**
+
+| Skill | Description |
+| --- | --- |
+| **@copilot workflow** | |
+| &nbsp;&nbsp;↳ `branch` | Set up a git branch from a work description |
+| &nbsp;&nbsp;↳ `commit` | Create a git commit following conventional commit format |
+| &nbsp;&nbsp;↳ `pr` | Create a GitHub pull request |
+| &nbsp;&nbsp;↳ `unit-test` | Generate comprehensive unit tests with 100% coverage target |
+| &nbsp;&nbsp;↳ `manual-qa` | Generate manual QA test steps for a code change |
+| &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI |
+| **Standalone** | |
+| `composition-patterns` | React composition patterns that scale |
+| `react-best-practices` | React and Next.js performance optimization guidelines |
+| `simplify` | Review changed code for reuse, quality, efficiency, and clarity |
+
+### 9. Set up Ghostty
+
+```bash
+brew install --cask ghostty
+```
+
+- [ ] Copy [`.config/ghostty/config`](/.config/ghostty/config) to `~/.config/ghostty/`
+
+```bash
+mkdir -p ~/.config/ghostty
+cp .config/ghostty/config ~/.config/ghostty/config
+```
+
+### 10. macOS Preferences
 
 ```bash
   # Dock
@@ -180,7 +217,7 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   dockutil --remove all --no-restart
   dockutil --add "/Applications/Google Chrome.app" --no-restart
   dockutil --add "/Applications/Visual Studio Code.app" --no-restart
-  dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart
+  dockutil --add "/Applications/Ghostty.app" --no-restart
   dockutil --add "/Applications/1Password.app" --no-restart
   dockutil --add "/Applications/Spotify.app" --no-restart
 
@@ -274,14 +311,14 @@ defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
   killall ControlCenter
 ```
 
-### 10. External peripherals
+### 11. External peripherals
 
 > Only needed when using a Windows keyboard or mouse on a Mac.
 
 #### Karabiner-Elements (keyboard remapping)
 
 Remaps modifier keys on external keyboards only (built-in keyboard unaffected):
-- Left Ctrl → Command; Left Windows key → Control (global, including Terminal)
+- Left Ctrl → Command; Left Windows key → Control (global, including the terminal)
 - Alt+Tab → Cmd+Tab (app switcher)
 
 ```bash

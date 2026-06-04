@@ -20,7 +20,7 @@ done
 NVM_VERSION="v0.40.4"
 
 # ASCII art
-printf "${PURPLE}${BOLD}"
+printf '%b' "${PURPLE}${BOLD}"
 cat << 'EOF'
  _     _   _                  _               _
 | |__ | |_| |_ _ __   ___  __| |_ __ ___   __| | _____   __
@@ -60,7 +60,7 @@ SUM_SHELL=""
 SUM_NODE=""
 SUM_VSCODE=""
 SUM_APPS=""
-SUM_TERMINAL=""
+SUM_GHOSTTY=""
 SUM_MACOS=""
 SUM_PERIPHERALS=""
 
@@ -182,9 +182,7 @@ brew_cask() {
   fi
 }
 
-# -------------------------------------------------------
 # 0. Xcode Command Line Tools
-# -------------------------------------------------------
 step "Checking Xcode Command Line Tools"
 
 if xcode-select -p &>/dev/null; then
@@ -200,9 +198,7 @@ else
   fi
 fi
 
-# -------------------------------------------------------
 # 1. Config files
-# -------------------------------------------------------
 step "Loading config files"
 
 CF_OK=()
@@ -285,36 +281,265 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
     chmod 700 "$HOME/.ssh"
     if [ -f "$HOME/.ssh/config" ]; then
       if diff -q "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config" &>/dev/null; then
-        ok "~/.ssh/config already up to date"
+        ok "$HOME/.ssh/config already up to date"
         CF_OK+=("ssh_config")
       else
         git diff --no-index --color "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
         read -r -p "  ~/.ssh/config already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
-          ok "~/.ssh/config unchanged"
+          ok "$HOME/.ssh/config unchanged"
         else
           cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
           chmod 600 "$HOME/.ssh/config"
-          installed "~/.ssh/config"
+          installed "$HOME/.ssh/config"
         fi
         CF_OK+=("ssh_config")
       fi
     else
       cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
       chmod 600 "$HOME/.ssh/config"
-      installed "~/.ssh/config"
+      installed "$HOME/.ssh/config"
       CF_OK+=("ssh_config")
     fi
   fi
 else
   warn "ssh_config not found, skipping"
 fi
+# Claude Code (settings.json, CLAUDE.md, agents, skills)
+CLAUDE_CONFIG_DIR="$HOME/.claude"
+for file in settings.json CLAUDE.md; do
+  src="$DOTFILES_DIR/.claude/$file"
+  [ -f "$src" ] || continue
+  dest="$CLAUDE_CONFIG_DIR/$file"
+  if $DRY_RUN; then
+    would "cp claude/$file to $dest"
+  else
+    mkdir -p "$CLAUDE_CONFIG_DIR"
+    if [ -f "$dest" ] && diff -q "$dest" "$src" &>/dev/null; then
+      ok "Claude Code/$file already up to date"
+      CF_OK+=("Claude Code/$file")
+    elif [ -f "$dest" ]; then
+      git diff --no-index --color "$dest" "$src"
+      read -r -p "  claude/$file already exists. Overwrite? [Y/n] " r
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "Claude Code/$file unchanged"
+      else
+        cp "$src" "$dest"
+        installed "Claude Code/$file"
+      fi
+      CF_OK+=("Claude Code/$file")
+    else
+      cp "$src" "$dest"
+      installed "Claude Code/$file"
+      CF_OK+=("Claude Code/$file")
+    fi
+  fi
+done
+if [ -d "$DOTFILES_DIR/.claude/agents" ]; then
+  if $DRY_RUN; then
+    would "sync claude/agents to $CLAUDE_CONFIG_DIR/agents/"
+  else
+    mkdir -p "$CLAUDE_CONFIG_DIR/agents"
+    _changed=()
+    for f in "$DOTFILES_DIR/.claude/agents"/*.md; do
+      dest="$CLAUDE_CONFIG_DIR/agents/$(basename "$f")"
+      { [ ! -f "$dest" ] || ! diff -q "$dest" "$f" &>/dev/null; } && _changed+=("$(basename "$f")")
+    done
+    if [ ${#_changed[@]} -eq 0 ]; then
+      ok "Claude Code agents already up to date"
+      CF_OK+=("Claude Code/agents")
+    else
+      for _name in "${_changed[@]}"; do
+        _src="$DOTFILES_DIR/.claude/agents/$_name"
+        _dest="$CLAUDE_CONFIG_DIR/agents/$_name"
+        if [ -f "$_dest" ]; then git diff --no-index --color "$_dest" "$_src"; else git diff --no-index --color /dev/null "$_src"; fi
+      done
+      read -r -p "  Sync ${#_changed[@]} claude agent(s)? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        cp "$DOTFILES_DIR/.claude/agents"/*.md "$CLAUDE_CONFIG_DIR/agents/"
+        installed "Claude Code agents (${#_changed[@]})"
+        CF_OK+=("Claude Code/agents")
+      else
+        ok "Claude Code agents unchanged"
+      fi
+    fi
+    unset _changed
+  fi
+fi
+if [ -d "$DOTFILES_DIR/.claude/skills" ]; then
+  if $DRY_RUN; then
+    would "sync claude/skills to $CLAUDE_CONFIG_DIR/skills/"
+  else
+    mkdir -p "$CLAUDE_CONFIG_DIR/skills"
+    _any_changed=false
+    for item in "$DOTFILES_DIR/.claude/skills"/*; do
+      name=$(basename "$item")
+      dest="$CLAUDE_CONFIG_DIR/skills/$name"
+      if [ -d "$item" ]; then
+        ! diff -rq "$item" "$dest" &>/dev/null && _any_changed=true && break
+      elif [ -f "$item" ]; then
+        { [ ! -f "$dest" ] || ! diff -q "$dest" "$item" &>/dev/null; } && _any_changed=true && break
+      fi
+    done
+    if ! $_any_changed; then
+      ok "Claude Code skills already up to date"
+      CF_OK+=("Claude Code/skills")
+    else
+      read -r -p "  Sync claude skills? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        cp -r "$DOTFILES_DIR/.claude/skills/." "$CLAUDE_CONFIG_DIR/skills/"
+        installed "Claude Code skills"
+        CF_OK+=("Claude Code/skills")
+      else
+        ok "Claude Code skills unchanged"
+      fi
+    fi
+    unset _any_changed
+  fi
+fi
+# OpenCode (opencode.jsonc, agents, skills)
+OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+_oc_file="opencode.jsonc"
+_oc_src="$DOTFILES_DIR/.config/opencode/$_oc_file"
+_oc_dest="$OPENCODE_CONFIG_DIR/$_oc_file"
+if [ -f "$_oc_src" ]; then
+  if $DRY_RUN; then
+    would "cp opencode/$_oc_file to $_oc_dest"
+  else
+    mkdir -p "$OPENCODE_CONFIG_DIR"
+    if [ -f "$_oc_dest" ] && diff -q "$_oc_dest" "$_oc_src" &>/dev/null; then
+      ok "OpenCode/$_oc_file already up to date"
+      CF_OK+=("OpenCode/$_oc_file")
+    elif [ -f "$_oc_dest" ]; then
+      git diff --no-index --color "$_oc_dest" "$_oc_src"
+      read -r -p "  opencode/$_oc_file already exists. Overwrite? [Y/n] " r
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "OpenCode/$_oc_file unchanged"
+      else
+        cp "$_oc_src" "$_oc_dest"
+        installed "OpenCode/$_oc_file"
+      fi
+      CF_OK+=("OpenCode/$_oc_file")
+    else
+      cp "$_oc_src" "$_oc_dest"
+      installed "OpenCode/$_oc_file"
+      CF_OK+=("OpenCode/$_oc_file")
+    fi
+  fi
+fi
+unset _oc_file _oc_src _oc_dest
+if [ -d "$DOTFILES_DIR/.config/opencode/agents" ]; then
+  if $DRY_RUN; then
+    would "sync opencode/agents to $OPENCODE_CONFIG_DIR/agents/"
+  else
+    mkdir -p "$OPENCODE_CONFIG_DIR/agents"
+    _changed=()
+    for f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
+      dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$f")"
+      { [ ! -f "$dest" ] || ! diff -q "$dest" "$f" &>/dev/null; } && _changed+=("$(basename "$f")")
+    done
+    for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
+      [ -d "$d" ] || continue
+      dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$d")"
+      { [ ! -d "$dest" ] || ! diff -rq "$dest" "$d" &>/dev/null; } && _changed+=("$(basename "$d")/")
+    done
+    if [ ${#_changed[@]} -eq 0 ]; then
+      ok "OpenCode agents already up to date"
+      CF_OK+=("OpenCode/agents")
+    else
+      for _name in "${_changed[@]}"; do
+        if [[ "$_name" == */ ]]; then
+          _dname="${_name%/}"
+          _src_dir="$DOTFILES_DIR/.config/opencode/agents/$_dname"
+          _dest_dir="$OPENCODE_CONFIG_DIR/agents/$_dname"
+          for _f in "$_src_dir"/*.md; do
+            [ -f "$_f" ] || continue
+            _dest_f="$_dest_dir/$(basename "$_f")"
+            if [ -f "$_dest_f" ]; then git diff --no-index --color "$_dest_f" "$_f"; else git diff --no-index --color /dev/null "$_f"; fi
+          done
+        else
+          _src="$DOTFILES_DIR/.config/opencode/agents/$_name"
+          _dest="$OPENCODE_CONFIG_DIR/agents/$_name"
+          if [ -f "$_dest" ]; then git diff --no-index --color "$_dest" "$_src"; else git diff --no-index --color /dev/null "$_src"; fi
+        fi
+      done
+      read -r -p "  Sync ${#_changed[@]} opencode agent(s)? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        cp "$DOTFILES_DIR/.config/opencode/agents"/*.md "$OPENCODE_CONFIG_DIR/agents/"
+        for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
+          [ -d "$d" ] && cp -r "$d" "$OPENCODE_CONFIG_DIR/agents/"
+        done
+        installed "OpenCode agents (${#_changed[@]})"
+        CF_OK+=("OpenCode/agents")
+      else
+        ok "OpenCode agents unchanged"
+      fi
+    fi
+    unset _changed
+  fi
+fi
+if [ -d "$DOTFILES_DIR/.config/opencode/skills" ]; then
+  if $DRY_RUN; then
+    would "sync opencode/skills to $OPENCODE_CONFIG_DIR/skills/"
+  else
+    mkdir -p "$OPENCODE_CONFIG_DIR/skills"
+    _any_changed=false
+    for item in "$DOTFILES_DIR/.config/opencode/skills"/*; do
+      name=$(basename "$item")
+      dest="$OPENCODE_CONFIG_DIR/skills/$name"
+      if [ -d "$item" ]; then
+        ! diff -rq "$item" "$dest" &>/dev/null && _any_changed=true && break
+      elif [ -f "$item" ]; then
+        { [ ! -f "$dest" ] || ! diff -q "$dest" "$item" &>/dev/null; } && _any_changed=true && break
+      fi
+    done
+    if ! $_any_changed; then
+      ok "OpenCode skills already up to date"
+      CF_OK+=("OpenCode/skills")
+    else
+      read -r -p "  Sync opencode skills? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        cp -r "$DOTFILES_DIR/.config/opencode/skills/." "$OPENCODE_CONFIG_DIR/skills/"
+        installed "OpenCode skills"
+        CF_OK+=("OpenCode/skills")
+      else
+        ok "OpenCode skills unchanged"
+      fi
+    fi
+    unset _any_changed
+  fi
+fi
+# Claude Code MCP servers (stored in ~/.claude.json via the CLI)
+if command -v claude &>/dev/null; then
+  _mcp_servers=(
+    "chrome-devtools:npx:-y:chrome-devtools-mcp@latest:--no-usage-statistics"
+  )
+  for _entry in "${_mcp_servers[@]}"; do
+    _name="${_entry%%:*}"
+    _args="${_entry#*:}"
+    IFS=':' read -ra _argv <<< "$_args"
+    if $DRY_RUN; then
+      would "Claude Code mcp add $_name -s user ${_argv[*]}"
+    elif claude mcp get "$_name" -s user &>/dev/null 2>&1; then
+      ok "Claude Code mcp/$_name already configured"
+      CF_OK+=("Claude Code/mcp/$_name")
+    else
+      read -r -p "  Add Claude MCP server '$_name'? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        claude mcp add "$_name" -s user -- "${_argv[@]}"
+        installed "Claude Code mcp/$_name"
+        CF_OK+=("Claude Code/mcp/$_name")
+      else
+        ok "Claude Code mcp/$_name skipped"
+      fi
+    fi
+  done
+  unset _mcp_servers _entry _name _args _argv
+fi
 
 [ ${#CF_OK[@]} -gt 0 ] && SUM_DOTFILES="${GREEN}✔${RESET} $(join_arr ' · ' "${CF_OK[@]}")"
 
-# -------------------------------------------------------
 # 2. Homebrew
-# -------------------------------------------------------
 step "Installing Homebrew and packages"
 
 if ! command -v brew &>/dev/null; then
@@ -338,6 +563,9 @@ for pkg in bash git bash-completion@2 yarn gh dockutil; do
   brew_formula "$pkg"
 done
 
+! $DRY_RUN && command -v brew &>/dev/null && brew tap anomalyco/tap &>/dev/null || true
+brew_formula "opencode"
+
 # VS Code: check app bundle first since 'code' CLI may not be in PATH
 if [ -d "/Applications/Visual Studio Code.app" ]; then
   if command -v brew &>/dev/null && brew list --cask visual-studio-code &>/dev/null; then
@@ -358,9 +586,7 @@ HB_PARTS=()
 [ $BREW_OK -gt 0 ]        && HB_PARTS+=("${BREW_OK} up to date")
 [ ${#HB_PARTS[@]} -gt 0 ] && SUM_HOMEBREW="${GREEN}✔${RESET} $(join_arr ' · ' "${HB_PARTS[@]}")"
 
-# -------------------------------------------------------
 # 3. SSH keys
-# -------------------------------------------------------
 step "SSH keys"
 
 SSH_KEY_PATH="$HOME/.ssh/id_ed25519"
@@ -418,9 +644,7 @@ else
   fi
 fi
 
-# -------------------------------------------------------
 # 4. Switch to Homebrew bash
-# -------------------------------------------------------
 step "Setting Homebrew bash as default shell"
 
 HOMEBREW_BASH="/opt/homebrew/bin/bash"
@@ -467,9 +691,7 @@ else
   fi
 fi
 
-# -------------------------------------------------------
 # 5. Node.js via nvm
-# -------------------------------------------------------
 step "Installing Node.js"
 
 export NVM_DIR="$HOME/.nvm"
@@ -543,9 +765,7 @@ else
   fi
 fi
 
-# -------------------------------------------------------
 # 6. VS Code extensions and settings
-# -------------------------------------------------------
 step "Setting up VS Code"
 
 if ! command -v code &>/dev/null; then
@@ -649,9 +869,7 @@ else
   [ ${#VSCODE_PARTS[@]} -gt 0 ] && SUM_VSCODE="${GREEN}✔${RESET} $(join_arr ' · ' "${VSCODE_PARTS[@]}")"
 fi
 
-# -------------------------------------------------------
 # 7. Apps
-# -------------------------------------------------------
 step "Installing apps"
 
 APP_OK=()
@@ -725,78 +943,54 @@ fi
 
 [ ${#APP_OK[@]} -gt 0 ] && SUM_APPS="${GREEN}✔${RESET} $(join_arr ' · ' "${APP_OK[@]}")"
 
-# -------------------------------------------------------
-# 8. Terminal
-# -------------------------------------------------------
-step "Setting up Terminal"
+# 8. Ghostty
+step "Setting up Ghostty"
 
-TERM_PLIST="$HOME/Library/Preferences/com.apple.Terminal.plist"
-TERM_PROFILE="Pedro's Default"
-
-terminal_current() {
-  [ -f "$TERM_PLIST" ] &&
-  [ "$(defaults read com.apple.Terminal 'Default Window Settings' 2>/dev/null)" = "$TERM_PROFILE" ] &&
-  /usr/libexec/PlistBuddy -c "Print ':Window Settings:Pedro'\''s Default:name'" "$TERM_PLIST" &>/dev/null
-}
-
-if $DRY_RUN; then
-  would "create Terminal profile '$TERM_PROFILE' with SF Mono 14pt, black background, and title bar settings"
-elif [ ! -f "$TERM_PLIST" ]; then
-  warn "Terminal preferences not found — open Terminal.app first, then re-run"
-  SUM_TERMINAL="${YELLOW}⚠${RESET} plist not found"
-elif terminal_current; then
-  ok "Terminal profile '$TERM_PROFILE' already configured"
-  SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
-else
-  read -r -p "  Set up Terminal profile '$TERM_PROFILE'? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
-    ok "Terminal unchanged"
-    SUM_TERMINAL="${GREEN}✔${RESET} unchanged"
+if [ -d "/Applications/Ghostty.app" ]; then
+  if command -v brew &>/dev/null && brew list --cask ghostty &>/dev/null; then
+    brew_cask "ghostty"
   else
-    # Create the profile by duplicating Basic, then rename it
-    /usr/libexec/PlistBuddy -c "Copy :Window Settings:Basic ':Window Settings:Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
-      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default' dict" "$TERM_PLIST" 2>/dev/null
-    /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:name' 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null \
-      || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:name' string 'Pedro'\''s Default'" "$TERM_PLIST" 2>/dev/null
-
-    # Font and background via AppleScript
-    osascript &>/dev/null <<'APPLESCRIPT'
-tell application "Terminal"
-  set font name of settings set "Pedro's Default" to "SFMonoTerminal-Regular"
-  set font size of settings set "Pedro's Default" to 14
-  set background color of settings set "Pedro's Default" to {0, 0, 0}
-end tell
-APPLESCRIPT
-
-    # Profile settings via PlistBuddy
-    pb_set() {
-      /usr/libexec/PlistBuddy -c "Set ':Window Settings:Pedro'\''s Default:$1' $2" "$TERM_PLIST" 2>/dev/null \
-        || /usr/libexec/PlistBuddy -c "Add ':Window Settings:Pedro'\''s Default:$1' $3 $2" "$TERM_PLIST" 2>/dev/null
-    }
-    pb_set BackgroundBlur                    0.5   real
-    pb_set shellExitAction                   0     integer
-    pb_set ShowActiveProcessInTitle          false bool
-    pb_set ShowDimensionsInTitle             false bool
-    pb_set ShowShellCommandInTitle           false bool
-    pb_set ShowWindowSettingsNameInTitle     false bool
-    pb_set ShowRepresentedURLInTitle         true  bool
-    pb_set ShowRepresentedURLPathInTitle     false bool
-    unset -f pb_set
-
-    # Set as default profile
-    defaults write com.apple.Terminal "Default Window Settings" -string "$TERM_PROFILE"
-    defaults write com.apple.Terminal "Startup Window Settings" -string "$TERM_PROFILE"
-    defaults write com.apple.Terminal NewWindowWorkingDirectoryBehavior -int 2
-    defaults write com.apple.Terminal NewTabWorkingDirectoryBehavior -int 2
-
-    ok "Terminal profile '$TERM_PROFILE' configured"
-    SUM_TERMINAL="${GREEN}✔${RESET} Pedro's Default profile"
-  fi # end apply Terminal profile
+    ok "Ghostty installed outside Homebrew, skipping"
+  fi
+  SUM_GHOSTTY="${GREEN}✔${RESET} installed"
+elif $DRY_RUN; then
+  would "brew install --cask ghostty"
+else
+  read -r -p "  Install Ghostty? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "Ghostty skipped"
+  else
+    brew_cask "ghostty" && SUM_GHOSTTY="${GREEN}✔${RESET} installed"
+  fi
 fi
+# Ghostty config
+_ghostty_src="$DOTFILES_DIR/.config/ghostty/config"
+_ghostty_dest="$HOME/.config/ghostty/config"
+if [ -f "$_ghostty_src" ]; then
+  if $DRY_RUN; then
+    would "cp .config/ghostty/config to $_ghostty_dest"
+  else
+    mkdir -p "$HOME/.config/ghostty"
+    if [ -f "$_ghostty_dest" ] && diff -q "$_ghostty_dest" "$_ghostty_src" &>/dev/null; then
+      ok "ghostty/config already up to date"
+    elif [ -f "$_ghostty_dest" ]; then
+      git diff --no-index --color "$_ghostty_dest" "$_ghostty_src"
+      read -r -p "  ghostty/config already exists. Overwrite? [Y/n] " r
+      if [[ ! "$r" =~ ^[nN] ]]; then
+        cp "$_ghostty_src" "$_ghostty_dest"
+        installed "ghostty/config"
+      else
+        ok "ghostty/config unchanged"
+      fi
+    else
+      cp "$_ghostty_src" "$_ghostty_dest"
+      installed "ghostty/config"
+    fi
+  fi
+fi
+unset _ghostty_src _ghostty_dest
 
-# -------------------------------------------------------
 # 9. macOS Preferences
-# -------------------------------------------------------
 step "Applying macOS preferences"
 
 # Per-group state (computed once, used for both idempotency check and change reporting)
@@ -812,7 +1006,7 @@ dock_current=true
   [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"     ]; } || dock_current=false
 if $dock_current && command -v dockutil &>/dev/null; then
   _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
-  for _app in "Google Chrome" "Visual Studio Code" "Terminal" "1Password" "Spotify"; do
+  for _app in "Google Chrome" "Visual Studio Code" "Ghostty" "1Password" "Spotify"; do
     echo "$_dock_list" | grep -q "$_app" || { dock_current=false; break; }
   done
   unset _dock_list _app
@@ -863,7 +1057,7 @@ _pref_diff() {
 
 if $DRY_RUN; then
   would "configure Dock, Finder, System Settings, Screenshots, and menu bar"
-  would "reset Dock to: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
+  would "reset Dock to: Finder, Google Chrome, VS Code, Ghostty, 1Password, Spotify, Trash"
 else
   MACOS_UPDATED=()
   NEEDS_RESTART=false
@@ -875,7 +1069,7 @@ else
     if command -v dockutil &>/dev/null; then
       _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
       _missing=()
-      for _app in "Google Chrome" "Visual Studio Code" "Terminal" "1Password" "Spotify"; do
+      for _app in "Google Chrome" "Visual Studio Code" "Ghostty" "1Password" "Spotify"; do
         echo "$_dock_list" | grep -q "$_app" || _missing+=("$_app")
       done
       [ ${#_missing[@]} -gt 0 ] && echo "  Missing from Dock: $(IFS=', '; echo "${_missing[*]}")"
@@ -907,10 +1101,10 @@ else
         dockutil --remove all --no-restart &>/dev/null
         [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
         [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
-        [[ -d "/System/Applications/Utilities/Terminal.app" ]] && dockutil --add "/System/Applications/Utilities/Terminal.app" --no-restart &>/dev/null
+        [[ -d "/Applications/Ghostty.app" ]]                   && dockutil --add "/Applications/Ghostty.app" --no-restart &>/dev/null
         [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
         [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
-        ok "Dock apps set: Finder, Google Chrome, VS Code, Terminal, 1Password, Spotify, Trash"
+        ok "Dock apps set: Finder, Google Chrome, VS Code, Ghostty, 1Password, Spotify, Trash"
       fi
       updated "Dock"; MACOS_UPDATED+=("Dock"); NEEDS_RESTART=true
     fi
@@ -1026,9 +1220,7 @@ else
   unset -f _pref_diff
 fi # end macOS preferences section
 
-# -------------------------------------------------------
 # 10. External Peripherals (Windows keyboard/mouse on Mac)
-# -------------------------------------------------------
 step "External peripherals"
 echo -e "  ${GREY}Only needed when using a Windows keyboard or mouse on a Mac.${RESET}"
 
@@ -1121,9 +1313,7 @@ fi
 
 [ ${#PERIPH_OK[@]} -gt 0 ] && SUM_PERIPHERALS="${GREEN}✔${RESET} $(join_arr ' · ' "${PERIPH_OK[@]}")"
 
-# -------------------------------------------------------
 # Summary
-# -------------------------------------------------------
 echo ""
 echo -e "${BOLD}Summary${RESET}"
 [ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET}  $(printf '%s, ' "${INSTALLED[@]}" | sed 's/, $//')"
@@ -1145,7 +1335,7 @@ section_line "Shell"         "$SUM_SHELL"
 section_line "Node.js"       "$SUM_NODE"
 section_line "VS Code"       "$SUM_VSCODE"
 section_line "Apps"          "$SUM_APPS"
-section_line "Terminal"      "$SUM_TERMINAL"
+section_line "Ghostty"       "$SUM_GHOSTTY"
 section_line "macOS"         "$SUM_MACOS"
 section_line "Peripherals"   "$SUM_PERIPHERALS"
 echo ""

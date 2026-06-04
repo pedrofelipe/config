@@ -1,0 +1,48 @@
+theme = orng-dark
+font-size = 15
+font-family = Fira Code
+
+# Check for updates without downloading
+auto-update = check
+
+# Enable shell integration without changing cursor shape
+shell-integration-features = no-cursor,sudo,title,ssh-env,ssh-terminfo
+# Keep the cursor steady instead of blinking
+cursor-style-blink = false
+
+# Restore windows, tabs, splits, and cwd after restart
+window-save-state = always
+
+# Use wider-gamut colors on supported Mac displays
+window-colorspace = display-p3
+
+# Extend terminal cell backgrounds into padding
+window-padding-color = extend
+window-padding-balance = true
+window-padding-x = 5
+window-padding-y = 0,10
+
+# Keep a large scrollback buffer
+scrollback-limit = 20000000
+# Treat Option as Alt/Meta for terminal shortcuts
+macos-option-as-alt = true
+
+# Hide the mouse pointer while typing
+mouse-hide-while-typing = true
+
+# Show previews for OSC 8 hyperlinks
+link-previews = osc8
+
+# Open quick terminal on the mouse's screen
+quick-terminal-screen = mouse
+# Keep quick terminal animation short
+quick-terminal-animation-duration = 0.15
+
+# Insert a newline with Shift+Enter
+#keybind = shift+enter=text:\n
+# Copy only when a selection is available
+#keybind = performable:cmd+c=copy_to_clipboard
+# Jump to the previous shell prompt
+#keybind = shift+up=jump_to_prompt:-1
+# Jump to the next shell prompt
+#keybind = shift+down=jump_to_prompt:1
