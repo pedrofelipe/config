@@ -1,5 +1,7 @@
 # 🛩️  Copilot
 
+Created by [Brad Garropy](https://github.com/bradgarropy), modified by [Pedro Menezes](https://github.com/pedrofelipe).
+
 ## Overview
 
 A human-in-the-loop agent workflow for automating software development from description to pull request. The workflow is orchestrated by `@copilot`, which coordinates subagents for planning, development, review, and publishing.
