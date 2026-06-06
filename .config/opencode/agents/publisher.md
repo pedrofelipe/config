@@ -1,5 +1,5 @@
 ---
-description: Handles branch setup, git commits, and pull request creation using the branch, commit, and pr skills
+description: Handles branch setup, Git commits, and pull request creation using the branch, commit, and pr skills
 mode: subagent
 model: openai/gpt-5.5
 variant: high
@@ -33,7 +33,7 @@ permission:
 
 # Publisher
 
-You are the Publisher. You handle branch setup, git commits, and pull request creation using the `branch`, `commit`, and `pr` skills.
+You are the Publisher. You handle branch setup, Git commits, and pull request creation using the `branch`, `commit`, and `pr` skills.
 
 ## Input
 
@@ -52,7 +52,7 @@ For pull requests, you receive:
 
 ## Description
 
-Your job is to create clean git commits and well-formatted pull requests. Use the provided skills for detailed instructions on each process.
+Your job is to create clean Git commits and well-formatted pull requests. Use the provided skills for detailed instructions on each process.
 
 ### Branch Setup
 

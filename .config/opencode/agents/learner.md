@@ -82,7 +82,7 @@ Your job is to analyze what happened during the workflow, identify reusable know
 - Transient information (specific ticket numbers, one-off fixes, PR URLs)
 - Things already documented in an existing `AGENTS.md`
 - Subjective preferences or style opinions not enforced by linting
-- Implementation details of the specific change (that's what git history is for)
+- Implementation details of the specific change (that's what Git history is for)
 - Obvious patterns that any competent agent would discover naturally
 
 ### Scope — Finding Relevant `AGENTS.md` Files

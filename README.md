@@ -56,7 +56,7 @@ xcode-select --install
 brew install bash
 brew install git
 brew install bash-completion@2
-brew install yarn
+brew install pnpm
 brew install gh
 brew install dockutil
 
@@ -89,7 +89,7 @@ chsh -s /opt/homebrew/bin/bash
 - [ ] Set as the default Node.js version
 
 ```bash
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.4/install.sh | bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.5/install.sh | bash
 nvm install --lts
 nvm alias default node
 ```
@@ -137,11 +137,6 @@ brew install --cask claude-code
 ```
 
 - [ ] Copy [`.claude/settings.json`](/.claude/settings.json) to `~/.claude/`
-- [ ] Add global MCP servers
-
-```bash
-claude mcp add chrome-devtools -s user -- npx -y chrome-devtools-mcp@latest --no-usage-statistics
-```
 
 #### OpenCode
 
@@ -152,6 +147,22 @@ brew install anomalyco/tap/opencode
 - [ ] Copy [`.config/opencode/opencode.jsonc`](/.config/opencode/opencode.jsonc) to `~/.config/opencode/`
 - [ ] Copy [`.config/opencode/agents/`](/.config/opencode/agents) to `~/.config/opencode/agents/`
 - [ ] Copy [`.config/opencode/skills/`](/.config/opencode/skills) to `~/.config/opencode/skills/`
+- [ ] Install external skills for OpenCode
+
+```bash
+npx -y skills add https://github.com/vercel-labs/agent-skills \
+  --skill vercel-react-best-practices \
+  --skill vercel-composition-patterns \
+  --global \
+  --agent opencode \
+  --yes
+
+npx -y skills add https://github.com/emilkowalski/skill \
+  --skill emil-design-eng \
+  --global \
+  --agent opencode \
+  --yes
+```
 
 **Agents**
 
@@ -177,8 +188,9 @@ brew install anomalyco/tap/opencode
 | &nbsp;&nbsp;↳ `manual-qa` | Generate manual QA test steps for a code change |
 | &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI |
 | **Standalone** | |
-| `composition-patterns` | React composition patterns that scale |
-| `react-best-practices` | React and Next.js performance optimization guidelines |
+| `vercel-composition-patterns` | React composition patterns that scale |
+| `vercel-react-best-practices` | React and Next.js performance optimization guidelines |
+| `emil-design-eng` | Design engineering principles and polished UI guidelines |
 | `simplify` | Review changed code for reuse, quality, efficiency, and clarity |
 
 ### 9. Set up Ghostty

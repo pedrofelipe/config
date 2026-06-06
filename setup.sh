@@ -17,7 +17,7 @@ for arg in "$@"; do
 done
 
 # nvm version — update manually when a new stable release is available
-NVM_VERSION="v0.40.4"
+NVM_VERSION="v0.40.5"
 
 # ASCII art
 printf '%b' "${PURPLE}${BOLD}"
@@ -213,7 +213,7 @@ for file in .bash_profile .inputrc; do
           CF_OK+=("$file")
           continue
         fi
-        git diff --no-index --color "$HOME/$file" "$DOTFILES_DIR/$file"
+        git --no-pager diff --no-index --color "$HOME/$file" "$DOTFILES_DIR/$file"
         read -r -p "  $file already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$file unchanged"
@@ -246,7 +246,7 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
         _diff_dir=$(mktemp -d)
         _strip_identity "$HOME/.gitconfig" > "$_diff_dir/.gitconfig"
         _strip_identity "$DOTFILES_DIR/.gitconfig" > "$_diff_dir/.gitconfig.incoming"
-        git diff --no-index --color "$_diff_dir/.gitconfig" "$_diff_dir/.gitconfig.incoming"
+        git --no-pager diff --no-index --color "$_diff_dir/.gitconfig" "$_diff_dir/.gitconfig.incoming"
         rm -rf "$_diff_dir"; unset _diff_dir
         read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
@@ -284,7 +284,7 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
         ok "$HOME/.ssh/config already up to date"
         CF_OK+=("ssh_config")
       else
-        git diff --no-index --color "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
+        git --no-pager diff --no-index --color "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
         read -r -p "  ~/.ssh/config already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$HOME/.ssh/config unchanged"
@@ -305,98 +305,35 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
 else
   warn "ssh_config not found, skipping"
 fi
-# Claude Code (settings.json, CLAUDE.md, agents, skills)
-CLAUDE_CONFIG_DIR="$HOME/.claude"
-for file in settings.json CLAUDE.md; do
-  src="$DOTFILES_DIR/.claude/$file"
-  [ -f "$src" ] || continue
-  dest="$CLAUDE_CONFIG_DIR/$file"
+# Copy Claude Code settings.json
+_claude_settings_src="$DOTFILES_DIR/.claude/settings.json"
+_claude_settings_dest="$HOME/.claude/settings.json"
+if [ -f "$_claude_settings_src" ]; then
   if $DRY_RUN; then
-    would "cp claude/$file to $dest"
+    would "cp claude/settings.json to $_claude_settings_dest"
   else
-    mkdir -p "$CLAUDE_CONFIG_DIR"
-    if [ -f "$dest" ] && diff -q "$dest" "$src" &>/dev/null; then
-      ok "Claude Code/$file already up to date"
-      CF_OK+=("Claude Code/$file")
-    elif [ -f "$dest" ]; then
-      git diff --no-index --color "$dest" "$src"
-      read -r -p "  claude/$file already exists. Overwrite? [Y/n] " r
+    mkdir -p "$HOME/.claude"
+    if [ -f "$_claude_settings_dest" ] && diff -q "$_claude_settings_dest" "$_claude_settings_src" &>/dev/null; then
+      ok "Claude Code/settings.json already up to date"
+      CF_OK+=("Claude Code/settings.json")
+    elif [ -f "$_claude_settings_dest" ]; then
+      git --no-pager diff --no-index --color "$_claude_settings_dest" "$_claude_settings_src"
+      read -r -p "  claude/settings.json already exists. Overwrite? [Y/n] " r
       if [[ "$r" =~ ^[nN] ]]; then
-        ok "Claude Code/$file unchanged"
+        ok "Claude Code/settings.json unchanged"
       else
-        cp "$src" "$dest"
-        installed "Claude Code/$file"
+        cp "$_claude_settings_src" "$_claude_settings_dest"
+        installed "Claude Code/settings.json"
       fi
-      CF_OK+=("Claude Code/$file")
+      CF_OK+=("Claude Code/settings.json")
     else
-      cp "$src" "$dest"
-      installed "Claude Code/$file"
-      CF_OK+=("Claude Code/$file")
+      cp "$_claude_settings_src" "$_claude_settings_dest"
+      installed "Claude Code/settings.json"
+      CF_OK+=("Claude Code/settings.json")
     fi
-  fi
-done
-if [ -d "$DOTFILES_DIR/.claude/agents" ]; then
-  if $DRY_RUN; then
-    would "sync claude/agents to $CLAUDE_CONFIG_DIR/agents/"
-  else
-    mkdir -p "$CLAUDE_CONFIG_DIR/agents"
-    _changed=()
-    for f in "$DOTFILES_DIR/.claude/agents"/*.md; do
-      dest="$CLAUDE_CONFIG_DIR/agents/$(basename "$f")"
-      { [ ! -f "$dest" ] || ! diff -q "$dest" "$f" &>/dev/null; } && _changed+=("$(basename "$f")")
-    done
-    if [ ${#_changed[@]} -eq 0 ]; then
-      ok "Claude Code agents already up to date"
-      CF_OK+=("Claude Code/agents")
-    else
-      for _name in "${_changed[@]}"; do
-        _src="$DOTFILES_DIR/.claude/agents/$_name"
-        _dest="$CLAUDE_CONFIG_DIR/agents/$_name"
-        if [ -f "$_dest" ]; then git diff --no-index --color "$_dest" "$_src"; else git diff --no-index --color /dev/null "$_src"; fi
-      done
-      read -r -p "  Sync ${#_changed[@]} claude agent(s)? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
-        cp "$DOTFILES_DIR/.claude/agents"/*.md "$CLAUDE_CONFIG_DIR/agents/"
-        installed "Claude Code agents (${#_changed[@]})"
-        CF_OK+=("Claude Code/agents")
-      else
-        ok "Claude Code agents unchanged"
-      fi
-    fi
-    unset _changed
   fi
 fi
-if [ -d "$DOTFILES_DIR/.claude/skills" ]; then
-  if $DRY_RUN; then
-    would "sync claude/skills to $CLAUDE_CONFIG_DIR/skills/"
-  else
-    mkdir -p "$CLAUDE_CONFIG_DIR/skills"
-    _any_changed=false
-    for item in "$DOTFILES_DIR/.claude/skills"/*; do
-      name=$(basename "$item")
-      dest="$CLAUDE_CONFIG_DIR/skills/$name"
-      if [ -d "$item" ]; then
-        ! diff -rq "$item" "$dest" &>/dev/null && _any_changed=true && break
-      elif [ -f "$item" ]; then
-        { [ ! -f "$dest" ] || ! diff -q "$dest" "$item" &>/dev/null; } && _any_changed=true && break
-      fi
-    done
-    if ! $_any_changed; then
-      ok "Claude Code skills already up to date"
-      CF_OK+=("Claude Code/skills")
-    else
-      read -r -p "  Sync claude skills? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
-        cp -r "$DOTFILES_DIR/.claude/skills/." "$CLAUDE_CONFIG_DIR/skills/"
-        installed "Claude Code skills"
-        CF_OK+=("Claude Code/skills")
-      else
-        ok "Claude Code skills unchanged"
-      fi
-    fi
-    unset _any_changed
-  fi
-fi
+unset _claude_settings_src _claude_settings_dest
 # OpenCode (opencode.jsonc, agents, skills)
 OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
 _oc_file="opencode.jsonc"
@@ -411,7 +348,7 @@ if [ -f "$_oc_src" ]; then
       ok "OpenCode/$_oc_file already up to date"
       CF_OK+=("OpenCode/$_oc_file")
     elif [ -f "$_oc_dest" ]; then
-      git diff --no-index --color "$_oc_dest" "$_oc_src"
+      git --no-pager diff --no-index --color "$_oc_dest" "$_oc_src"
       read -r -p "  opencode/$_oc_file already exists. Overwrite? [Y/n] " r
       if [[ "$r" =~ ^[nN] ]]; then
         ok "OpenCode/$_oc_file unchanged"
@@ -455,12 +392,12 @@ if [ -d "$DOTFILES_DIR/.config/opencode/agents" ]; then
           for _f in "$_src_dir"/*.md; do
             [ -f "$_f" ] || continue
             _dest_f="$_dest_dir/$(basename "$_f")"
-            if [ -f "$_dest_f" ]; then git diff --no-index --color "$_dest_f" "$_f"; else git diff --no-index --color /dev/null "$_f"; fi
+            if [ -f "$_dest_f" ]; then git --no-pager diff --no-index --color "$_dest_f" "$_f"; else git --no-pager diff --no-index --color /dev/null "$_f"; fi
           done
         else
           _src="$DOTFILES_DIR/.config/opencode/agents/$_name"
           _dest="$OPENCODE_CONFIG_DIR/agents/$_name"
-          if [ -f "$_dest" ]; then git diff --no-index --color "$_dest" "$_src"; else git diff --no-index --color /dev/null "$_src"; fi
+          if [ -f "$_dest" ]; then git --no-pager diff --no-index --color "$_dest" "$_src"; else git --no-pager diff --no-index --color /dev/null "$_src"; fi
         fi
       done
       read -r -p "  Sync ${#_changed[@]} opencode agent(s)? [Y/n] " r
@@ -509,34 +446,6 @@ if [ -d "$DOTFILES_DIR/.config/opencode/skills" ]; then
     unset _any_changed
   fi
 fi
-# Claude Code MCP servers (stored in ~/.claude.json via the CLI)
-if command -v claude &>/dev/null; then
-  _mcp_servers=(
-    "chrome-devtools:npx:-y:chrome-devtools-mcp@latest:--no-usage-statistics"
-  )
-  for _entry in "${_mcp_servers[@]}"; do
-    _name="${_entry%%:*}"
-    _args="${_entry#*:}"
-    IFS=':' read -ra _argv <<< "$_args"
-    if $DRY_RUN; then
-      would "Claude Code mcp add $_name -s user ${_argv[*]}"
-    elif claude mcp get "$_name" -s user &>/dev/null 2>&1; then
-      ok "Claude Code mcp/$_name already configured"
-      CF_OK+=("Claude Code/mcp/$_name")
-    else
-      read -r -p "  Add Claude MCP server '$_name'? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
-        claude mcp add "$_name" -s user -- "${_argv[@]}"
-        installed "Claude Code mcp/$_name"
-        CF_OK+=("Claude Code/mcp/$_name")
-      else
-        ok "Claude Code mcp/$_name skipped"
-      fi
-    fi
-  done
-  unset _mcp_servers _entry _name _args _argv
-fi
-
 [ ${#CF_OK[@]} -gt 0 ] && SUM_DOTFILES="${GREEN}✔${RESET} $(join_arr ' · ' "${CF_OK[@]}")"
 
 # 2. Homebrew
@@ -559,7 +468,7 @@ else
   fi
 fi
 
-for pkg in bash git bash-completion@2 yarn gh dockutil; do
+for pkg in bash git bash-completion@2 pnpm gh dockutil; do
   brew_formula "$pkg"
 done
 
@@ -765,6 +674,69 @@ else
   fi
 fi
 
+# External OpenCode skills
+_OPENCODE_SKILL_CMD_VERCEL=(
+  npx -y skills add https://github.com/vercel-labs/agent-skills
+  --skill vercel-react-best-practices
+  --skill vercel-composition-patterns
+  --global
+  --agent opencode
+  --yes
+)
+_OPENCODE_SKILL_CMD_EMIL=(
+  npx -y skills add https://github.com/emilkowalski/skill
+  --skill emil-design-eng
+  --global
+  --agent opencode
+  --yes
+)
+if $DRY_RUN; then
+  would "${_OPENCODE_SKILL_CMD_VERCEL[*]}"
+  would "${_OPENCODE_SKILL_CMD_EMIL[*]}"
+  would "remove stale ~/.config/opencode/skills/react-best-practices if it is the Vercel React skill"
+  would "remove stale ~/.config/opencode/skills/composition-patterns if it is the Vercel composition skill"
+elif command -v npx &>/dev/null; then
+  read -r -p "  Install external skills (Vercel + emil-design-eng)? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "External skills skipped"
+  else
+    if "${_OPENCODE_SKILL_CMD_VERCEL[@]}" &>/dev/null; then
+      installed "vercel-react-best-practices and vercel-composition-patterns skills"
+    else
+      warn "Failed to install vercel-react-best-practices and vercel-composition-patterns skills"
+    fi
+
+    if "${_OPENCODE_SKILL_CMD_EMIL[@]}" &>/dev/null; then
+      installed "emil-design-eng"
+    else
+      warn "Failed to install emil-design-eng skill"
+    fi
+  fi
+
+  _stale_skills=(
+    "react-best-practices:vercel-react-best-practices"
+    "composition-patterns:vercel-composition-patterns"
+  )
+  for _entry in "${_stale_skills[@]}"; do
+    _dir="${_entry%%:*}"
+    _skill="${_entry#*:}"
+    _path="$HOME/.config/opencode/skills/$_dir"
+    if [ -f "$_path/SKILL.md" ] && grep -q "^name: $_skill$" "$_path/SKILL.md"; then
+      read -r -p "  Remove stale OpenCode skill $_dir? [Y/n] " r
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "Stale OpenCode skill $_dir unchanged"
+      else
+        rm -rf "$_path"
+        ok "Removed stale OpenCode skill $_dir"
+      fi
+    fi
+  done
+  unset _stale_skills _entry _dir _skill _path
+else
+  warn "npx not found, skipping external skills"
+fi
+unset _OPENCODE_SKILL_CMD_VERCEL _OPENCODE_SKILL_CMD_EMIL
+
 # 6. VS Code extensions and settings
 step "Setting up VS Code"
 
@@ -837,7 +809,7 @@ else
           VSCODE_SETTINGS_OK+=("$config_file")
           continue
         fi
-        git diff --no-index --color "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
+        git --no-pager diff --no-index --color "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
         read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$config_file unchanged"
@@ -974,7 +946,7 @@ if [ -f "$_ghostty_src" ]; then
     if [ -f "$_ghostty_dest" ] && diff -q "$_ghostty_dest" "$_ghostty_src" &>/dev/null; then
       ok "ghostty/config already up to date"
     elif [ -f "$_ghostty_dest" ]; then
-      git diff --no-index --color "$_ghostty_dest" "$_ghostty_src"
+      git --no-pager diff --no-index --color "$_ghostty_dest" "$_ghostty_src"
       read -r -p "  ghostty/config already exists. Overwrite? [Y/n] " r
       if [[ ! "$r" =~ ^[nN] ]]; then
         cp "$_ghostty_src" "$_ghostty_dest"
@@ -1235,7 +1207,7 @@ deploy_peripheral_config() {
       ok "$name config already up to date"
       return 0
     fi
-    git diff --no-index --color "$dst" "$src"
+    git --no-pager diff --no-index --color "$dst" "$src"
     read -r -p "  $name config already exists. Overwrite? [y/N] " r
     if [[ ! "$r" =~ ^[yY] ]]; then
       ok "$name config unchanged"
