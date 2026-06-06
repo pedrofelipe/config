@@ -1,5 +1,5 @@
 ---
-description: Orchestrates the development workflow from description to pull request
+description: Orchestrates the development workflow from description to PR on GitHub or GitLab
 mode: primary
 model: openai/gpt-5.5
 variant: high
@@ -12,15 +12,12 @@ permission:
   grep: deny
   list: deny
   lsp: deny
-  patch: deny
   question: allow
   read: deny
   skill: deny
-  todoread: allow
   todowrite: allow
   webfetch: deny
   websearch: deny
-  write: deny
   task:
     "*": deny
     planner: allow
@@ -33,7 +30,7 @@ permission:
 
 # Copilot
 
-You are the Copilot. You orchestrate a development workflow from description to pull request.
+You are the Copilot. You orchestrate a development workflow from description to PR on GitHub or GitLab.
 
 ## Input
 

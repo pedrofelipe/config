@@ -88,18 +88,65 @@ join_arr() {
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+deploy_prompted_file() {
+  local src=$1 dst=$2 display=$3 prompt_label=$4 dry_run_message=$5
+  local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-} r
+  _deploy_result=""
+
+  if $DRY_RUN; then
+    would "$dry_run_message"
+    _deploy_result="dry-run"
+    return 0
+  fi
+
+  if [ -n "$dest_dir" ]; then
+    mkdir -p "$dest_dir"
+    [ -n "$dir_mode" ] && chmod "$dir_mode" "$dest_dir"
+  fi
+
+  if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+    warn "$display destination exists and is not a file: $dst"
+    _deploy_result="blocked"
+    return 1
+  fi
+
+  if [ -f "$dst" ]; then
+    if diff -q "$dst" "$src" &>/dev/null; then
+      ok "$display already up to date"
+      _deploy_result="ok"
+      return 0
+    fi
+    git --no-pager diff --no-index --color "$dst" "$src"
+    read -r -p "  $prompt_label already exists. Overwrite? [Y/n] " r
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "$display unchanged"
+      _deploy_result="unchanged"
+      return 0
+    fi
+  fi
+
+  cp "$src" "$dst"
+  [ -n "$file_mode" ] && chmod "$file_mode" "$dst"
+  installed "$display"
+  _deploy_result="installed"
+}
+
 # Install or upgrade a Homebrew formula
 brew_formula() {
   local pkg=$1 r
   if ! command -v brew &>/dev/null; then
-    $DRY_RUN && would "brew install $pkg"
-    return
+    if $DRY_RUN; then
+      would "brew install $pkg"
+      return 0
+    fi
+    warn "Homebrew not found, skipping $pkg"
+    return 1
   fi
   if brew list --formula "$pkg" &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade $pkg (if outdated)"
     else
-      if brew outdated --formula | grep -q "^$pkg$"; then
+      if brew outdated --formula | grep -Fxq "$pkg"; then
         read -r -p "  Upgrade $pkg? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$pkg upgrade skipped"
@@ -139,14 +186,18 @@ brew_cask() {
   local cask=$1
   local cmd=$2 r
   if ! command -v brew &>/dev/null; then
-    $DRY_RUN && would "brew install --cask $cask"
-    return
+    if $DRY_RUN; then
+      would "brew install --cask $cask"
+      return 0
+    fi
+    warn "Homebrew not found, skipping $cask"
+    return 1
   fi
   if brew list --cask "$cask" &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade --cask $cask (if outdated)"
     else
-      if brew outdated --cask | grep -q "^$cask$"; then
+      if brew outdated --cask | grep -Fxq "$cask"; then
         read -r -p "  Upgrade $cask? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$cask upgrade skipped"
@@ -182,6 +233,25 @@ brew_cask() {
   fi
 }
 
+reinstall_missing_cask_app() {
+  local name=$1 cask=$2 app=$3 r
+
+  warn "$name Homebrew cask is registered, but $app is missing"
+  read -r -p "  Reinstall $name via Homebrew? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "$name reinstall skipped"
+    return 2
+  fi
+
+  if brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+    installed "$name"
+    return 0
+  fi
+
+  warn "Failed to reinstall $name"
+  return 1
+}
+
 # 0. Xcode Command Line Tools
 step "Checking Xcode Command Line Tools"
 
@@ -202,28 +272,11 @@ fi
 step "Loading config files"
 
 CF_OK=()
+_deploy_result=""
 for file in .bash_profile .inputrc; do
   if [ -f "$DOTFILES_DIR/$file" ]; then
-    if $DRY_RUN; then
-      would "cp $file to $HOME/$file"
-    else
-      if [ -f "$HOME/$file" ]; then
-        if diff -q "$HOME/$file" "$DOTFILES_DIR/$file" &>/dev/null; then
-          ok "$file already up to date"
-          CF_OK+=("$file")
-          continue
-        fi
-        git --no-pager diff --no-index --color "$HOME/$file" "$DOTFILES_DIR/$file"
-        read -r -p "  $file already exists. Overwrite? [Y/n] " r
-        if [[ "$r" =~ ^[nN] ]]; then
-          ok "$file unchanged"
-          CF_OK+=("$file")
-          continue
-        fi
-      fi
-      cp "$DOTFILES_DIR/$file" "$HOME/$file"
-      installed "$file"
-      CF_OK+=("$file")
+    if deploy_prompted_file "$DOTFILES_DIR/$file" "$HOME/$file" "$file" "$file" "cp $file to $HOME/$file"; then
+      [ "$_deploy_result" != "dry-run" ] && CF_OK+=("$file")
     fi
   else
     warn "$file not found, skipping"
@@ -238,16 +291,19 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
     _current_email=$(git config --global user.email 2>/dev/null)
     if [ -f "$HOME/.gitconfig" ]; then
       _files_match=false
-      _strip_identity() { grep -vE '^\s*(name|email)\s*=' "$1"; }
+      _strip_identity() { grep -vE '^[[:space:]]*(name|email)[[:space:]]*=' "$1"; }
       diff -q <(_strip_identity "$HOME/.gitconfig") <(_strip_identity "$DOTFILES_DIR/.gitconfig") &>/dev/null && _files_match=true
-      if $_files_match && [ -n "$_current_email" ] && [[ "$_current_email" != *"YOUR_"* ]]; then
+      if $_files_match && [ -n "$_current_email" ] && [[ "$_current_email" != *"YOUR_"* && "$_current_email" != "email_here" ]]; then
         _gitconfig_needs_copy=false
       elif ! $_files_match; then
-        _diff_dir=$(mktemp -d)
-        _strip_identity "$HOME/.gitconfig" > "$_diff_dir/.gitconfig"
-        _strip_identity "$DOTFILES_DIR/.gitconfig" > "$_diff_dir/.gitconfig.incoming"
-        git --no-pager diff --no-index --color "$_diff_dir/.gitconfig" "$_diff_dir/.gitconfig.incoming"
-        rm -rf "$_diff_dir"; unset _diff_dir
+        _diff_dir=$(mktemp -d) || { warn "Failed to create temporary gitconfig diff directory"; _diff_dir=""; }
+        if [ -n "$_diff_dir" ]; then
+          _strip_identity "$HOME/.gitconfig" > "$_diff_dir/.gitconfig"
+          _strip_identity "$DOTFILES_DIR/.gitconfig" > "$_diff_dir/.gitconfig.incoming"
+          git --no-pager diff --no-index --color "$_diff_dir/.gitconfig" "$_diff_dir/.gitconfig.incoming"
+          rm -rf "$_diff_dir"
+        fi
+        unset _diff_dir
         read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
         [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
       fi
@@ -274,33 +330,8 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
 fi
 # SSH config (deploys to ~/.ssh/config, not $HOME directly)
 if [ -f "$DOTFILES_DIR/ssh_config" ]; then
-  if $DRY_RUN; then
-    would "cp ssh_config to ~/.ssh/config"
-  else
-    mkdir -p "$HOME/.ssh"
-    chmod 700 "$HOME/.ssh"
-    if [ -f "$HOME/.ssh/config" ]; then
-      if diff -q "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config" &>/dev/null; then
-        ok "$HOME/.ssh/config already up to date"
-        CF_OK+=("ssh_config")
-      else
-        git --no-pager diff --no-index --color "$HOME/.ssh/config" "$DOTFILES_DIR/ssh_config"
-        read -r -p "  ~/.ssh/config already exists. Overwrite? [Y/n] " r
-        if [[ "$r" =~ ^[nN] ]]; then
-          ok "$HOME/.ssh/config unchanged"
-        else
-          cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
-          chmod 600 "$HOME/.ssh/config"
-          installed "$HOME/.ssh/config"
-        fi
-        CF_OK+=("ssh_config")
-      fi
-    else
-      cp "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config"
-      chmod 600 "$HOME/.ssh/config"
-      installed "$HOME/.ssh/config"
-      CF_OK+=("ssh_config")
-    fi
+  if deploy_prompted_file "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config" "$HOME/.ssh/config" \~/.ssh/config "cp ssh_config to ~/.ssh/config" "$HOME/.ssh" 700 600; then
+    [ "$_deploy_result" != "dry-run" ] && CF_OK+=("ssh_config")
   fi
 else
   warn "ssh_config not found, skipping"
@@ -309,28 +340,8 @@ fi
 _claude_settings_src="$DOTFILES_DIR/.claude/settings.json"
 _claude_settings_dest="$HOME/.claude/settings.json"
 if [ -f "$_claude_settings_src" ]; then
-  if $DRY_RUN; then
-    would "cp claude/settings.json to $_claude_settings_dest"
-  else
-    mkdir -p "$HOME/.claude"
-    if [ -f "$_claude_settings_dest" ] && diff -q "$_claude_settings_dest" "$_claude_settings_src" &>/dev/null; then
-      ok "Claude Code/settings.json already up to date"
-      CF_OK+=("Claude Code/settings.json")
-    elif [ -f "$_claude_settings_dest" ]; then
-      git --no-pager diff --no-index --color "$_claude_settings_dest" "$_claude_settings_src"
-      read -r -p "  claude/settings.json already exists. Overwrite? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
-        ok "Claude Code/settings.json unchanged"
-      else
-        cp "$_claude_settings_src" "$_claude_settings_dest"
-        installed "Claude Code/settings.json"
-      fi
-      CF_OK+=("Claude Code/settings.json")
-    else
-      cp "$_claude_settings_src" "$_claude_settings_dest"
-      installed "Claude Code/settings.json"
-      CF_OK+=("Claude Code/settings.json")
-    fi
+  if deploy_prompted_file "$_claude_settings_src" "$_claude_settings_dest" "Claude Code/settings.json" "claude/settings.json" "cp claude/settings.json to $_claude_settings_dest" "$HOME/.claude"; then
+    [ "$_deploy_result" != "dry-run" ] && CF_OK+=("Claude Code/settings.json")
   fi
 fi
 unset _claude_settings_src _claude_settings_dest
@@ -340,28 +351,8 @@ _oc_file="opencode.jsonc"
 _oc_src="$DOTFILES_DIR/.config/opencode/$_oc_file"
 _oc_dest="$OPENCODE_CONFIG_DIR/$_oc_file"
 if [ -f "$_oc_src" ]; then
-  if $DRY_RUN; then
-    would "cp opencode/$_oc_file to $_oc_dest"
-  else
-    mkdir -p "$OPENCODE_CONFIG_DIR"
-    if [ -f "$_oc_dest" ] && diff -q "$_oc_dest" "$_oc_src" &>/dev/null; then
-      ok "OpenCode/$_oc_file already up to date"
-      CF_OK+=("OpenCode/$_oc_file")
-    elif [ -f "$_oc_dest" ]; then
-      git --no-pager diff --no-index --color "$_oc_dest" "$_oc_src"
-      read -r -p "  opencode/$_oc_file already exists. Overwrite? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
-        ok "OpenCode/$_oc_file unchanged"
-      else
-        cp "$_oc_src" "$_oc_dest"
-        installed "OpenCode/$_oc_file"
-      fi
-      CF_OK+=("OpenCode/$_oc_file")
-    else
-      cp "$_oc_src" "$_oc_dest"
-      installed "OpenCode/$_oc_file"
-      CF_OK+=("OpenCode/$_oc_file")
-    fi
+  if deploy_prompted_file "$_oc_src" "$_oc_dest" "OpenCode/$_oc_file" "opencode/$_oc_file" "cp opencode/$_oc_file to $_oc_dest" "$OPENCODE_CONFIG_DIR"; then
+    [ "$_deploy_result" != "dry-run" ] && CF_OK+=("OpenCode/$_oc_file")
   fi
 fi
 unset _oc_file _oc_src _oc_dest
@@ -372,6 +363,7 @@ if [ -d "$DOTFILES_DIR/.config/opencode/agents" ]; then
     mkdir -p "$OPENCODE_CONFIG_DIR/agents"
     _changed=()
     for f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
+      [ -f "$f" ] || continue
       dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$f")"
       { [ ! -f "$dest" ] || ! diff -q "$dest" "$f" &>/dev/null; } && _changed+=("$(basename "$f")")
     done
@@ -402,7 +394,9 @@ if [ -d "$DOTFILES_DIR/.config/opencode/agents" ]; then
       done
       read -r -p "  Sync ${#_changed[@]} opencode agent(s)? [Y/n] " r
       if [[ ! "$r" =~ ^[nN] ]]; then
-        cp "$DOTFILES_DIR/.config/opencode/agents"/*.md "$OPENCODE_CONFIG_DIR/agents/"
+        for _f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
+          [ -f "$_f" ] && cp "$_f" "$OPENCODE_CONFIG_DIR/agents/"
+        done
         for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
           [ -d "$d" ] && cp -r "$d" "$OPENCODE_CONFIG_DIR/agents/"
         done
@@ -422,6 +416,7 @@ if [ -d "$DOTFILES_DIR/.config/opencode/skills" ]; then
     mkdir -p "$OPENCODE_CONFIG_DIR/skills"
     _any_changed=false
     for item in "$DOTFILES_DIR/.config/opencode/skills"/*; do
+      [ -e "$item" ] || continue
       name=$(basename "$item")
       dest="$OPENCODE_CONFIG_DIR/skills/$name"
       if [ -d "$item" ]; then
@@ -455,10 +450,25 @@ if ! command -v brew &>/dev/null; then
   if $DRY_RUN; then
     would "install Homebrew"
   else
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-    eval "$(/opt/homebrew/bin/brew shellenv)"
-    installed "Homebrew"
-    warn "Homebrew was added to this session's PATH — restart your terminal to make it permanent"
+    _brew_install_script=$(mktemp) || { warn "Failed to create temporary Homebrew installer file"; _brew_install_script=""; }
+    if [ -n "$_brew_install_script" ] && curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$_brew_install_script" && /bin/bash "$_brew_install_script"; then
+      if [ -x /opt/homebrew/bin/brew ]; then
+        eval "$(/opt/homebrew/bin/brew shellenv)"
+      elif [ -x /usr/local/bin/brew ]; then
+        eval "$(/usr/local/bin/brew shellenv)"
+      fi
+
+      if command -v brew &>/dev/null; then
+        installed "Homebrew"
+        warn "Homebrew was added to this session's PATH — restart your terminal to make it permanent"
+      else
+        warn "Homebrew installed, but brew is not available on PATH"
+      fi
+    else
+      warn "Failed to install Homebrew"
+    fi
+    [ -n "$_brew_install_script" ] && rm -f "$_brew_install_script"
+    unset _brew_install_script
   fi
 else
   if $DRY_RUN; then
@@ -562,7 +572,7 @@ if ! $DRY_RUN && [ ! -f "$HOMEBREW_BASH" ]; then
   warn "Homebrew bash not found at $HOMEBREW_BASH — was 'brew install bash' successful? Skipping shell switch"
   SUM_SHELL="${YELLOW}⚠${RESET} Homebrew bash not found"
 else
-  if grep -q "$HOMEBREW_BASH" /etc/shells; then
+  if grep -Fxq "$HOMEBREW_BASH" /etc/shells; then
     ok "$HOMEBREW_BASH already in /etc/shells"
   else
     if $DRY_RUN; then
@@ -618,7 +628,7 @@ if [ -d "$HOME/.nvm" ]; then
       if [[ "$r" =~ ^[nN] ]]; then
         ok "nvm upgrade skipped"
       else
-        if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash &>/dev/null; then
+        if (set -o pipefail; curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           updated "nvm $current_nvm → $NVM_VERSION"
         else
@@ -631,7 +641,7 @@ else
   if $DRY_RUN; then
     would "install nvm $NVM_VERSION"
   else
-    if curl -o- "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash &>/dev/null; then
+    if (set -o pipefail; curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
       [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
       installed "nvm $NVM_VERSION"
     else
@@ -721,7 +731,7 @@ elif command -v npx &>/dev/null; then
     _dir="${_entry%%:*}"
     _skill="${_entry#*:}"
     _path="$HOME/.config/opencode/skills/$_dir"
-    if [ -f "$_path/SKILL.md" ] && grep -q "^name: $_skill$" "$_path/SKILL.md"; then
+    if [ -f "$_path/SKILL.md" ] && grep -Fxq "name: $_skill" "$_path/SKILL.md"; then
       read -r -p "  Remove stale OpenCode skill $_dir? [Y/n] " r
       if [[ "$r" =~ ^[nN] ]]; then
         ok "Stale OpenCode skill $_dir unchanged"
@@ -769,7 +779,7 @@ else
     installed_exts=$(code --list-extensions 2>/dev/null)
     exts_missing=()
     for ext in "${extensions[@]}"; do
-      echo "$installed_exts" | grep -qix "$ext" || exts_missing+=("$ext")
+      echo "$installed_exts" | grep -Fqix "$ext" || exts_missing+=("$ext")
     done
     VSCODE_EXT_OK=$(( ${#extensions[@]} - ${#exts_missing[@]} ))
 
@@ -781,7 +791,7 @@ else
         ok "Extensions unchanged"
       else
         for ext in "${extensions[@]}"; do
-          if echo "$installed_exts" | grep -qix "$ext"; then
+          if echo "$installed_exts" | grep -Fqix "$ext"; then
             ok "$ext"
           elif code --install-extension "$ext" &>/dev/null; then
             installed "$ext"
@@ -850,7 +860,7 @@ install_app() {
   local name=$1 cask=$2 app=$3 r
   if $DRY_RUN; then
     would "brew install --cask $cask (or upgrade if outdated)"
-  elif brew list --cask "$cask" &>/dev/null; then
+  elif command -v brew &>/dev/null && brew list --cask "$cask" &>/dev/null; then
     if [ -d "$app" ]; then
       if brew_cask "$cask"; then
         APP_OK+=("$name")
@@ -858,21 +868,19 @@ install_app() {
         return 1
       fi
     else
-      warn "$name Homebrew cask is registered, but $app is missing"
-      read -r -p "  Reinstall $name via Homebrew? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
-        ok "$name reinstall skipped"
-      elif brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
-        installed "$name"
-        APP_OK+=("$name")
-      else
-        warn "Failed to reinstall $name"
-        return 1
-      fi
+      reinstall_missing_cask_app "$name" "$cask" "$app"
+      case $? in
+        0) APP_OK+=("$name") ;;
+        1) return 1 ;;
+        2) ;;
+      esac
     fi
   elif [ -d "$app" ]; then
     ok "$name already installed (not Homebrew-managed)"
     APP_OK+=("$name")
+  elif ! command -v brew &>/dev/null; then
+    warn "Homebrew not found, skipping $name"
+    return 1
   else
     read -r -p "  Install $name? [Y/n] " r
     if [[ "$r" =~ ^[nN] ]]; then
@@ -896,23 +904,23 @@ install_app "iStat Menus"   "istat-menus"   "/Applications/iStat Menus.app"
 # Deploy iStat Menus settings (merges preference keys, preserves license and device data)
 ISTATMENUS_PLIST="$HOME/Library/Preferences/com.bjango.istatmenus.menubar.7.plist"
 istatmenus_settings_current() {
-  [ -f "$ISTATMENUS_PLIST" ] && python3 - <<PYEOF
-import plistlib, sys
-with open("$DOTFILES_DIR/istatmenus.menubar.plist", "rb") as f: src = plistlib.load(f)
-with open("$ISTATMENUS_PLIST", "rb") as f: dst = plistlib.load(f)
+  [ -f "$ISTATMENUS_PLIST" ] && DOTFILES_DIR="$DOTFILES_DIR" ISTATMENUS_PLIST="$ISTATMENUS_PLIST" python3 - <<'PYEOF'
+import os, plistlib, sys
+with open(os.path.join(os.environ["DOTFILES_DIR"], "istatmenus.menubar.plist"), "rb") as f: src = plistlib.load(f)
+with open(os.environ["ISTATMENUS_PLIST"], "rb") as f: dst = plistlib.load(f)
 sys.exit(0 if all(dst.get(k) == v for k, v in src.items()) else 1)
 PYEOF
 }
 istatmenus_settings_apply() {
-  python3 - <<PYEOF
-import plistlib
-with open("$DOTFILES_DIR/istatmenus.menubar.plist", "rb") as f: src = plistlib.load(f)
+  DOTFILES_DIR="$DOTFILES_DIR" ISTATMENUS_PLIST="$ISTATMENUS_PLIST" python3 - <<'PYEOF'
+import os, plistlib
+with open(os.path.join(os.environ["DOTFILES_DIR"], "istatmenus.menubar.plist"), "rb") as f: src = plistlib.load(f)
 dst = {}
 try:
-  with open("$ISTATMENUS_PLIST", "rb") as f: dst = plistlib.load(f)
+  with open(os.environ["ISTATMENUS_PLIST"], "rb") as f: dst = plistlib.load(f)
 except FileNotFoundError: pass
 dst.update(src)
-with open("$ISTATMENUS_PLIST", "wb") as f: plistlib.dump(dst, f)
+with open(os.environ["ISTATMENUS_PLIST"], "wb") as f: plistlib.dump(dst, f)
 PYEOF
 }
 if $DRY_RUN; then
@@ -940,13 +948,19 @@ step "Setting up Ghostty"
 
 if [ -d "/Applications/Ghostty.app" ]; then
   if command -v brew &>/dev/null && brew list --cask ghostty &>/dev/null; then
-    brew_cask "ghostty"
+    brew_cask "ghostty" && SUM_GHOSTTY="${GREEN}✔${RESET} installed"
   else
     ok "Ghostty installed outside Homebrew, skipping"
+    SUM_GHOSTTY="${GREEN}✔${RESET} installed"
   fi
-  SUM_GHOSTTY="${GREEN}✔${RESET} installed"
 elif $DRY_RUN; then
   would "brew install --cask ghostty"
+elif command -v brew &>/dev/null && brew list --cask ghostty &>/dev/null; then
+  reinstall_missing_cask_app "Ghostty" "ghostty" "/Applications/Ghostty.app"
+  case $? in
+    0) SUM_GHOSTTY="${GREEN}✔${RESET} installed" ;;
+    1|2) ;;
+  esac
 else
   read -r -p "  Install Ghostty? [Y/n] " r
   if [[ "$r" =~ ^[nN] ]]; then
@@ -959,93 +973,96 @@ fi
 _ghostty_src="$DOTFILES_DIR/.config/ghostty/config"
 _ghostty_dest="$HOME/.config/ghostty/config"
 if [ -f "$_ghostty_src" ]; then
-  if $DRY_RUN; then
-    would "cp .config/ghostty/config to $_ghostty_dest"
-  else
-    mkdir -p "$HOME/.config/ghostty"
-    if [ -f "$_ghostty_dest" ] && diff -q "$_ghostty_dest" "$_ghostty_src" &>/dev/null; then
-      ok "ghostty/config already up to date"
-    elif [ -f "$_ghostty_dest" ]; then
-      git --no-pager diff --no-index --color "$_ghostty_dest" "$_ghostty_src"
-      read -r -p "  ghostty/config already exists. Overwrite? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
-        cp "$_ghostty_src" "$_ghostty_dest"
-        installed "ghostty/config"
-      else
-        ok "ghostty/config unchanged"
-      fi
-    else
-      cp "$_ghostty_src" "$_ghostty_dest"
-      installed "ghostty/config"
-    fi
-  fi
+  deploy_prompted_file "$_ghostty_src" "$_ghostty_dest" "ghostty/config" "ghostty/config" "cp .config/ghostty/config to $_ghostty_dest" "$HOME/.config/ghostty"
 fi
 unset _ghostty_src _ghostty_dest
 
 # 9. macOS Preferences
 step "Applying macOS preferences"
 
-# Per-group state (computed once, used for both idempotency check and change reporting)
-dock_current=true
-{ [ "$(defaults read com.apple.dock orientation 2>/dev/null)"              = "left"  ] &&
-  [ "$(defaults read com.apple.dock tilesize 2>/dev/null)"                 = "40"    ] &&
-  [ "$(defaults read com.apple.dock size-immutable 2>/dev/null)"           = "true"  ] &&
-  [ "$(defaults read com.apple.dock minimize-to-application 2>/dev/null)"  = "true"  ] &&
-  [ "$(defaults read com.apple.dock show-recents 2>/dev/null)"             = "false" ] &&
-  [ "$(defaults read com.apple.dock wvous-tl-corner 2>/dev/null)"          = "1"     ] &&
-  [ "$(defaults read com.apple.dock wvous-tr-corner 2>/dev/null)"          = "1"     ] &&
-  [ "$(defaults read com.apple.dock wvous-bl-corner 2>/dev/null)"          = "1"     ] &&
-  [ "$(defaults read com.apple.dock wvous-br-corner 2>/dev/null)"          = "1"     ]; } || dock_current=false
-if $dock_current && command -v dockutil &>/dev/null; then
-  _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
-  for _app in "Google Chrome" "Visual Studio Code" "Ghostty" "1Password" "Spotify"; do
-    echo "$_dock_list" | grep -q "$_app" || { dock_current=false; break; }
-  done
-  unset _dock_list _app
-fi
+_pref_read() {
+  local domain="$1" key="$2" host="${3:-}"
+  if [ -n "$host" ]; then
+    defaults -currentHost read "$domain" "$key" 2>/dev/null
+  else
+    defaults read "$domain" "$key" 2>/dev/null
+  fi
+}
 
-finder_current=true
-{ [ "$(defaults read com.apple.finder AppleShowAllFiles 2>/dev/null)"                  = "true"  ] &&
-  [ "$(defaults read com.apple.finder ShowPathbar 2>/dev/null)"                        = "true"  ] &&
-  [ "$(defaults read com.apple.finder ShowRecentTags 2>/dev/null)"                     = "false" ] &&
-  [ "$(defaults read com.apple.finder NewWindowTarget 2>/dev/null)"                    = "PfHm"  ] &&
-  [ "$(defaults read com.apple.finder FXDefaultSearchScope 2>/dev/null)"               = "SCcf"  ] &&
-  [ "$(defaults read com.apple.desktopservices DSDontWriteNetworkStores 2>/dev/null)"  = "true"  ] &&
-  [ "$(defaults read com.apple.finder FXEnableExtensionChangeWarning 2>/dev/null)"     = "false" ]; } || finder_current=false
+_pref_matches() {
+  local domain="$1" key="$2" expected="$3" host="${4:-}"
+  [ "$(_pref_read "$domain" "$key" "$host")" = "$expected" ]
+}
 
-system_current=true
-{ [ "$(defaults read com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking 2>/dev/null)" = "true"     ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticSpellingCorrectionEnabled 2>/dev/null)"          = "false"    ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticCapitalizationEnabled 2>/dev/null)"              = "false"    ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticDashSubstitutionEnabled 2>/dev/null)"            = "false"    ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled 2>/dev/null)"          = "false"    ] &&
-  [ "$(defaults read NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled 2>/dev/null)"           = "false"    ] &&
-  [ "$(defaults read NSGlobalDomain AppleShowAllExtensions 2>/dev/null)"                        = "true"     ] &&
-  [ "$(defaults read NSGlobalDomain AppleInterfaceStyle 2>/dev/null)"                           = "Dark"     ] &&
-  [ "$(defaults read NSGlobalDomain AppleActionOnDoubleClick 2>/dev/null)"                      = "Minimize" ] &&
-  [ "$(defaults read NSGlobalDomain KeyRepeat 2>/dev/null)"                                     = "5"        ] &&
-  [ "$(defaults read NSGlobalDomain InitialKeyRepeat 2>/dev/null)"                              = "25"       ] &&
-  [ "$(defaults read NSGlobalDomain com.apple.sound.beep.feedback 2>/dev/null)"                 = "0"        ] &&
-  [ "$(defaults read NSGlobalDomain AppleEnableMenuBarTransparency 2>/dev/null)"                = "false"    ] &&
-  [ "$(defaults read -g EnableTilingByEdgeDrag 2>/dev/null)"                                    = "false"    ] &&
-  [ "$(defaults read -g EnableTilingByMenuBar 2>/dev/null)"                                     = "false"    ]; } || system_current=false
-
-screenshot_current=true
-{ [ "$(defaults read com.apple.screencapture show-thumbnail 2>/dev/null)" = "false" ]; } || screenshot_current=false
-
-menubar_current=true
-{ [ "$(defaults -currentHost read com.apple.controlcenter Weather 2>/dev/null)" = "18" ]; } || menubar_current=false
-
+_pref_write() {
+  local domain="$1" key="$2" type="$3" value="$4" host="${5:-}"
+  if [ -n "$host" ]; then
+    defaults -currentHost write "$domain" "$key" "$type" "$value"
+  else
+    defaults write "$domain" "$key" "$type" "$value"
+  fi
+}
 
 _pref_diff() {
   local label="$1" domain="$2" key="$3" expected="$4" host="${5:-}"
   local actual pad
-  actual=$(defaults ${host:+-currentHost} read "$domain" "$key" 2>/dev/null)
+  actual=$(_pref_read "$domain" "$key" "$host")
   if [ "$actual" != "$expected" ]; then
     pad=$(( 28 - ${#label} )); [ $pad -lt 1 ] && pad=1
     printf "    %s%*s${RED}%s${RESET} → ${GREEN}%s${RESET}\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
   fi
 }
+
+# Per-group state (computed once, used for both idempotency check and change reporting)
+dock_current=true
+{ _pref_matches com.apple.dock orientation left &&
+  _pref_matches com.apple.dock tilesize 40 &&
+  _pref_matches com.apple.dock size-immutable true &&
+  _pref_matches com.apple.dock minimize-to-application true &&
+  _pref_matches com.apple.dock show-recents false &&
+  _pref_matches com.apple.dock wvous-tl-corner 1 &&
+  _pref_matches com.apple.dock wvous-tr-corner 1 &&
+  _pref_matches com.apple.dock wvous-bl-corner 1 &&
+  _pref_matches com.apple.dock wvous-br-corner 1; } || dock_current=false
+if $dock_current && command -v dockutil &>/dev/null; then
+  _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
+  for _app in "Google Chrome" "Visual Studio Code" "Ghostty" "1Password" "Spotify"; do
+    echo "$_dock_list" | grep -Fxq "$_app" || { dock_current=false; break; }
+  done
+  unset _dock_list _app
+fi
+
+finder_current=true
+{ _pref_matches com.apple.finder AppleShowAllFiles true &&
+  _pref_matches com.apple.finder ShowPathbar true &&
+  _pref_matches com.apple.finder ShowRecentTags false &&
+  _pref_matches com.apple.finder NewWindowTarget PfHm &&
+  _pref_matches com.apple.finder FXDefaultSearchScope SCcf &&
+  _pref_matches com.apple.desktopservices DSDontWriteNetworkStores true &&
+  _pref_matches com.apple.finder FXEnableExtensionChangeWarning false; } || finder_current=false
+
+system_current=true
+{ _pref_matches com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking true &&
+  _pref_matches NSGlobalDomain NSAutomaticSpellingCorrectionEnabled false &&
+  _pref_matches NSGlobalDomain NSAutomaticCapitalizationEnabled false &&
+  _pref_matches NSGlobalDomain NSAutomaticDashSubstitutionEnabled false &&
+  _pref_matches NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled false &&
+  _pref_matches NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled false &&
+  _pref_matches NSGlobalDomain AppleShowAllExtensions true &&
+  _pref_matches NSGlobalDomain AppleInterfaceStyle Dark &&
+  _pref_matches NSGlobalDomain AppleActionOnDoubleClick Minimize &&
+  _pref_matches NSGlobalDomain KeyRepeat 5 &&
+  _pref_matches NSGlobalDomain InitialKeyRepeat 25 &&
+  _pref_matches NSGlobalDomain com.apple.sound.beep.feedback 0 &&
+  _pref_matches NSGlobalDomain AppleEnableMenuBarTransparency false &&
+  _pref_matches -g EnableTilingByEdgeDrag false &&
+  _pref_matches -g EnableTilingByMenuBar false; } || system_current=false
+
+screenshot_current=true
+{ _pref_matches com.apple.screencapture show-thumbnail false; } || screenshot_current=false
+
+menubar_current=true
+{ _pref_matches com.apple.controlcenter Weather 18 host; } || menubar_current=false
 
 if $DRY_RUN; then
   would "configure Dock, Finder, System Settings, Screenshots, and menu bar"
@@ -1062,7 +1079,7 @@ else
       _dock_list=$(dockutil --list 2>/dev/null | awk -F'\t' '{print $1}')
       _missing=()
       for _app in "Google Chrome" "Visual Studio Code" "Ghostty" "1Password" "Spotify"; do
-        echo "$_dock_list" | grep -q "$_app" || _missing+=("$_app")
+        echo "$_dock_list" | grep -Fxq "$_app" || _missing+=("$_app")
       done
       [ ${#_missing[@]} -gt 0 ] && echo "  Missing from Dock: $(IFS=', '; echo "${_missing[*]}")"
       unset _dock_list _app _missing
@@ -1080,15 +1097,15 @@ else
     if [[ "$r" =~ ^[nN] ]]; then
       ok "Dock unchanged"
     else
-      defaults write com.apple.dock orientation -string left
-      defaults write com.apple.dock tilesize -integer 40
-      defaults write com.apple.dock size-immutable -bool true
-      defaults write com.apple.dock minimize-to-application -bool true
-      defaults write com.apple.dock show-recents -bool false
-      defaults write com.apple.dock wvous-tl-corner -int 1
-      defaults write com.apple.dock wvous-tr-corner -int 1
-      defaults write com.apple.dock wvous-bl-corner -int 1
-      defaults write com.apple.dock wvous-br-corner -int 1
+      _pref_write com.apple.dock orientation -string left
+      _pref_write com.apple.dock tilesize -integer 40
+      _pref_write com.apple.dock size-immutable -bool true
+      _pref_write com.apple.dock minimize-to-application -bool true
+      _pref_write com.apple.dock show-recents -bool false
+      _pref_write com.apple.dock wvous-tl-corner -int 1
+      _pref_write com.apple.dock wvous-tr-corner -int 1
+      _pref_write com.apple.dock wvous-bl-corner -int 1
+      _pref_write com.apple.dock wvous-br-corner -int 1
       if command -v dockutil &>/dev/null; then
         dockutil --remove all --no-restart &>/dev/null
         [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
@@ -1117,13 +1134,13 @@ else
     if [[ "$r" =~ ^[nN] ]]; then
       ok "Finder unchanged"
     else
-      defaults write com.apple.finder AppleShowAllFiles -bool true
-      defaults write com.apple.finder ShowPathbar -bool true
-      defaults write com.apple.finder ShowRecentTags -bool false
-      defaults write com.apple.finder NewWindowTarget -string "PfHm"
-      defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
-      defaults write com.apple.desktopservices DSDontWriteNetworkStores -bool true
-      defaults write com.apple.finder FXEnableExtensionChangeWarning -bool false
+      _pref_write com.apple.finder AppleShowAllFiles -bool true
+      _pref_write com.apple.finder ShowPathbar -bool true
+      _pref_write com.apple.finder ShowRecentTags -bool false
+      _pref_write com.apple.finder NewWindowTarget -string PfHm
+      _pref_write com.apple.finder FXDefaultSearchScope -string SCcf
+      _pref_write com.apple.desktopservices DSDontWriteNetworkStores -bool true
+      _pref_write com.apple.finder FXEnableExtensionChangeWarning -bool false
       updated "Finder"; MACOS_UPDATED+=("Finder"); NEEDS_RESTART=true
     fi
   fi
@@ -1145,27 +1162,27 @@ else
     _pref_diff "Reduce initial key repeat" NSGlobalDomain InitialKeyRepeat                     25
     _pref_diff "Mute volume feedback sound" NSGlobalDomain com.apple.sound.beep.feedback       0
     _pref_diff "Disable translucent menu bar" NSGlobalDomain AppleEnableMenuBarTransparency    false
-    _pref_diff "Disable tiling on edge drag" NSGlobalDomain EnableTilingByEdgeDrag             false
-    _pref_diff "Disable tiling on menu bar" NSGlobalDomain EnableTilingByMenuBar               false
+    _pref_diff "Disable tiling on edge drag" -g EnableTilingByEdgeDrag                         false
+    _pref_diff "Disable tiling on menu bar" -g EnableTilingByMenuBar                           false
     read -r -p "  Apply System settings? [Y/n] " r
     if [[ "$r" =~ ^[nN] ]]; then
       ok "System settings unchanged"
     else
-      defaults write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
-      defaults write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
-      defaults write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
-      defaults write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
-      defaults write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
-      defaults write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
-      defaults write NSGlobalDomain AppleShowAllExtensions -bool true
-      defaults write NSGlobalDomain AppleInterfaceStyle -string Dark
-      defaults write NSGlobalDomain AppleActionOnDoubleClick -string Minimize
-      defaults write NSGlobalDomain KeyRepeat -int 5
-      defaults write NSGlobalDomain InitialKeyRepeat -int 25
-      defaults write NSGlobalDomain com.apple.sound.beep.feedback -int 0
-      defaults write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
-      defaults write -g EnableTilingByEdgeDrag -bool false
-      defaults write -g EnableTilingByMenuBar -bool false
+      _pref_write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
+      _pref_write NSGlobalDomain NSAutomaticSpellingCorrectionEnabled -bool false
+      _pref_write NSGlobalDomain NSAutomaticCapitalizationEnabled -bool false
+      _pref_write NSGlobalDomain NSAutomaticDashSubstitutionEnabled -bool false
+      _pref_write NSGlobalDomain NSAutomaticPeriodSubstitutionEnabled -bool false
+      _pref_write NSGlobalDomain NSAutomaticQuoteSubstitutionEnabled -bool false
+      _pref_write NSGlobalDomain AppleShowAllExtensions -bool true
+      _pref_write NSGlobalDomain AppleInterfaceStyle -string Dark
+      _pref_write NSGlobalDomain AppleActionOnDoubleClick -string Minimize
+      _pref_write NSGlobalDomain KeyRepeat -int 5
+      _pref_write NSGlobalDomain InitialKeyRepeat -int 25
+      _pref_write NSGlobalDomain com.apple.sound.beep.feedback -int 0
+      _pref_write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
+      _pref_write -g EnableTilingByEdgeDrag -bool false
+      _pref_write -g EnableTilingByMenuBar -bool false
       updated "System settings"; MACOS_UPDATED+=("System settings"); NEEDS_RESTART=true
     fi
   fi
@@ -1179,7 +1196,7 @@ else
     if [[ "$r" =~ ^[nN] ]]; then
       ok "Screenshots unchanged"
     else
-      defaults write com.apple.screencapture show-thumbnail -bool false
+      _pref_write com.apple.screencapture show-thumbnail -bool false
       updated "Screenshots"; MACOS_UPDATED+=("Screenshots")
     fi
   fi
@@ -1193,7 +1210,7 @@ else
     if [[ "$r" =~ ^[nN] ]]; then
       ok "Menu bar unchanged"
     else
-      defaults -currentHost write com.apple.controlcenter Weather -int 18
+      _pref_write com.apple.controlcenter Weather -int 18 host
       updated "Menu bar"; MACOS_UPDATED+=("Menu bar"); NEEDS_RESTART=true
     fi
   fi
@@ -1209,8 +1226,8 @@ else
   else
     SUM_MACOS="${GREEN}✔${RESET} already configured"
   fi
-  unset -f _pref_diff
 fi # end macOS preferences section
+unset -f _pref_read _pref_matches _pref_write _pref_diff
 
 # 10. External Peripherals (Windows keyboard/mouse on Mac)
 step "External peripherals"
@@ -1222,6 +1239,10 @@ deploy_peripheral_config() {
   local src="$DOTFILES_DIR/$1" dst="$2" name="$3" r
   $DRY_RUN && { would "deploy $1 to $dst"; return 0; }
   mkdir -p "$(dirname "$dst")"
+  if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+    warn "$name config destination exists and is not a file: $dst"
+    return 1
+  fi
   if [ -f "$dst" ]; then
     if diff -q "$dst" "$src" &>/dev/null; then
       ok "$name config already up to date"
@@ -1248,16 +1269,22 @@ setup_peripheral() {
     would "brew install --cask $cask && deploy $config_src to $config_dst"
     return
   fi
-  if brew list --cask "$cask" &>/dev/null && [ -d "$app" ]; then
-    ok "$name already installed"
-  elif brew list --cask "$cask" &>/dev/null && [ ! -d "$app" ]; then
-    warn "$name registered with Homebrew but app missing, reinstalling..."
-    if brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
-      installed "$name"
-      echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}"
+  if ! command -v brew &>/dev/null; then
+    warn "Homebrew not found, skipping $name"
+    return 1
+  fi
+  if brew list --cask "$cask" &>/dev/null; then
+    if [ -d "$app" ]; then
+      ok "$name already installed"
     else
-      warn "Failed to reinstall $name"
-      return 1
+      warn "$name registered with Homebrew but app missing, reinstalling..."
+      if brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+        installed "$name"
+        echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}"
+      else
+        warn "Failed to reinstall $name"
+        return 1
+      fi
     fi
   else
     read -r -p "  Set up $name? [y/N] " r

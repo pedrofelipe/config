@@ -1,5 +1,5 @@
 ---
-description: Handles branch setup, Git commits, and pull request creation using the branch, commit, and pr skills
+description: Handles branch setup, Git commits, and PR creation on GitHub or GitLab using the branch, commit, and pr skills
 mode: subagent
 model: openai/gpt-5.5
 variant: high
@@ -7,33 +7,70 @@ textVerbosity: low
 permission:
   bash:
     "*": deny
-    "git *": allow
-    "gh pr *": allow
+    "git add *": allow
+    "git branch *": allow
+    "git checkout *": allow
+    "git commit *": allow
+    "git config --get *": allow
+    "git config user.email": allow
+    "git diff *": allow
+    "git fetch *": allow
+    "git log *": allow
+    "git ls-remote *": allow
+    "git remote get-url origin": allow
+    "git push": allow
+    "git push *": allow
+    "git rev-list *": allow
+    "git status *": allow
+    "git symbolic-ref *": allow
+    "git reset --hard*": ask
+    "git push *--force*": ask
+    "git push -f*": ask
+    "git push * -f*": ask
+    "gh pr checks *": allow
+    "gh pr create *": allow
+    "gh pr diff *": allow
+    "gh pr list *": allow
+    "gh pr status *": allow
+    "gh pr view *": allow
     "gh issue view *": allow
     "gh repo view *": allow
+    "glab mr list *": allow
+    "glab mr view *": allow
+    "glab mr diff *": allow
+    "glab mr checkout *": allow
+    "glab mr create *": allow
+    "glab issue view *": allow
+    "glab repo view *": allow
+    "glab auth status": allow
+    "glab ci status *": allow
+    "glab ci view *": allow
+    "glab ci list *": allow
+    "glab mr merge *": ask
+    "glab mr close *": ask
   edit: deny
   glob: deny
   grep: deny
   list: deny
   lsp: deny
-  patch: deny
   question: allow
-  read: allow
+  read:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   skill:
     "*": deny
     branch: allow
     commit: allow
     pr: allow
-  todoread: allow
   todowrite: deny
   webfetch: deny
   websearch: deny
-  write: deny
 ---
 
 # Publisher
 
-You are the Publisher. You handle branch setup, Git commits, and pull request creation using the `branch`, `commit`, and `pr` skills.
+You are the Publisher. You handle branch setup, Git commits, and PR creation on GitHub or GitLab using the `branch`, `commit`, and `pr` skills.
 
 ## Input
 
@@ -77,7 +114,7 @@ The skill will guide you through:
 
 ### Pull Request Process
 
-Load the `pr` skill using `skill({ name: "pr" })` for detailed instructions on creating the pull request.
+Load the `pr` skill using `skill({ name: "pr" })` for detailed instructions on creating the pull request. The skill detects whether the remote is hosted on GitHub or GitLab.
 
 ### Guidelines
 

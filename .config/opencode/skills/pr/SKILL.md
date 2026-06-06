@@ -1,9 +1,28 @@
 ---
 name: pr
-description: Create a GitHub pull request for the current branch, following project conventions for title format, description template, and reviewer selection.
+description: Create a PR for the current branch on GitHub or GitLab, following project conventions for title format, description template, and reviewer selection.
 ---
 
-Create a GitHub pull request for the current branch.
+Create a PR for the current branch.
+
+## Host
+
+Detect the host from `git remote get-url origin`.
+
+- GitHub origin: use `gh pr ...`
+- GitLab origin: use `glab mr ...`, but call it a PR in user-facing text
+- Ambiguous or unsupported origin: ask the user whether to use `gh pr` or `glab mr`
+
+Example detection:
+
+```bash
+origin_url=$(git remote get-url origin 2>/dev/null || true)
+case "$origin_url" in
+  *github.com*|git@github.com:*) echo "github" ;;
+  *gitlab.com*|git@gitlab.com:*|*gitlab*) echo "gitlab" ;;
+  *) echo "unknown" ;;
+esac
+```
 
 ## Current Branch
 
@@ -12,6 +31,7 @@ Check `git branch --show-current` for the current branch name.
 ## Base Branch
 
 Check `git symbolic-ref refs/remotes/origin/HEAD --short 2>/dev/null || echo "origin/main"` for the base branch.
+Strip the `origin/` prefix and use that branch name consistently below.
 
 ## Unpushed Commits
 
@@ -19,25 +39,35 @@ Check `git log origin/$(git branch --show-current)..HEAD --oneline 2>/dev/null |
 
 ## Commits on This Branch
 
-Check `git log origin/main..HEAD --oneline` for commits on this branch.
+Check `git log origin/<base-branch>..HEAD --oneline` for commits on this branch.
 
 ## Detailed Changes
 
-Check `git log origin/main..HEAD --format="%h %s%n%n%b" --no-merges` for detailed commit information.
+Check `git log origin/<base-branch>..HEAD --format="%h %s%n%n%b" --no-merges` for detailed commit information.
 
 ## Diff Summary
 
-Check `git diff origin/main...HEAD --stat` for a summary of changes.
+Check `git diff origin/<base-branch>...HEAD --stat` for a summary of changes.
 
 ## Instructions
 
-First, check if the current branch is `main` or any other protected branch. If so, warn the user that they should not create a pull request from a protected branch and stop.
+First, check if the current branch is the detected base branch or any other protected branch. If so, warn the user that they should not create a PR from a protected branch and stop.
 
-Next, check if there are commits on this branch. If there are no commits ahead of main, inform the user and stop.
+Next, check if there are commits on this branch. If there are no commits ahead of the base branch, inform the user and stop.
 
-Also check if a pull request already exists for this branch. If it does, provide the URL and ask if they want to update it instead.
+Also check if a PR already exists for this branch. If it does, provide the URL and ask if they want to update it instead.
 
-Using the commit history and changes above, create a GitHub pull request following these steps:
+GitHub existing PR check:
+```bash
+gh pr view "$(git branch --show-current)" --json url --jq .url
+```
+
+GitLab existing PR check:
+```bash
+glab mr list --source-branch "$(git branch --show-current)"
+```
+
+Using the commit history and changes above, create a PR following these steps:
 
 ### 1. Verify Commits Are Pushed
 
@@ -52,6 +82,8 @@ git rev-list --count origin/$(git branch --show-current)..HEAD 2>/dev/null || ec
 - If the branch doesn't exist on the remote, push it using `git push -u origin HEAD`
 - If the branch exists but has unpushed commits, push them using `git push`
 - **Do NOT proceed to the next step until all commits are pushed**
+
+Use the same push behavior for GitHub and GitLab.
 
 ### 2. Check for an Issue Key
 
@@ -79,23 +111,17 @@ The description should be:
 
 ### 4. Generate the Description
 
-Use this template structure for the pull request description:
+Use this template structure for the PR description:
 
 ```markdown
-# Description
 <!-- Summarize what this PR does based on the commits -->
-
-# Context
-<!-- Explain the rationale. Reference an issue only if one is already available. -->
-
-# How to test the code
 <!-- Describe how to test the changes -->
 
 # Screenshots & Videos
 <!-- Include screenshots or video demonstrating the new feature, if applicable. -->
 ```
 
-Fill in the Description and Context sections based on the commit messages. For "How to test the code", provide reasonable testing instructions based on what changed.
+PR descriptions should be concise, direct, and not verbose. Fill in the summary and testing guidance based on the commit messages and changed code.
 
 ### 5. Find Reviewers (if none specified)
 
@@ -107,21 +133,21 @@ git log --follow -n 5 --pretty=format:"%an" -- <changed-file>
 
 Suggest 1-2 reviewers based on recent activity and ask the user to confirm before adding them to the PR. Do not auto-assign reviewers without user confirmation.
 
-### 6. Create the Pull Request
+### 6. Create the PR
 
-Use the `gh` CLI to create the pull request with:
+Use the detected CLI to create the PR with:
 - **Source branch**: The current branch name
-- **Target branch**: `main`
+- **Target branch**: The detected base branch
 - **Title**: The generated title from step 3
 - **Description**: The generated description from step 4
 - **Draft**: If requested, add `--draft` flag
-- **Reviewers**: If reviewers are specified or confirmed, add `--reviewer "username"` for each
+- **Reviewers**: If reviewers are specified or confirmed, add one reviewer flag per user
 
-Example command:
+GitHub creation:
 ```bash
 gh pr create \
   --head "branch-name" \
-  --base "main" \
+  --base "base-branch" \
   --title "Add keyboard shortcuts to command palette" \
   --body "..." \
   --draft \
@@ -129,10 +155,29 @@ gh pr create \
   --reviewer "username2"
 ```
 
-After creating the pull request, provide the URL to the user and open it in the browser:
+GitHub view/open:
 ```bash
 gh pr view --web
 ```
+
+GitLab creation:
+```bash
+glab mr create \
+  --source-branch "branch-name" \
+  --target-branch "base-branch" \
+  --title "Add keyboard shortcuts to command palette" \
+  --description "..." \
+  --draft \
+  --reviewer "username1" \
+  --reviewer "username2"
+```
+
+GitLab view/open:
+```bash
+glab mr view --web
+```
+
+After creating the PR, provide the URL to the user and open it in the browser unless `no-open` was requested.
 
 ## Options
 

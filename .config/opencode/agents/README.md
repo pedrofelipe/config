@@ -133,7 +133,6 @@ Orchestrates the workflow from description to reviewed changes. Does not impleme
 
 - `question`
 - `todowrite`
-- `todoread`
 
 ---
 
@@ -153,7 +152,6 @@ Gathers requirements from the description, explores the codebase to understand t
 
 - `bash`
 - `question`
-- `todoread`
 
 ---
 
@@ -173,12 +171,10 @@ Implements code changes for a single todo item.
 
 **Tools**
 
-- `write`
 - `edit`
 - `bash`
 - `skill`
 - `question`
-- `todoread`
 
 ---
 
@@ -201,7 +197,6 @@ Reviews code like a senior engineer during code review. Evaluates correctness, r
 - `bash`
 - `skill`
 - `question`
-- `todoread`
 
 ---
 
@@ -256,14 +251,13 @@ Sets up branches, creates Git commits, and creates pull requests using the `bran
 **Tools**
 
 - `bash`
-  - `git *`
-  - `gh *`
+  - Git branch, status, diff, log, add, commit, and push commands
+  - GitHub/GitLab PR creation, PR lookup, issue lookup, and repo lookup commands
 - `skill`
   - `branch`
   - `commit`
   - `pr`
 - `question`
-- `todoread`
 
 ---
 
@@ -289,7 +283,6 @@ Generates a structured manual QA test plan based on the code changes. Runs after
 - `skill`
   - `manual-qa`
 - `question`
-- `todoread`
 
 ---
 
@@ -313,7 +306,7 @@ Analysis-only agent that reflects on completed work and proposes updates to `AGE
 **Permissions**
 
 - Read-only: `read`, `glob`, `grep`, `bash` (for Git history)
-- No `write` or `edit` — `@developer` applies approved changes
+- No file-edit permission — `@developer` applies approved changes
 
 **Tools**
 
@@ -325,13 +318,12 @@ Analysis-only agent that reflects on completed work and proposes updates to `AGE
   - `git diff`
   - `git show`
 - `question`
-- `todoread`
 
 ---
 
 ## Reference
 
-Run the full workflow with a description.
+Run the full workflow with another description.
 
 ```
 @copilot Add keyboard shortcuts to the command palette
@@ -376,7 +368,7 @@ Create a pull request.
 Create a pull request with a reviewer.
 
 ```
-@publisher pr <github-username>
+@publisher pr <reviewer-username>
 ```
 
 Generate a manual QA test plan for the current changes.

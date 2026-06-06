@@ -80,11 +80,11 @@ If no key exists, `setup.sh` generates `~/.ssh/id_ed25519`, adds it to the macOS
 
 ```bash
 echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
-chsh -s /opt/homebrew/bin/bash
+chsh -s "/opt/homebrew/bin/bash"
 ```
 
 ### 5. Set up Node.js
-- [ ] Install [nvm](https://github.com/creationix/nvm)
+- [ ] Install [nvm](https://github.com/nvm-sh/nvm)
 - [ ] Install the latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as the default Node.js version
 

@@ -7,19 +7,28 @@ textVerbosity: low
 permission:
   bash: deny
   edit: deny
-  glob: allow
-  grep: allow
-  list: allow
+  glob:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
+  grep:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
+  list:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   lsp: deny
-  patch: deny
   question: allow
-  read: allow
+  read:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   skill: allow
-  todoread: allow
   todowrite: deny
   webfetch: deny
   websearch: deny
-  write: deny
 ---
 
 # Tester

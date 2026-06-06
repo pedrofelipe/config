@@ -11,19 +11,25 @@ permission:
     "git log *": allow
     "git show *": allow
   edit: deny
-  glob: allow
-  grep: allow
+  glob:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
+  grep:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   list: deny
   lsp: deny
-  patch: deny
   question: allow
-  read: allow
+  read:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   skill: deny
-  todoread: allow
   todowrite: deny
   webfetch: deny
   websearch: deny
-  write: deny
 ---
 
 # Learner

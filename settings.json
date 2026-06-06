@@ -54,5 +54,5 @@
   "workbench.iconTheme": "city-lights-icons-vsc",
   "workbench.startupEditor": "newUntitledFile",
   "workbench.tree.indent": 5,
-  "workbench.tree.renderIndentGuides": "always",
+  "workbench.tree.renderIndentGuides": "always"
 }

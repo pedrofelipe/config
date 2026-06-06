@@ -15,22 +15,6 @@ If there are unstaged changes, stage all files using `git add -A` before proceed
 
 Check `git diff --staged` for the actual changes to commit.
 
-## Formatting
-
-If the project has a format command that auto-fixes files (e.g. `format:write`, `format:fix`), run it on staged files before committing:
-
-```bash
-git diff --staged --name-only --diff-filter=ACMR | xargs <format-write-command>
-```
-
-Then re-stage any files that were modified:
-
-```bash
-git add -u
-```
-
-This ensures all committed code passes the format check in CI.
-
 ## Commit Format
 
 The commit message MUST follow this exact format:
@@ -108,9 +92,8 @@ BREAKING CHANGE: Minimum Node version is now 18
 
 1. If there are no staged or unstaged changes, inform the user there is nothing to commit and stop
 2. If there are unstaged changes, stage all files using `git add -A`
-3. Run the project's auto-fix format command on staged files and re-stage
-4. Analyze the staged changes
-5. Determine the appropriate type
-6. Write a clear, concise description in imperative mood
-7. Create the commit
-8. Push the commit to the remote using `git push`
+3. Analyze the staged changes
+4. Determine the appropriate type
+5. Write a clear, concise description in imperative mood
+6. Create the commit
+7. Push the commit to the remote using `git push`

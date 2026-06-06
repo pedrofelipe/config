@@ -37,12 +37,3 @@ link-previews = osc8
 quick-terminal-screen = mouse
 # Keep quick terminal animation short
 quick-terminal-animation-duration = 0.15
-
-# Insert a newline with Shift+Enter
-#keybind = shift+enter=text:\n
-# Copy only when a selection is available
-#keybind = performable:cmd+c=copy_to_clipboard
-# Jump to the previous shell prompt
-#keybind = shift+up=jump_to_prompt:-1
-# Jump to the next shell prompt
-#keybind = shift+down=jump_to_prompt:1

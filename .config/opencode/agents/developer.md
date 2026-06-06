@@ -5,21 +5,32 @@ model: openai/gpt-5.5
 variant: high
 textVerbosity: low
 permission:
-  bash: allow
-  edit: allow
-  glob: allow
-  grep: allow
-  list: allow
+  edit:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
+  glob:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
+  grep:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
+  list:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   lsp: allow
-  patch: allow
   question: allow
-  read: allow
+  read:
+    "~/.claude/**": allow
+    "~/.config/**": allow
+    "~/projects/**": allow
   skill: allow
-  todoread: allow
   todowrite: deny
   webfetch: allow
   websearch: allow
-  write: allow
 ---
 
 # Developer
