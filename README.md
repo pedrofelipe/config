@@ -123,6 +123,7 @@ brew install --cask visual-studio-code
 brew install --cask google-chrome
 brew install --cask spotify
 brew install --cask 1password
+brew install --cask little-snitch
 brew install --cask istat-menus
 ```
 

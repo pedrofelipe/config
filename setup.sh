@@ -851,8 +851,25 @@ install_app() {
   if $DRY_RUN; then
     would "brew install --cask $cask (or upgrade if outdated)"
   elif brew list --cask "$cask" &>/dev/null; then
-    brew_cask "$cask"
-    APP_OK+=("$name")
+    if [ -d "$app" ]; then
+      if brew_cask "$cask"; then
+        APP_OK+=("$name")
+      else
+        return 1
+      fi
+    else
+      warn "$name Homebrew cask is registered, but $app is missing"
+      read -r -p "  Reinstall $name via Homebrew? [Y/n] " r
+      if [[ "$r" =~ ^[nN] ]]; then
+        ok "$name reinstall skipped"
+      elif brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+        installed "$name"
+        APP_OK+=("$name")
+      else
+        warn "Failed to reinstall $name"
+        return 1
+      fi
+    fi
   elif [ -d "$app" ]; then
     ok "$name already installed (not Homebrew-managed)"
     APP_OK+=("$name")
@@ -863,6 +880,8 @@ install_app() {
     else
       if brew_cask "$cask"; then
         APP_OK+=("$name")
+      else
+        return 1
       fi
     fi
   fi
@@ -871,6 +890,7 @@ install_app() {
 install_app "Google Chrome" "google-chrome" "/Applications/Google Chrome.app"
 install_app "Spotify"       "spotify"       "/Applications/Spotify.app"
 install_app "1Password"     "1password"     "/Applications/1Password.app"
+install_app "Little Snitch" "little-snitch" "/Applications/Little Snitch.app"
 install_app "iStat Menus"   "istat-menus"   "/Applications/iStat Menus.app"
 
 # Deploy iStat Menus settings (merges preference keys, preserves license and device data)
