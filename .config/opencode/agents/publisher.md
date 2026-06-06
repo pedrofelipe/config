@@ -59,7 +59,7 @@ Your job is to create clean Git commits and well-formatted pull requests. Use th
 Load the `branch` skill using `skill({ name: "branch" })` for detailed instructions on setting up a branch.
 
 The skill will guide you through:
-- Deriving the username from git config
+- Deriving the username from Git config
 - Constructing a branch name from the description
 - Checking the current branch
 - Checking for uncommitted changes

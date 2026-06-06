@@ -49,7 +49,7 @@ xcode-select --install
 
 ### 2. Set up Homebrew and install packages
 - [ ] Install [Homebrew](http://brew.sh)
-- [ ] Install the latest bash, git, and other packages
+- [ ] Install the latest Bash, Git, and other packages
 
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
@@ -75,8 +75,8 @@ cp ssh_config ~/.ssh/config && chmod 600 ~/.ssh/config
 
 If no key exists, `setup.sh` generates `~/.ssh/id_ed25519`, adds it to the macOS keychain agent, and uploads it to GitHub via `gh ssh-key add` (prompting for `gh auth login` if needed). Confirm at [github.com/settings/keys](https://github.com/settings/keys).
 
-### 4. Switch from zsh to bash
-- [ ] Set Homebrew bash as the default shell
+### 4. Switch from Zsh to Bash
+- [ ] Set Homebrew Bash as the default shell
 
 ```bash
 echo "/opt/homebrew/bin/bash" | sudo tee -a /etc/shells
@@ -172,7 +172,7 @@ npx -y skills add https://github.com/emilkowalski/skill \
 | &nbsp;&nbsp;↳ `@planner` | Creates an implementation plan from a description |
 | &nbsp;&nbsp;↳ `@developer` | Implements code for a single todo item |
 | &nbsp;&nbsp;↳ `@reviewer` | Reviews code changes against todo requirements |
-| &nbsp;&nbsp;↳ `@publisher` | Handles branch setup, git commits, and pull request creation |
+| &nbsp;&nbsp;↳ `@publisher` | Handles branch setup, Git commits, and pull request creation |
 | &nbsp;&nbsp;↳ `@tester` | Generates manual QA test plans for code changes |
 | &nbsp;&nbsp;↳ `@learner` | Reflects on completed work and proposes updates to AGENTS.md files |
 
@@ -181,15 +181,15 @@ npx -y skills add https://github.com/emilkowalski/skill \
 | Skill | Description |
 | --- | --- |
 | **@copilot workflow** | |
-| &nbsp;&nbsp;↳ `branch` | Set up a git branch from a work description |
-| &nbsp;&nbsp;↳ `commit` | Create a git commit following conventional commit format |
+| &nbsp;&nbsp;↳ `branch` | Set up a Git branch from a work description |
+| &nbsp;&nbsp;↳ `commit` | Create a Git commit following conventional commit format |
 | &nbsp;&nbsp;↳ `pr` | Create a GitHub pull request |
 | &nbsp;&nbsp;↳ `unit-test` | Generate comprehensive unit tests with 100% coverage target |
 | &nbsp;&nbsp;↳ `manual-qa` | Generate manual QA test steps for a code change |
 | &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI |
 | **Standalone** | |
-| `vercel-composition-patterns` | React composition patterns that scale |
-| `vercel-react-best-practices` | React and Next.js performance optimization guidelines |
+| `vercel-composition-patterns` | Composition patterns for building flexible, maintainable React components |
+| `vercel-react-best-practices` | React performance optimization guidelines for components, data fetching, and bundle efficiency |
 | `emil-design-eng` | Design engineering principles and polished UI guidelines |
 | `simplify` | Review changed code for reuse, quality, efficiency, and clarity |
 

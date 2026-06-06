@@ -42,7 +42,7 @@ Your job is to understand the requirements and break them down into implementabl
 2. **Explore the Codebase**
    - Search for relevant files and code patterns
    - Understand the existing architecture
-   - Reproduce issues if applicable (use bash to run the app, tests, etc.)
+   - Reproduce issues if applicable (use Bash to run the app, tests, etc.)
 
 3. **Create the Plan**
    - Break down the work into discrete, implementable todos
