@@ -252,6 +252,30 @@ reinstall_missing_cask_app() {
   return 1
 }
 
+collect_git_commit_author_identity() {
+  step "Setting Git commit author identity"
+
+  if $DRY_RUN; then
+    would "collect Git commit author name (default: Pedro Menezes) and required Git commit author email"
+    would "use the collected Git commit author identity for global Git config"
+    echo "  Git uses this identity for commit authorship."
+    echo "  GitHub uses the email to associate commits with your account."
+    return 0
+  fi
+
+  echo "  Git uses this identity for commit authorship."
+  echo "  GitHub uses the email to associate commits with your account."
+
+  read -r -p "  Git commit author name [Pedro Menezes]: " GIT_COMMIT_AUTHOR_NAME
+  GIT_COMMIT_AUTHOR_NAME="${GIT_COMMIT_AUTHOR_NAME:-Pedro Menezes}"
+
+  while true; do
+    read -r -p "  Git commit author email: " GIT_COMMIT_AUTHOR_EMAIL
+    [ -n "$GIT_COMMIT_AUTHOR_EMAIL" ] && break
+    echo "  Git commit author email cannot be empty."
+  done
+}
+
 # 0. Xcode Command Line Tools
 step "Checking Xcode Command Line Tools"
 
@@ -268,6 +292,9 @@ else
   fi
 fi
 
+# Git commit author identity
+collect_git_commit_author_identity
+
 # 1. Config files
 step "Loading config files"
 
@@ -282,10 +309,10 @@ for file in .bash_profile .inputrc; do
     warn "$file not found, skipping"
   fi
 done
-# Git config (deployed separately to prompt for name and email)
+# Git config (identity collected upfront so dry runs stay non-interactive)
 if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
   if $DRY_RUN; then
-    would "cp .gitconfig to ~/.gitconfig and set user.name / user.email"
+    would "cp .gitconfig to ~/.gitconfig and apply Git commit author identity to global Git config"
   else
     _gitconfig_needs_copy=true
     _current_email=$(git config --global user.email 2>/dev/null)
@@ -309,20 +336,14 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
       fi
     fi
     if $_gitconfig_needs_copy; then
-      read -r -p "  Git name [Pedro Menezes]: " git_name
-      git_name="${git_name:-Pedro Menezes}"
-      while true; do
-        read -r -p "  Git email: " git_email
-        [ -n "$git_email" ] && break
-        echo "  Email cannot be empty."
-      done
       cp "$DOTFILES_DIR/.gitconfig" "$HOME/.gitconfig"
-      git config --global user.name "$git_name"
-      git config --global user.email "$git_email"
-      installed ".gitconfig ($git_name <$git_email>)"
+      installed ".gitconfig"
     else
-      ok ".gitconfig already up to date"
+      ok ".gitconfig template unchanged"
     fi
+    git config --global user.name "$GIT_COMMIT_AUTHOR_NAME"
+    git config --global user.email "$GIT_COMMIT_AUTHOR_EMAIL"
+    ok "Git commit author identity configured ($GIT_COMMIT_AUTHOR_NAME <$GIT_COMMIT_AUTHOR_EMAIL>)"
     CF_OK+=(".gitconfig")
     unset _gitconfig_needs_copy _current_email _files_match
     unset -f _strip_identity
@@ -989,9 +1010,24 @@ _pref_read() {
   fi
 }
 
+_pref_values_match() {
+  local actual="$1" expected="$2"
+
+  case "$expected" in
+    true|false)
+      case "$actual" in
+        1) actual=true ;;
+        0) actual=false ;;
+      esac
+      ;;
+  esac
+
+  [ "$actual" = "$expected" ]
+}
+
 _pref_matches() {
   local domain="$1" key="$2" expected="$3" host="${4:-}"
-  [ "$(_pref_read "$domain" "$key" "$host")" = "$expected" ]
+  _pref_values_match "$(_pref_read "$domain" "$key" "$host")" "$expected"
 }
 
 _pref_write() {
@@ -1007,7 +1043,7 @@ _pref_diff() {
   local label="$1" domain="$2" key="$3" expected="$4" host="${5:-}"
   local actual pad
   actual=$(_pref_read "$domain" "$key" "$host")
-  if [ "$actual" != "$expected" ]; then
+  if ! _pref_values_match "$actual" "$expected"; then
     pad=$(( 28 - ${#label} )); [ $pad -lt 1 ] && pad=1
     printf "    %s%*s${RED}%s${RESET} → ${GREEN}%s${RESET}\n" "$label" $pad "" "${actual:-<unset>}" "$expected"
   fi
@@ -1227,7 +1263,7 @@ else
     SUM_MACOS="${GREEN}✔${RESET} already configured"
   fi
 fi # end macOS preferences section
-unset -f _pref_read _pref_matches _pref_write _pref_diff
+unset -f _pref_read _pref_values_match _pref_matches _pref_write _pref_diff
 
 # 10. External Peripherals (Windows keyboard/mouse on Mac)
 step "External peripherals"
