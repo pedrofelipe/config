@@ -223,6 +223,77 @@ brew_cask_registered() {
   brew_available && brew list --cask "$1" &>/dev/null
 }
 
+brew_upgrade_formula_command() {
+  local pkg=$1 help
+
+  help="$(brew upgrade --help 2>/dev/null || true)"
+  if [[ "$help" == *"--no-ask"* ]]; then
+    printf 'HOMEBREW_NO_ASK=1 brew upgrade --no-ask %s\n' "$pkg"
+  elif [[ "$help" == *"HOMEBREW_NO_ASK"* ]]; then
+    printf 'HOMEBREW_NO_ASK=1 brew upgrade %s\n' "$pkg"
+  else
+    printf 'brew upgrade %s (non-interactive confirmation unavailable)\n' "$pkg"
+  fi
+}
+
+brew_upgrade_formula_command_run() {
+  local pkg=$1 display=$2 non_interactive=${3:-false} help
+
+  if ! $non_interactive; then
+    brew upgrade "$pkg" &>/dev/null
+    return $?
+  fi
+
+  help="$(brew upgrade --help 2>/dev/null || true)"
+  if [[ "$help" == *"--no-ask"* ]]; then
+    HOMEBREW_NO_ASK=1 brew upgrade --no-ask "$pkg" &>/dev/null
+  elif [[ "$help" == *"HOMEBREW_NO_ASK"* ]]; then
+    HOMEBREW_NO_ASK=1 brew upgrade "$pkg" &>/dev/null
+  else
+    warn "Homebrew upgrade does not support non-interactive confirmation; skipping $display upgrade"
+    return 1
+  fi
+}
+
+brew_trust_tap() {
+  local tap=$1
+
+  if $DRY_RUN; then
+    would "brew trust $tap"
+    return 0
+  fi
+
+  if ! brew trust --help &>/dev/null; then
+    warn "Homebrew brew trust is unavailable; continuing without trusting $tap"
+    return 0
+  fi
+
+  if brew trust "$tap" &>/dev/null; then
+    ok "Trusted Homebrew tap $tap"
+    return 0
+  fi
+
+  warn "Failed to trust Homebrew tap $tap; continuing anyway"
+  return 0
+}
+
+prepare_opencode_homebrew_tap() {
+  local tap=$1
+
+  if $DRY_RUN; then
+    would "brew tap $tap"
+    brew_trust_tap "$tap"
+    return 0
+  fi
+
+  if ! brew tap "$tap" &>/dev/null; then
+    warn "Failed to tap $tap"
+    return 1
+  fi
+
+  brew_trust_tap "$tap"
+}
+
 deploy_prompted_file() {
   local src=$1 dst=$2 display=$3 prompt_label=$4 dry_run_message=$5
   local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-} r
@@ -302,15 +373,18 @@ deploy_prompted_file() {
 # Pass --cmd=<name> to skip when a matching command exists outside Homebrew.
 brew_formula() {
   local pkg=$1 display=$1 external_cmd="" install_consent_granted=false install_prompt_default="y"
-  local arg cmd_path r
+  local upgrade_no_ask=false arg cmd_path r
   shift || true
 
-  [ "$pkg" = "opencode" ] && display="OpenCode"
+  case "$pkg" in
+    opencode|anomalyco/tap/opencode) display="OpenCode" ;;
+  esac
 
   for arg in "$@"; do
     case "$arg" in
       --install-consent-granted) install_consent_granted=true ;;
       --install-default=*) install_prompt_default=${arg#*=} ;;
+      --upgrade-no-ask) upgrade_no_ask=true ;;
       --cmd=*) external_cmd=${arg#*=} ;;
       *)
         if [ -z "$external_cmd" ]; then
@@ -324,15 +398,19 @@ brew_formula() {
 
   if command -v brew &>/dev/null && brew list --formula "$pkg" &>/dev/null; then
     if $DRY_RUN; then
-      would "brew upgrade $pkg (if outdated)"
+      if $upgrade_no_ask; then
+        would "$(brew_upgrade_formula_command "$pkg") (if outdated)"
+      else
+        would "brew upgrade $pkg (if outdated)"
+      fi
     else
-      if brew outdated --formula | grep -Fxq "$pkg"; then
+      if brew outdated --formula "$pkg" | grep -q .; then
         read -r -p "  Upgrade $display? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
           ok "$display upgrade skipped"
           BREW_OK=$((BREW_OK+1))
         else
-          if brew upgrade "$pkg" &>/dev/null; then
+          if brew_upgrade_formula_command_run "$pkg" "$display" "$upgrade_no_ask"; then
             updated "$display"
             BREW_UPDATED=$((BREW_UPDATED+1))
           else
@@ -465,12 +543,15 @@ brew_cask() {
 }
 
 install_opencode() {
-  local pkg="opencode" tap="anomalyco/tap" cmd_path
+  local pkg="opencode" tap="anomalyco/tap" formula="anomalyco/tap/opencode" cmd_path
   cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
 
-  if command -v brew &>/dev/null && brew list --formula "$pkg" &>/dev/null; then
+  if command -v brew &>/dev/null && brew list --formula "$formula" &>/dev/null; then
     mark_installer_detected opencode "$cmd_path"
-    brew_formula "$pkg"
+    if ! prepare_opencode_homebrew_tap "$tap"; then
+      return 1
+    fi
+    brew_formula "$formula" --upgrade-no-ask
     return $?
   fi
 
@@ -486,6 +567,9 @@ install_opencode() {
 
   if $DRY_RUN; then
     would "Would ask to install OpenCode via Homebrew ($tap); deploy config/agents/skills only if accepted and completed"
+    would "If accepted: brew tap $tap"
+    would "If accepted: brew trust $tap"
+    would "If accepted: brew install $formula"
     return 0
   fi
 
@@ -500,12 +584,11 @@ install_opencode() {
     return 0
   fi
 
-  if ! brew tap "$tap" &>/dev/null; then
-    warn "Failed to tap $tap"
+  if ! prepare_opencode_homebrew_tap "$tap"; then
     return 1
   fi
 
-  if brew_formula "$pkg" --install-consent-granted; then
+  if brew_formula "$formula" --install-consent-granted; then
     cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
     mark_installer_installed opencode "$cmd_path"
     return 0

@@ -143,8 +143,12 @@ brew install --cask claude-code
 #### OpenCode
 
 ```bash
+brew tap anomalyco/tap
+brew trust anomalyco/tap
 brew install anomalyco/tap/opencode
 ```
+
+`brew trust anomalyco/tap` lets Homebrew install and upgrade OpenCode from the trusted tap when tap trust is required.
 
 - [ ] Copy [`.config/opencode/opencode.jsonc`](/.config/opencode/opencode.jsonc) to `~/.config/opencode/`
 - [ ] Copy [`.config/opencode/agents/`](/.config/opencode/agents) to `~/.config/opencode/agents/`

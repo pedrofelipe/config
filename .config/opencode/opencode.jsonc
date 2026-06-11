@@ -36,36 +36,6 @@
   "permission": {
     "webfetch": "allow",
     "doom_loop": "ask",
-    "read": {
-      "~/.agents/**": "allow",
-      "~/.claude/**": "allow",
-      "~/.config/**": "allow",
-      "~/projects/**": "allow"
-    },
-    "edit": {
-      "~/.agents/**": "allow",
-      "~/.claude/**": "allow",
-      "~/.config/**": "allow",
-      "~/projects/**": "allow"
-    },
-    "glob": {
-      "~/.agents/**": "allow",
-      "~/.claude/**": "allow",
-      "~/.config/**": "allow",
-      "~/projects/**": "allow"
-    },
-    "grep": {
-      "~/.agents/**": "allow",
-      "~/.claude/**": "allow",
-      "~/.config/**": "allow",
-      "~/projects/**": "allow"
-    },
-    "list": {
-      "~/.agents/**": "allow",
-      "~/.claude/**": "allow",
-      "~/.config/**": "allow",
-      "~/projects/**": "allow"
-    },
     "external_directory": {
       "*": "ask",
       "~/.agents/**": "allow",
@@ -121,26 +91,26 @@
       "comm *": "allow",
       "paste *": "allow",
       "column *": "allow",
-      // System info
-      "which *": "allow",
-      "type *": "allow",
-      "file *": "allow",
-      "stat *": "allow",
-      "du *": "allow",
-      "df *": "allow",
-      "uname *": "allow",
-      "hostname": "allow",
-      "whoami": "allow",
-      "id": "allow",
-      "date *": "allow",
-      "pwd": "allow",
-      "echo *": "allow",
-      "printf *": "allow",
-      "mkdir *": "allow",
       "cp *": "allow",
+      "date *": "allow",
+      "df *": "allow",
+      "du *": "allow",
+      "echo *": "allow",
+      "file *": "allow",
+      "hostname": "allow",
+      "id": "allow",
+      "man *": "allow",
+      "mkdir *": "allow",
       "mv *": "allow",
+      "printf *": "allow",
+      "pwd": "allow",
       "rm *": "ask",
       "rm -rf *": "ask",
+      "stat *": "allow",
+      "type *": "allow",
+      "uname *": "allow",
+      "which *": "allow",
+      "whoami": "allow",
       "node *": "allow",
       // Package scripts
       "pnpm lint*": "allow",
