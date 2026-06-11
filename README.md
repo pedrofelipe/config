@@ -28,6 +28,7 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 | `istatmenus.menubar.plist` | iStat Menus display preferences. Which modules show in the menubar and menu |
 | `.claude/settings.json` | Global Claude Code settings. Permissions, hooks, plugins |
 | `.config/ghostty/config` | Ghostty terminal settings. Theme, font, keybinds, shell integration |
+| `.config/ghostty/themes/` | Custom Ghostty themes |
 | `.config/opencode/opencode.jsonc` | OpenCode settings. Model, MCP servers, permissions, autoupdate |
 | `.config/opencode/agents/` | Global OpenCode agents (copilot workflow) |
 | `.config/opencode/skills/` | Global OpenCode skills |
@@ -163,6 +164,20 @@ npx -y skills add https://github.com/emilkowalski/skill \
   --global \
   --agent opencode \
   --yes
+
+npx -y skills add https://github.com/ibelick/ui-skills \
+  --skill baseline-ui \
+  --skill fixing-accessibility \
+  --skill fixing-motion-performance \
+  --global \
+  --agent opencode \
+  --yes
+
+npx -y skills add https://github.com/millionco/react-doctor \
+  --skill react-doctor \
+  --global \
+  --agent opencode \
+  --yes
 ```
 
 **Agents**
@@ -192,6 +207,10 @@ npx -y skills add https://github.com/emilkowalski/skill \
 | `vercel-composition-patterns` | Composition patterns for building flexible, maintainable React components |
 | `vercel-react-best-practices` | React performance optimization guidelines for components, data fetching, and bundle efficiency |
 | `emil-design-eng` | Design engineering principles and polished UI guidelines |
+| `baseline-ui` | Build strong baseline UI structure, spacing, and visual hierarchy |
+| `fixing-accessibility` | Find and fix common accessibility issues in interfaces |
+| `fixing-motion-performance` | Improve animation smoothness and avoid expensive motion patterns |
+| `react-doctor` | Diagnose React performance, correctness, and architecture issues |
 | `simplify` | Review changed code for reuse, quality, efficiency, and clarity |
 
 ### 9. Set up Ghostty
@@ -201,10 +220,12 @@ brew install --cask ghostty
 ```
 
 - [ ] Copy [`.config/ghostty/config`](/.config/ghostty/config) to `~/.config/ghostty/`
+- [ ] Copy [`.config/ghostty/themes/`](/.config/ghostty/themes) to `~/.config/ghostty/themes/`
 
 ```bash
-mkdir -p ~/.config/ghostty
+mkdir -p ~/.config/ghostty/themes
 cp .config/ghostty/config ~/.config/ghostty/config
+cp .config/ghostty/themes/* ~/.config/ghostty/themes/
 ```
 
 ### 10. macOS Preferences

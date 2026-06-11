@@ -7,9 +7,6 @@ textVerbosity: low
 permission:
   bash:
     "*": deny
-    "git diff *": allow
-    "git log *": allow
-    "git show *": allow
   edit: deny
   glob:
     "~/.claude/**": allow

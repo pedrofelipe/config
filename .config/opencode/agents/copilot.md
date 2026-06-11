@@ -4,7 +4,7 @@ mode: primary
 model: openai/gpt-5.5
 variant: high
 textVerbosity: low
-color: "#fbad41"
+color: "#a684ff"
 permission:
   bash: deny
   edit: deny

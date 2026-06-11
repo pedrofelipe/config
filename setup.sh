@@ -69,12 +69,115 @@ BREW_OK=0
 BREW_UPDATED=0
 BREW_INSTALLED=0
 
+# Installer state for later gating of agent/config setup.
+OPENCODE_AVAILABLE=false
+OPENCODE_DETECTED=false
+OPENCODE_INSTALLED=false
+OPENCODE_INSTALL_DECLINED=false
+OPENCODE_DETECTED_PATH=""
+CLAUDE_CODE_AVAILABLE=false
+CLAUDE_CODE_DETECTED=false
+CLAUDE_CODE_INSTALLED=false
+CLAUDE_CODE_INSTALL_DECLINED=false
+CLAUDE_CODE_DETECTED_PATH=""
+GIT_COMMIT_AUTHOR_IDENTITY_CONFIGURE=false
+
 step()      { echo -e "\n${BLUE}${BOLD}▶ $1${RESET}"; }
 installed() { echo -e "${GREEN}✔ Installed $1${RESET}"; INSTALLED+=("$1"); }
 ok()        { echo -e "${GREY}✔ $1${RESET}"; }
 updated()   { echo -e "${BLUE}↑ Updated $1${RESET}"; UPDATED+=("$1"); }
 warn()      { echo -e "${YELLOW}⚠ $1${RESET}"; WARNINGS+=("$1"); }
 would()     { echo -e "  ${BOLD}→${RESET} $1"; }
+
+install_consent() {
+  local prompt=$1 default=${2:-n} r suffix
+
+  case "$default" in
+    y|Y) suffix="[Y/n]" ;;
+    *) suffix="[y/N]" ;;
+  esac
+
+  read -r -p "  $prompt $suffix " r
+  if [[ "$default" =~ ^[yY] ]]; then
+    [[ ! "$r" =~ ^[nN] ]]
+  else
+    [[ "$r" =~ ^[yY] ]]
+  fi
+}
+
+mark_installer_detected() {
+  local target=$1 path=${2:-}
+
+  case "$target" in
+    opencode)
+      OPENCODE_AVAILABLE=true
+      OPENCODE_DETECTED=true
+      OPENCODE_DETECTED_PATH=$path
+      ;;
+    claude_code)
+      CLAUDE_CODE_AVAILABLE=true
+      CLAUDE_CODE_DETECTED=true
+      CLAUDE_CODE_DETECTED_PATH=$path
+      ;;
+  esac
+}
+
+mark_installer_installed() {
+  local target=$1 path=${2:-}
+
+  mark_installer_detected "$target" "$path"
+  case "$target" in
+    opencode) OPENCODE_INSTALLED=true ;;
+    claude_code) CLAUDE_CODE_INSTALLED=true ;;
+  esac
+}
+
+mark_installer_declined() {
+  case "$1" in
+    opencode) OPENCODE_INSTALL_DECLINED=true ;;
+    claude_code) CLAUDE_CODE_INSTALL_DECLINED=true ;;
+  esac
+}
+
+installer_available() {
+  case "$1" in
+    opencode) $OPENCODE_AVAILABLE ;;
+    claude_code) $CLAUDE_CODE_AVAILABLE ;;
+    *) return 1 ;;
+  esac
+}
+
+installer_detected() {
+  case "$1" in
+    opencode) $OPENCODE_DETECTED ;;
+    claude_code) $CLAUDE_CODE_DETECTED ;;
+    *) return 1 ;;
+  esac
+}
+
+installer_installed() {
+  case "$1" in
+    opencode) $OPENCODE_INSTALLED ;;
+    claude_code) $CLAUDE_CODE_INSTALLED ;;
+    *) return 1 ;;
+  esac
+}
+
+installer_declined() {
+  case "$1" in
+    opencode) $OPENCODE_INSTALL_DECLINED ;;
+    claude_code) $CLAUDE_CODE_INSTALL_DECLINED ;;
+    *) return 1 ;;
+  esac
+}
+
+installer_detected_path() {
+  case "$1" in
+    opencode) printf '%s\n' "$OPENCODE_DETECTED_PATH" ;;
+    claude_code) printf '%s\n' "$CLAUDE_CODE_DETECTED_PATH" ;;
+    *) return 1 ;;
+  esac
+}
 
 join_arr() {
   local sep=$1; shift
@@ -88,20 +191,74 @@ join_arr() {
 
 DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+app_bundle_path() {
+  local app=$1 user_app
+  if [ -d "$app" ]; then
+    echo "$app"
+    return 0
+  fi
+
+  case "$app" in
+    /Applications/*)
+      user_app="$HOME/Applications/${app#/Applications/}"
+      if [ -d "$user_app" ]; then
+        echo "$user_app"
+        return 0
+      fi
+      ;;
+  esac
+
+  return 1
+}
+
+app_bundle_exists() {
+  app_bundle_path "$1" >/dev/null
+}
+
+brew_available() {
+  command -v brew &>/dev/null
+}
+
+brew_cask_registered() {
+  brew_available && brew list --cask "$1" &>/dev/null
+}
+
 deploy_prompted_file() {
   local src=$1 dst=$2 display=$3 prompt_label=$4 dry_run_message=$5
   local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-} r
   _deploy_result=""
 
   if $DRY_RUN; then
-    would "$dry_run_message"
+    if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+      warn "$display destination exists and is not a file: $dst"
+      _deploy_result="blocked"
+      return 1
+    fi
+
+    if [ -f "$dst" ]; then
+      if diff -q "$dst" "$src" &>/dev/null; then
+        ok "$display already up to date"
+      else
+        would "Ask to overwrite $prompt_label at $dst"
+      fi
+    else
+      would "$dry_run_message"
+    fi
     _deploy_result="dry-run"
     return 0
   fi
 
   if [ -n "$dest_dir" ]; then
-    mkdir -p "$dest_dir"
-    [ -n "$dir_mode" ] && chmod "$dir_mode" "$dest_dir"
+    if ! mkdir -p "$dest_dir"; then
+      warn "Failed to create directory for $display: $dest_dir"
+      _deploy_result="failed"
+      return 1
+    fi
+    if [ -n "$dir_mode" ] && ! chmod "$dir_mode" "$dest_dir"; then
+      warn "Failed to set permissions on $display directory: $dest_dir"
+      _deploy_result="failed"
+      return 1
+    fi
   fi
 
   if [ -e "$dst" ] && [ ! -f "$dst" ]; then
@@ -125,75 +282,130 @@ deploy_prompted_file() {
     fi
   fi
 
-  cp "$src" "$dst"
-  [ -n "$file_mode" ] && chmod "$file_mode" "$dst"
-  installed "$display"
-  _deploy_result="installed"
-}
-
-# Install or upgrade a Homebrew formula
-brew_formula() {
-  local pkg=$1 r
-  if ! command -v brew &>/dev/null; then
-    if $DRY_RUN; then
-      would "brew install $pkg"
-      return 0
-    fi
-    warn "Homebrew not found, skipping $pkg"
+  if ! cp "$src" "$dst"; then
+    warn "Failed to copy $display to $dst"
+    _deploy_result="failed"
     return 1
   fi
-  if brew list --formula "$pkg" &>/dev/null; then
+  if [ -n "$file_mode" ] && ! chmod "$file_mode" "$dst"; then
+    warn "Failed to set permissions on $display: $dst"
+    _deploy_result="failed"
+    return 1
+  fi
+  installed "$display"
+  _deploy_result="installed"
+  return 0
+}
+
+# Install or upgrade a Homebrew formula.
+# Pass --install-consent-granted when the caller already asked about first-time install.
+# Pass --cmd=<name> to skip when a matching command exists outside Homebrew.
+brew_formula() {
+  local pkg=$1 display=$1 external_cmd="" install_consent_granted=false install_prompt_default="y"
+  local arg cmd_path r
+  shift || true
+
+  [ "$pkg" = "opencode" ] && display="OpenCode"
+
+  for arg in "$@"; do
+    case "$arg" in
+      --install-consent-granted) install_consent_granted=true ;;
+      --install-default=*) install_prompt_default=${arg#*=} ;;
+      --cmd=*) external_cmd=${arg#*=} ;;
+      *)
+        if [ -z "$external_cmd" ]; then
+          external_cmd=$arg
+        else
+          warn "Ignoring unknown brew_formula option: $arg"
+        fi
+        ;;
+    esac
+  done
+
+  if command -v brew &>/dev/null && brew list --formula "$pkg" &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade $pkg (if outdated)"
     else
       if brew outdated --formula | grep -Fxq "$pkg"; then
-        read -r -p "  Upgrade $pkg? [Y/n] " r
+        read -r -p "  Upgrade $display? [Y/n] " r
         if [[ "$r" =~ ^[nN] ]]; then
-          ok "$pkg upgrade skipped"
+          ok "$display upgrade skipped"
           BREW_OK=$((BREW_OK+1))
         else
           if brew upgrade "$pkg" &>/dev/null; then
-            updated "$pkg"
+            updated "$display"
             BREW_UPDATED=$((BREW_UPDATED+1))
           else
-            warn "Failed to upgrade $pkg"
+            warn "Failed to upgrade $display"
             return 1
           fi
         fi
       else
-        ok "$pkg already up to date"
+        ok "$display already up to date"
         BREW_OK=$((BREW_OK+1))
       fi
     fi
+  elif [ -n "$external_cmd" ] && cmd_path="$(command -v "$external_cmd" 2>/dev/null)"; then
+    if command -v brew &>/dev/null; then
+      ok "$display found at $cmd_path (not Homebrew-managed), skipping Homebrew install"
+    else
+      ok "$display found at $cmd_path (PATH; Homebrew unavailable), skipping Homebrew install"
+    fi
+  elif ! command -v brew &>/dev/null; then
+    if $DRY_RUN; then
+      would "Would ask to install $display via Homebrew (requires Homebrew)"
+      return 0
+    fi
+    warn "Homebrew not found, skipping $display"
+    return 1
   else
     if $DRY_RUN; then
-      would "brew install $pkg"
+      if $install_consent_granted; then
+        would "brew install $pkg"
+      else
+        would "Would ask to install $display via Homebrew"
+      fi
     else
+      if ! $install_consent_granted && ! install_consent "Install $display via Homebrew?" "$install_prompt_default"; then
+        ok "$display skipped"
+        return 2
+      fi
       if brew install "$pkg" &>/dev/null; then
-        installed "$pkg"
+        installed "$display"
         BREW_INSTALLED=$((BREW_INSTALLED+1))
       else
-        warn "Failed to install $pkg"
+        warn "Failed to install $display"
         return 1
       fi
     fi
   fi
 }
 
-# Install or upgrade a Homebrew cask
-# Pass a second argument (CLI command name) to detect installs outside Homebrew
+# Install or upgrade a Homebrew cask.
+# Pass a second argument or --cmd=<name> to detect installs outside Homebrew.
+# Pass --install-consent-granted when the caller already asked about first-time install.
 brew_cask() {
   local cask=$1
-  local cmd=$2 r
-  if ! command -v brew &>/dev/null; then
-    if $DRY_RUN; then
-      would "brew install --cask $cask"
-      return 0
-    fi
-    warn "Homebrew not found, skipping $cask"
-    return 1
-  fi
-  if brew list --cask "$cask" &>/dev/null; then
+  local cmd="" install_consent_granted=false install_prompt_default="y"
+  local arg cmd_path r
+  shift || true
+
+  for arg in "$@"; do
+    case "$arg" in
+      --install-consent-granted) install_consent_granted=true ;;
+      --install-default=*) install_prompt_default=${arg#*=} ;;
+      --cmd=*) cmd=${arg#*=} ;;
+      *)
+        if [ -z "$cmd" ]; then
+          cmd=$arg
+        else
+          warn "Ignoring unknown brew_cask option: $arg"
+        fi
+        ;;
+    esac
+  done
+
+  if command -v brew &>/dev/null && brew list --cask "$cask" &>/dev/null; then
     if $DRY_RUN; then
       would "brew upgrade --cask $cask (if outdated)"
     else
@@ -216,12 +428,31 @@ brew_cask() {
         BREW_OK=$((BREW_OK+1))
       fi
     fi
-  elif [ -n "$cmd" ] && command -v "$cmd" &>/dev/null; then
-    warn "$cask is installed outside Homebrew, skipping"
+  elif [ -n "$cmd" ] && cmd_path="$(command -v "$cmd" 2>/dev/null)"; then
+    if command -v brew &>/dev/null; then
+      ok "$cask found at $cmd_path (not Homebrew-managed), skipping Homebrew install"
+    else
+      ok "$cask found at $cmd_path (PATH; Homebrew unavailable), skipping Homebrew install"
+    fi
+  elif ! command -v brew &>/dev/null; then
+    if $DRY_RUN; then
+      would "Would ask to install $cask via Homebrew (requires Homebrew)"
+      return 0
+    fi
+    warn "Homebrew not found, skipping $cask"
+    return 1
   else
     if $DRY_RUN; then
-      would "brew install --cask $cask"
+      if $install_consent_granted; then
+        would "brew install --cask $cask"
+      else
+        would "Would ask to install $cask via Homebrew"
+      fi
     else
+      if ! $install_consent_granted && ! install_consent "Install $cask via Homebrew?" "$install_prompt_default"; then
+        ok "$cask skipped"
+        return 2
+      fi
       if brew install --cask "$cask" &>/dev/null; then
         installed "$cask"
         BREW_INSTALLED=$((BREW_INSTALLED+1))
@@ -233,17 +464,435 @@ brew_cask() {
   fi
 }
 
+install_opencode() {
+  local pkg="opencode" tap="anomalyco/tap" cmd_path
+  cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
+
+  if command -v brew &>/dev/null && brew list --formula "$pkg" &>/dev/null; then
+    mark_installer_detected opencode "$cmd_path"
+    brew_formula "$pkg"
+    return $?
+  fi
+
+  if [ -n "$cmd_path" ]; then
+    mark_installer_detected opencode "$cmd_path"
+    if command -v brew &>/dev/null; then
+      ok "OpenCode found at $cmd_path (not Homebrew-managed), skipping Homebrew install"
+    else
+      ok "OpenCode found at $cmd_path (PATH; Homebrew unavailable), skipping Homebrew install"
+    fi
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    would "Would ask to install OpenCode via Homebrew ($tap); deploy config/agents/skills only if accepted and completed"
+    return 0
+  fi
+
+  if ! command -v brew &>/dev/null; then
+    warn "Homebrew not found, skipping OpenCode"
+    return 1
+  fi
+
+  if ! install_consent "Install OpenCode via Homebrew from $tap?" n; then
+    mark_installer_declined opencode
+    ok "OpenCode skipped"
+    return 0
+  fi
+
+  if ! brew tap "$tap" &>/dev/null; then
+    warn "Failed to tap $tap"
+    return 1
+  fi
+
+  if brew_formula "$pkg" --install-consent-granted; then
+    cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
+    mark_installer_installed opencode "$cmd_path"
+    return 0
+  fi
+
+  return 1
+}
+
+install_claude_code() {
+  local cask="claude-code" cmd="claude" cmd_path
+  cmd_path="$(command -v "$cmd" 2>/dev/null || true)"
+
+  if command -v brew &>/dev/null && brew list --cask "$cask" &>/dev/null; then
+    mark_installer_detected claude_code "$cmd_path"
+    brew_cask "$cask" "$cmd"
+    return $?
+  fi
+
+  if [ -n "$cmd_path" ]; then
+    mark_installer_detected claude_code "$cmd_path"
+    if command -v brew &>/dev/null; then
+      ok "Claude Code found at $cmd_path (not Homebrew-managed), skipping Homebrew install"
+    else
+      ok "Claude Code found at $cmd_path (PATH; Homebrew unavailable), skipping Homebrew install"
+    fi
+    return 0
+  fi
+
+  if $DRY_RUN; then
+    would "Would ask to install Claude Code via Homebrew; deploy settings/agents/skills only if accepted and completed"
+    return 0
+  fi
+
+  if ! command -v brew &>/dev/null; then
+    warn "Homebrew not found, skipping Claude Code"
+    return 1
+  fi
+
+  if ! install_consent "Install Claude Code via Homebrew?" y; then
+    mark_installer_declined claude_code
+    ok "Claude Code skipped"
+    return 0
+  fi
+
+  if brew_cask "$cask" "$cmd" --install-consent-granted; then
+    cmd_path="$(command -v "$cmd" 2>/dev/null || true)"
+    mark_installer_installed claude_code "$cmd_path"
+    return 0
+  fi
+
+  return 1
+}
+
+refresh_dotfiles_summary() {
+  [ ${#CF_OK[@]} -gt 0 ] && SUM_DOTFILES="${GREEN}✔${RESET} $(join_arr ' · ' "${CF_OK[@]}")"
+}
+
+skip_installer_setup() {
+  local target=$1 display=$2 scope=$3
+
+  if installer_declined "$target"; then
+    ok "$display $scope skipped (install declined)"
+  elif $DRY_RUN; then
+    ok "$display $scope skipped (install was not completed)"
+  else
+    ok "$display $scope skipped (not installed)"
+  fi
+}
+
+deploy_claude_code_config() {
+  local _claude_settings_src _claude_settings_dest
+
+  if ! installer_available claude_code; then
+    skip_installer_setup claude_code "Claude Code" "settings/agents/skills"
+    return 0
+  fi
+
+  _claude_settings_src="$DOTFILES_DIR/.claude/settings.json"
+  _claude_settings_dest="$HOME/.claude/settings.json"
+  if [ -f "$_claude_settings_src" ]; then
+    if deploy_prompted_file "$_claude_settings_src" "$_claude_settings_dest" "Claude Code/settings.json" "claude/settings.json" "cp claude/settings.json to $_claude_settings_dest" "$HOME/.claude"; then
+      [ "$_deploy_result" != "dry-run" ] && CF_OK+=("Claude Code/settings.json")
+    fi
+  fi
+}
+
+deploy_opencode_config() {
+  local OPENCODE_CONFIG_DIR _oc_file _oc_src _oc_dest
+  local f d dest _name _dname _src_dir _dest_dir _f _dest_f _src _dest r
+  local item name _any_changed _copy_failed
+  local -a _changed
+
+  if ! installer_available opencode; then
+    skip_installer_setup opencode "OpenCode" "config/agents/skills"
+    return 0
+  fi
+
+  OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
+  _oc_file="opencode.jsonc"
+  _oc_src="$DOTFILES_DIR/.config/opencode/$_oc_file"
+  _oc_dest="$OPENCODE_CONFIG_DIR/$_oc_file"
+  if [ -f "$_oc_src" ]; then
+    if deploy_prompted_file "$_oc_src" "$_oc_dest" "OpenCode/$_oc_file" "OpenCode/$_oc_file" "cp .config/opencode/$_oc_file to $_oc_dest" "$OPENCODE_CONFIG_DIR"; then
+      [ "$_deploy_result" != "dry-run" ] && CF_OK+=("OpenCode/$_oc_file")
+    fi
+  fi
+
+  if [ -d "$DOTFILES_DIR/.config/opencode/agents" ]; then
+    if $DRY_RUN; then
+      would "sync OpenCode agents to $OPENCODE_CONFIG_DIR/agents/"
+    else
+      if ! mkdir -p "$OPENCODE_CONFIG_DIR/agents"; then
+        warn "Failed to create directory for OpenCode agents: $OPENCODE_CONFIG_DIR/agents"
+      else
+        _changed=()
+        for f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
+          [ -f "$f" ] || continue
+          dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$f")"
+          { [ ! -f "$dest" ] || ! diff -q "$dest" "$f" &>/dev/null; } && _changed+=("$(basename "$f")")
+        done
+        for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
+          [ -d "$d" ] || continue
+          dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$d")"
+          { [ ! -d "$dest" ] || ! diff -rq "$dest" "$d" &>/dev/null; } && _changed+=("$(basename "$d")/")
+        done
+        if [ ${#_changed[@]} -eq 0 ]; then
+          ok "OpenCode agents already up to date"
+          CF_OK+=("OpenCode/agents")
+        else
+          for _name in "${_changed[@]}"; do
+            if [[ "$_name" == */ ]]; then
+              _dname="${_name%/}"
+              _src_dir="$DOTFILES_DIR/.config/opencode/agents/$_dname"
+              _dest_dir="$OPENCODE_CONFIG_DIR/agents/$_dname"
+              for _f in "$_src_dir"/*.md; do
+                [ -f "$_f" ] || continue
+                _dest_f="$_dest_dir/$(basename "$_f")"
+                if [ -f "$_dest_f" ]; then git --no-pager diff --no-index --color "$_dest_f" "$_f"; else git --no-pager diff --no-index --color /dev/null "$_f"; fi
+              done
+            else
+              _src="$DOTFILES_DIR/.config/opencode/agents/$_name"
+              _dest="$OPENCODE_CONFIG_DIR/agents/$_name"
+              if [ -f "$_dest" ]; then git --no-pager diff --no-index --color "$_dest" "$_src"; else git --no-pager diff --no-index --color /dev/null "$_src"; fi
+            fi
+          done
+          read -r -p "  Sync ${#_changed[@]} OpenCode agent(s)? [Y/n] " r
+          if [[ ! "$r" =~ ^[nN] ]]; then
+            _copy_failed=false
+            for _f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
+              [ -f "$_f" ] || continue
+              if ! cp "$_f" "$OPENCODE_CONFIG_DIR/agents/"; then
+                warn "Failed to copy OpenCode agent $(basename "$_f") to $OPENCODE_CONFIG_DIR/agents/"
+                _copy_failed=true
+              fi
+            done
+            for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
+              [ -d "$d" ] || continue
+              if ! cp -r "$d" "$OPENCODE_CONFIG_DIR/agents/"; then
+                warn "Failed to copy OpenCode agent $(basename "$d")/ to $OPENCODE_CONFIG_DIR/agents/"
+                _copy_failed=true
+              fi
+            done
+            if ! $_copy_failed; then
+              installed "OpenCode agents (${#_changed[@]})"
+              CF_OK+=("OpenCode/agents")
+            fi
+          else
+            ok "OpenCode agents unchanged"
+          fi
+        fi
+      fi
+    fi
+  fi
+
+  if [ -d "$DOTFILES_DIR/.config/opencode/skills" ]; then
+    if $DRY_RUN; then
+      would "sync OpenCode skills to $OPENCODE_CONFIG_DIR/skills/"
+    else
+      if ! mkdir -p "$OPENCODE_CONFIG_DIR/skills"; then
+        warn "Failed to create directory for OpenCode skills: $OPENCODE_CONFIG_DIR/skills"
+      else
+        _any_changed=false
+        for item in "$DOTFILES_DIR/.config/opencode/skills"/*; do
+          [ -e "$item" ] || continue
+          name=$(basename "$item")
+          dest="$OPENCODE_CONFIG_DIR/skills/$name"
+          if [ -d "$item" ]; then
+            ! diff -rq "$item" "$dest" &>/dev/null && _any_changed=true && break
+          elif [ -f "$item" ]; then
+            { [ ! -f "$dest" ] || ! diff -q "$dest" "$item" &>/dev/null; } && _any_changed=true && break
+          fi
+        done
+        if ! $_any_changed; then
+          ok "OpenCode skills already up to date"
+          CF_OK+=("OpenCode/skills")
+        else
+          read -r -p "  Sync OpenCode skills? [Y/n] " r
+          if [[ ! "$r" =~ ^[nN] ]]; then
+            if cp -r "$DOTFILES_DIR/.config/opencode/skills/." "$OPENCODE_CONFIG_DIR/skills/"; then
+              installed "OpenCode skills"
+              CF_OK+=("OpenCode/skills")
+            else
+              warn "Failed to copy OpenCode skills to $OPENCODE_CONFIG_DIR/skills/"
+            fi
+          else
+            ok "OpenCode skills unchanged"
+          fi
+        fi
+      fi
+    fi
+  fi
+}
+
+install_external_opencode_skills() {
+  local _entry _dir _skill _path r
+  local _vercel_needed=false _emil_needed=false _ibelick_needed=false _react_doctor_needed=false
+  local -a _OPENCODE_SKILL_CMD_VERCEL _OPENCODE_SKILL_CMD_EMIL _OPENCODE_SKILL_CMD_IBELICK _OPENCODE_SKILL_CMD_REACT_DOCTOR _stale_skills _skill_roots _target_skills _missing_skills
+
+  if ! installer_available opencode; then
+    skip_installer_setup opencode "OpenCode" "external skills/cleanup"
+    return 0
+  fi
+
+  step "Installing external OpenCode skills"
+
+  _skill_roots=(
+    "$HOME/.config/opencode/skills"
+    "$HOME/.agents/skills"
+    "$HOME/.claude/skills"
+  )
+
+  opencode_external_skill_installed() {
+    local skill=$1 skill_root skill_file
+
+    for skill_root in "${_skill_roots[@]}"; do
+      skill_file="$skill_root/$skill/SKILL.md"
+      [ -f "$skill_file" ] && grep -Eq "^[[:space:]]*name:[[:space:]]*[\"']?${skill}[\"']?[[:space:]]*$" "$skill_file" && return 0
+    done
+
+    return 1
+  }
+
+  _target_skills=(
+    vercel-react-best-practices
+    vercel-composition-patterns
+    emil-design-eng
+    baseline-ui
+    fixing-accessibility
+    fixing-motion-performance
+    react-doctor
+  )
+
+  _missing_skills=()
+  for _skill in "${_target_skills[@]}"; do
+    opencode_external_skill_installed "$_skill" || _missing_skills+=("$_skill")
+  done
+
+  for _skill in "${_missing_skills[@]}"; do
+    case "$_skill" in
+      vercel-react-best-practices|vercel-composition-patterns) _vercel_needed=true ;;
+      emil-design-eng) _emil_needed=true ;;
+      baseline-ui|fixing-accessibility|fixing-motion-performance) _ibelick_needed=true ;;
+      react-doctor) _react_doctor_needed=true ;;
+    esac
+  done
+
+  _OPENCODE_SKILL_CMD_VERCEL=(
+    npx -y skills add https://github.com/vercel-labs/agent-skills
+    --skill vercel-react-best-practices
+    --skill vercel-composition-patterns
+    --global
+    --agent opencode
+    --yes
+  )
+  _OPENCODE_SKILL_CMD_EMIL=(
+    npx -y skills add https://github.com/emilkowalski/skill
+    --skill emil-design-eng
+    --global
+    --agent opencode
+    --yes
+  )
+  _OPENCODE_SKILL_CMD_IBELICK=(
+    npx -y skills add https://github.com/ibelick/ui-skills
+    --skill baseline-ui
+    --skill fixing-accessibility
+    --skill fixing-motion-performance
+    --global
+    --agent opencode
+    --yes
+  )
+  _OPENCODE_SKILL_CMD_REACT_DOCTOR=(
+    npx -y skills add https://github.com/millionco/react-doctor
+    --skill react-doctor
+    --global
+    --agent opencode
+    --yes
+  )
+
+  if [ ${#_missing_skills[@]} -eq 0 ]; then
+    ok "External OpenCode skills installed locally/current enough"
+  elif $DRY_RUN; then
+    would "Would ask to install/update missing external OpenCode skill(s): $(join_arr ', ' "${_missing_skills[@]}")"
+    $_vercel_needed && would "${_OPENCODE_SKILL_CMD_VERCEL[*]}"
+    $_emil_needed && would "${_OPENCODE_SKILL_CMD_EMIL[*]}"
+    $_ibelick_needed && would "${_OPENCODE_SKILL_CMD_IBELICK[*]}"
+    $_react_doctor_needed && would "${_OPENCODE_SKILL_CMD_REACT_DOCTOR[*]}"
+    would "remove stale ~/.config/opencode/skills/react-best-practices if it is the Vercel React skill after install/update"
+    would "remove stale ~/.config/opencode/skills/composition-patterns if it is the Vercel composition skill after install/update"
+  elif command -v npx &>/dev/null; then
+    read -r -p "  Install/update missing external OpenCode skill(s): $(join_arr ', ' "${_missing_skills[@]}")? [Y/n] " r
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "External skills skipped"
+    else
+      if $_vercel_needed; then
+        if "${_OPENCODE_SKILL_CMD_VERCEL[@]}" &>/dev/null; then
+          installed "vercel-react-best-practices and vercel-composition-patterns skills"
+        else
+          warn "Failed to install vercel-react-best-practices and vercel-composition-patterns skills"
+        fi
+      fi
+
+      if $_emil_needed; then
+        if "${_OPENCODE_SKILL_CMD_EMIL[@]}" &>/dev/null; then
+          installed "emil-design-eng"
+        else
+          warn "Failed to install emil-design-eng skill"
+        fi
+      fi
+
+      if $_ibelick_needed; then
+        if "${_OPENCODE_SKILL_CMD_IBELICK[@]}" &>/dev/null; then
+          installed "baseline-ui, fixing-accessibility, and fixing-motion-performance skills"
+        else
+          warn "Failed to install baseline-ui, fixing-accessibility, and fixing-motion-performance skills"
+        fi
+      fi
+
+      if $_react_doctor_needed; then
+        if "${_OPENCODE_SKILL_CMD_REACT_DOCTOR[@]}" &>/dev/null; then
+          installed "react-doctor"
+        else
+          warn "Failed to install react-doctor skill"
+        fi
+      fi
+
+      _stale_skills=(
+        "react-best-practices:vercel-react-best-practices"
+        "composition-patterns:vercel-composition-patterns"
+      )
+      for _entry in "${_stale_skills[@]}"; do
+        _dir="${_entry%%:*}"
+        _skill="${_entry#*:}"
+        _path="$HOME/.config/opencode/skills/$_dir"
+        if [ -f "$_path/SKILL.md" ] && grep -Fxq "name: $_skill" "$_path/SKILL.md"; then
+          read -r -p "  Remove stale OpenCode skill $_dir? [Y/n] " r
+          if [[ "$r" =~ ^[nN] ]]; then
+            ok "Stale OpenCode skill $_dir unchanged"
+          else
+            rm -rf "$_path"
+            ok "Removed stale OpenCode skill $_dir"
+          fi
+        fi
+      done
+    fi
+  else
+    warn "npx not found, skipping missing external skills: $(join_arr ', ' "${_missing_skills[@]}")"
+  fi
+
+  unset -f opencode_external_skill_installed
+}
+
 reinstall_missing_cask_app() {
   local name=$1 cask=$2 app=$3 r
 
   warn "$name Homebrew cask is registered, but $app is missing"
+  if $DRY_RUN; then
+    would "Would ask to reinstall $name via Homebrew"
+    return 0
+  fi
+
   read -r -p "  Reinstall $name via Homebrew? [Y/n] " r
   if [[ "$r" =~ ^[nN] ]]; then
     ok "$name reinstall skipped"
     return 2
   fi
 
-  if brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+  if brew reinstall --cask "$cask" &>/dev/null && app_bundle_exists "$app"; then
     installed "$name"
     return 0
   fi
@@ -256,15 +905,24 @@ collect_git_commit_author_identity() {
   step "Setting Git commit author identity"
 
   if $DRY_RUN; then
-    would "collect Git commit author name (default: Pedro Menezes) and required Git commit author email"
-    would "use the collected Git commit author identity for global Git config"
+    would "ask whether to configure Git commit author identity"
+    would "collect Git commit author name (default: Pedro Menezes) and required Git commit author email if accepted"
+    would "use the collected Git commit author identity for global Git config if accepted"
     echo "  Git uses this identity for commit authorship."
     echo "  GitHub uses the email to associate commits with your account."
+    echo "  .gitconfig deployment is independent of Git commit author identity."
     return 0
   fi
 
   echo "  Git uses this identity for commit authorship."
   echo "  GitHub uses the email to associate commits with your account."
+
+  if ! install_consent "Configure Git commit author identity?" y; then
+    ok "Git commit author identity skipped"
+    return 0
+  fi
+
+  GIT_COMMIT_AUTHOR_IDENTITY_CONFIGURE=true
 
   read -r -p "  Git commit author name [Pedro Menezes]: " GIT_COMMIT_AUTHOR_NAME
   GIT_COMMIT_AUTHOR_NAME="${GIT_COMMIT_AUTHOR_NAME:-Pedro Menezes}"
@@ -312,7 +970,7 @@ done
 # Git config (identity collected upfront so dry runs stay non-interactive)
 if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
   if $DRY_RUN; then
-    would "cp .gitconfig to ~/.gitconfig and apply Git commit author identity to global Git config"
+    would "cp .gitconfig to ~/.gitconfig (independent of Git commit author identity)"
   else
     _gitconfig_needs_copy=true
     _current_email=$(git config --global user.email 2>/dev/null)
@@ -341,11 +999,20 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
     else
       ok ".gitconfig template unchanged"
     fi
-    git config --global user.name "$GIT_COMMIT_AUTHOR_NAME"
-    git config --global user.email "$GIT_COMMIT_AUTHOR_EMAIL"
-    ok "Git commit author identity configured ($GIT_COMMIT_AUTHOR_NAME <$GIT_COMMIT_AUTHOR_EMAIL>)"
+    if $GIT_COMMIT_AUTHOR_IDENTITY_CONFIGURE; then
+      _current_name=$(git config --global user.name 2>/dev/null)
+      if [ "$_current_name" != "$GIT_COMMIT_AUTHOR_NAME" ] || [ "$_current_email" != "$GIT_COMMIT_AUTHOR_EMAIL" ]; then
+        git config --global user.name "$GIT_COMMIT_AUTHOR_NAME"
+        git config --global user.email "$GIT_COMMIT_AUTHOR_EMAIL"
+        ok "Git commit author identity configured ($GIT_COMMIT_AUTHOR_NAME <$GIT_COMMIT_AUTHOR_EMAIL>)"
+      else
+        ok "Git commit author identity already configured"
+      fi
+    else
+      ok "Git commit author identity skipped"
+    fi
     CF_OK+=(".gitconfig")
-    unset _gitconfig_needs_copy _current_email _files_match
+    unset _gitconfig_needs_copy _current_email _current_name _files_match
     unset -f _strip_identity
   fi
 fi
@@ -357,139 +1024,39 @@ if [ -f "$DOTFILES_DIR/ssh_config" ]; then
 else
   warn "ssh_config not found, skipping"
 fi
-# Copy Claude Code settings.json
-_claude_settings_src="$DOTFILES_DIR/.claude/settings.json"
-_claude_settings_dest="$HOME/.claude/settings.json"
-if [ -f "$_claude_settings_src" ]; then
-  if deploy_prompted_file "$_claude_settings_src" "$_claude_settings_dest" "Claude Code/settings.json" "claude/settings.json" "cp claude/settings.json to $_claude_settings_dest" "$HOME/.claude"; then
-    [ "$_deploy_result" != "dry-run" ] && CF_OK+=("Claude Code/settings.json")
-  fi
-fi
-unset _claude_settings_src _claude_settings_dest
-# OpenCode (opencode.jsonc, agents, skills)
-OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
-_oc_file="opencode.jsonc"
-_oc_src="$DOTFILES_DIR/.config/opencode/$_oc_file"
-_oc_dest="$OPENCODE_CONFIG_DIR/$_oc_file"
-if [ -f "$_oc_src" ]; then
-  if deploy_prompted_file "$_oc_src" "$_oc_dest" "OpenCode/$_oc_file" "opencode/$_oc_file" "cp opencode/$_oc_file to $_oc_dest" "$OPENCODE_CONFIG_DIR"; then
-    [ "$_deploy_result" != "dry-run" ] && CF_OK+=("OpenCode/$_oc_file")
-  fi
-fi
-unset _oc_file _oc_src _oc_dest
-if [ -d "$DOTFILES_DIR/.config/opencode/agents" ]; then
-  if $DRY_RUN; then
-    would "sync opencode/agents to $OPENCODE_CONFIG_DIR/agents/"
-  else
-    mkdir -p "$OPENCODE_CONFIG_DIR/agents"
-    _changed=()
-    for f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
-      [ -f "$f" ] || continue
-      dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$f")"
-      { [ ! -f "$dest" ] || ! diff -q "$dest" "$f" &>/dev/null; } && _changed+=("$(basename "$f")")
-    done
-    for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
-      [ -d "$d" ] || continue
-      dest="$OPENCODE_CONFIG_DIR/agents/$(basename "$d")"
-      { [ ! -d "$dest" ] || ! diff -rq "$dest" "$d" &>/dev/null; } && _changed+=("$(basename "$d")/")
-    done
-    if [ ${#_changed[@]} -eq 0 ]; then
-      ok "OpenCode agents already up to date"
-      CF_OK+=("OpenCode/agents")
-    else
-      for _name in "${_changed[@]}"; do
-        if [[ "$_name" == */ ]]; then
-          _dname="${_name%/}"
-          _src_dir="$DOTFILES_DIR/.config/opencode/agents/$_dname"
-          _dest_dir="$OPENCODE_CONFIG_DIR/agents/$_dname"
-          for _f in "$_src_dir"/*.md; do
-            [ -f "$_f" ] || continue
-            _dest_f="$_dest_dir/$(basename "$_f")"
-            if [ -f "$_dest_f" ]; then git --no-pager diff --no-index --color "$_dest_f" "$_f"; else git --no-pager diff --no-index --color /dev/null "$_f"; fi
-          done
-        else
-          _src="$DOTFILES_DIR/.config/opencode/agents/$_name"
-          _dest="$OPENCODE_CONFIG_DIR/agents/$_name"
-          if [ -f "$_dest" ]; then git --no-pager diff --no-index --color "$_dest" "$_src"; else git --no-pager diff --no-index --color /dev/null "$_src"; fi
-        fi
-      done
-      read -r -p "  Sync ${#_changed[@]} opencode agent(s)? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
-        for _f in "$DOTFILES_DIR/.config/opencode/agents"/*.md; do
-          [ -f "$_f" ] && cp "$_f" "$OPENCODE_CONFIG_DIR/agents/"
-        done
-        for d in "$DOTFILES_DIR/.config/opencode/agents"/*/; do
-          [ -d "$d" ] && cp -r "$d" "$OPENCODE_CONFIG_DIR/agents/"
-        done
-        installed "OpenCode agents (${#_changed[@]})"
-        CF_OK+=("OpenCode/agents")
-      else
-        ok "OpenCode agents unchanged"
-      fi
-    fi
-    unset _changed
-  fi
-fi
-if [ -d "$DOTFILES_DIR/.config/opencode/skills" ]; then
-  if $DRY_RUN; then
-    would "sync opencode/skills to $OPENCODE_CONFIG_DIR/skills/"
-  else
-    mkdir -p "$OPENCODE_CONFIG_DIR/skills"
-    _any_changed=false
-    for item in "$DOTFILES_DIR/.config/opencode/skills"/*; do
-      [ -e "$item" ] || continue
-      name=$(basename "$item")
-      dest="$OPENCODE_CONFIG_DIR/skills/$name"
-      if [ -d "$item" ]; then
-        ! diff -rq "$item" "$dest" &>/dev/null && _any_changed=true && break
-      elif [ -f "$item" ]; then
-        { [ ! -f "$dest" ] || ! diff -q "$dest" "$item" &>/dev/null; } && _any_changed=true && break
-      fi
-    done
-    if ! $_any_changed; then
-      ok "OpenCode skills already up to date"
-      CF_OK+=("OpenCode/skills")
-    else
-      read -r -p "  Sync opencode skills? [Y/n] " r
-      if [[ ! "$r" =~ ^[nN] ]]; then
-        cp -r "$DOTFILES_DIR/.config/opencode/skills/." "$OPENCODE_CONFIG_DIR/skills/"
-        installed "OpenCode skills"
-        CF_OK+=("OpenCode/skills")
-      else
-        ok "OpenCode skills unchanged"
-      fi
-    fi
-    unset _any_changed
-  fi
-fi
-[ ${#CF_OK[@]} -gt 0 ] && SUM_DOTFILES="${GREEN}✔${RESET} $(join_arr ' · ' "${CF_OK[@]}")"
+refresh_dotfiles_summary
 
 # 2. Homebrew
 step "Installing Homebrew and packages"
 
 if ! command -v brew &>/dev/null; then
   if $DRY_RUN; then
-    would "install Homebrew"
+    would "Would ask to install Homebrew"
   else
-    _brew_install_script=$(mktemp) || { warn "Failed to create temporary Homebrew installer file"; _brew_install_script=""; }
-    if [ -n "$_brew_install_script" ] && curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$_brew_install_script" && /bin/bash "$_brew_install_script"; then
-      if [ -x /opt/homebrew/bin/brew ]; then
-        eval "$(/opt/homebrew/bin/brew shellenv)"
-      elif [ -x /usr/local/bin/brew ]; then
-        eval "$(/usr/local/bin/brew shellenv)"
-      fi
-
-      if command -v brew &>/dev/null; then
-        installed "Homebrew"
-        warn "Homebrew was added to this session's PATH — restart your terminal to make it permanent"
-      else
-        warn "Homebrew installed, but brew is not available on PATH"
-      fi
+    read -r -p "  Install Homebrew? [Y/n] " r
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Homebrew skipped"
     else
-      warn "Failed to install Homebrew"
+      _brew_install_script=$(mktemp) || { warn "Failed to create temporary Homebrew installer file"; _brew_install_script=""; }
+      if [ -n "$_brew_install_script" ] && curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$_brew_install_script" && /bin/bash "$_brew_install_script"; then
+        if [ -x /opt/homebrew/bin/brew ]; then
+          eval "$(/opt/homebrew/bin/brew shellenv)"
+        elif [ -x /usr/local/bin/brew ]; then
+          eval "$(/usr/local/bin/brew shellenv)"
+        fi
+
+        if command -v brew &>/dev/null; then
+          installed "Homebrew"
+          warn "Homebrew was added to this session's PATH — restart your terminal to make it permanent"
+        else
+          warn "Homebrew installed, but brew is not available on PATH"
+        fi
+      else
+        warn "Failed to install Homebrew"
+      fi
+      [ -n "$_brew_install_script" ] && rm -f "$_brew_install_script"
+      unset _brew_install_script
     fi
-    [ -n "$_brew_install_script" ] && rm -f "$_brew_install_script"
-    unset _brew_install_script
   fi
 else
   if $DRY_RUN; then
@@ -503,22 +1070,40 @@ for pkg in bash git bash-completion@2 pnpm gh dockutil; do
   brew_formula "$pkg"
 done
 
-! $DRY_RUN && command -v brew &>/dev/null && brew tap anomalyco/tap &>/dev/null || true
-brew_formula "opencode"
+install_opencode
 
 # VS Code: check app bundle first since 'code' CLI may not be in PATH
-if [ -d "/Applications/Visual Studio Code.app" ]; then
-  if command -v brew &>/dev/null && brew list --cask visual-studio-code &>/dev/null; then
-    brew_cask "visual-studio-code"
+if app_bundle_exists "/Applications/Visual Studio Code.app"; then
+  if brew_cask_registered visual-studio-code; then
+    brew_cask "visual-studio-code" --install-consent-granted
   else
     ok "VS Code installed outside Homebrew, skipping"
   fi
+elif brew_cask_registered visual-studio-code; then
+  reinstall_missing_cask_app "VS Code" "visual-studio-code" "/Applications/Visual Studio Code.app"
+elif $DRY_RUN; then
+  if brew_available; then
+    would "Would ask to install VS Code via Homebrew"
+  else
+    would "Would ask to install VS Code via Homebrew (requires Homebrew)"
+  fi
+elif ! brew_available; then
+  warn "Homebrew not found, skipping VS Code"
 else
-  brew_cask "visual-studio-code"
+  read -r -p "  Install VS Code? [Y/n] " r
+  if [[ "$r" =~ ^[nN] ]]; then
+    ok "VS Code skipped"
+  else
+    brew_cask "visual-studio-code" --install-consent-granted
+  fi
 fi
 
-brew_cask "claude-code" "claude"
+install_claude_code
 brew_cask "font-fira-code"
+
+deploy_claude_code_config
+deploy_opencode_config
+refresh_dotfiles_summary
 
 HB_PARTS=()
 [ $BREW_INSTALLED -gt 0 ] && HB_PARTS+=("${BREW_INSTALLED} installed")
@@ -587,17 +1172,63 @@ fi
 # 4. Switch to Homebrew bash
 step "Setting Homebrew bash as default shell"
 
-HOMEBREW_BASH="/opt/homebrew/bin/bash"
+resolve_homebrew_bash() {
+  local brew_prefix bash_prefix candidate arch
 
-if ! $DRY_RUN && [ ! -f "$HOMEBREW_BASH" ]; then
-  warn "Homebrew bash not found at $HOMEBREW_BASH — was 'brew install bash' successful? Skipping shell switch"
+  if command -v brew &>/dev/null; then
+    if bash_prefix=$(brew --prefix bash 2>/dev/null) && [ -n "$bash_prefix" ]; then
+      candidate="$bash_prefix/bin/bash"
+      if $DRY_RUN || [ -x "$candidate" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+      fi
+    fi
+
+    if brew_prefix=$(brew --prefix 2>/dev/null) && [ -n "$brew_prefix" ]; then
+      candidate="$brew_prefix/bin/bash"
+      if $DRY_RUN || [ -x "$candidate" ]; then
+        printf '%s\n' "$candidate"
+        return 0
+      fi
+    fi
+  fi
+
+  arch=$(uname -m 2>/dev/null || true)
+  case "$arch" in
+    arm64) set -- /opt/homebrew/bin/bash /usr/local/bin/bash ;;
+    *) set -- /usr/local/bin/bash /opt/homebrew/bin/bash ;;
+  esac
+
+  for candidate in "$@"; do
+    if [ -x "$candidate" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  if $DRY_RUN; then
+    printf '%s\n' "$1"
+    return 0
+  fi
+
+  return 1
+}
+
+HOMEBREW_BASH=$(resolve_homebrew_bash || true)
+
+if [ -z "$HOMEBREW_BASH" ]; then
+  warn "Homebrew bash not found — was 'brew install bash' successful? Skipping shell switch"
   SUM_SHELL="${YELLOW}⚠${RESET} Homebrew bash not found"
 else
   if grep -Fxq "$HOMEBREW_BASH" /etc/shells; then
     ok "$HOMEBREW_BASH already in /etc/shells"
   else
     if $DRY_RUN; then
-      would "echo $HOMEBREW_BASH | sudo tee -a /etc/shells"
+      if [ -x "$HOMEBREW_BASH" ]; then
+        would "echo $HOMEBREW_BASH | sudo tee -a /etc/shells"
+      else
+        would "echo $HOMEBREW_BASH | sudo tee -a /etc/shells (if Homebrew bash exists after install)"
+      fi
     else
       if echo "$HOMEBREW_BASH" | sudo tee -a /etc/shells >/dev/null; then
         installed "$HOMEBREW_BASH in /etc/shells"
@@ -612,7 +1243,11 @@ else
     SUM_SHELL="${GREEN}✔${RESET} Homebrew bash active"
   else
     if $DRY_RUN; then
-      would "chsh -s $HOMEBREW_BASH"
+      if [ -x "$HOMEBREW_BASH" ]; then
+        would "chsh -s $HOMEBREW_BASH"
+      else
+        would "chsh -s $HOMEBREW_BASH (if Homebrew bash exists after install)"
+      fi
     else
       read -r -p "  Switch default shell to Homebrew bash? [Y/n] " r
       if [[ "$r" =~ ^[nN] ]]; then
@@ -660,19 +1295,27 @@ if [ -d "$HOME/.nvm" ]; then
   fi
 else
   if $DRY_RUN; then
-    would "install nvm $NVM_VERSION"
+    would "Would ask to install nvm $NVM_VERSION"
   else
-    if (set -o pipefail; curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
-      [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-      installed "nvm $NVM_VERSION"
+    read -r -p "  Install nvm $NVM_VERSION? [Y/n] " r
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "nvm install skipped"
     else
-      warn "Failed to install nvm"
+      if (set -o pipefail; curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
+        [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+        installed "nvm $NVM_VERSION"
+      else
+        warn "Failed to install nvm"
+      fi
     fi
   fi
 fi
 
 if $DRY_RUN; then
   would "nvm install --lts && nvm alias default node"
+elif ! command -v nvm &>/dev/null; then
+  warn "nvm not available, skipping Node.js"
+  SUM_NODE="${YELLOW}⚠${RESET} nvm unavailable"
 else
   prev_node=$(node --version 2>/dev/null || echo "none")
   latest_lts=$(nvm version-remote --lts 2>/dev/null)
@@ -694,79 +1337,25 @@ else
       fi
     fi
   else
-    if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
-      NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
-      installed "Node.js LTS ($NODE_VERSION)"
-      SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
+    read -r -p "  Install Node.js LTS? [Y/n] " r
+    if [[ "$r" =~ ^[nN] ]]; then
+      ok "Node.js install skipped"
+      SUM_NODE="${GREEN}✔${RESET} skipped"
     else
-      warn "Failed to install Node.js LTS"
-      SUM_NODE="${YELLOW}⚠${RESET} install failed"
+      if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
+        NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
+        installed "Node.js LTS ($NODE_VERSION)"
+        SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
+      else
+        warn "Failed to install Node.js LTS"
+        SUM_NODE="${YELLOW}⚠${RESET} install failed"
+      fi
     fi
   fi
 fi
 
 # External OpenCode skills
-_OPENCODE_SKILL_CMD_VERCEL=(
-  npx -y skills add https://github.com/vercel-labs/agent-skills
-  --skill vercel-react-best-practices
-  --skill vercel-composition-patterns
-  --global
-  --agent opencode
-  --yes
-)
-_OPENCODE_SKILL_CMD_EMIL=(
-  npx -y skills add https://github.com/emilkowalski/skill
-  --skill emil-design-eng
-  --global
-  --agent opencode
-  --yes
-)
-if $DRY_RUN; then
-  would "${_OPENCODE_SKILL_CMD_VERCEL[*]}"
-  would "${_OPENCODE_SKILL_CMD_EMIL[*]}"
-  would "remove stale ~/.config/opencode/skills/react-best-practices if it is the Vercel React skill"
-  would "remove stale ~/.config/opencode/skills/composition-patterns if it is the Vercel composition skill"
-elif command -v npx &>/dev/null; then
-  read -r -p "  Install external skills (Vercel + emil-design-eng)? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
-    ok "External skills skipped"
-  else
-    if "${_OPENCODE_SKILL_CMD_VERCEL[@]}" &>/dev/null; then
-      installed "vercel-react-best-practices and vercel-composition-patterns skills"
-    else
-      warn "Failed to install vercel-react-best-practices and vercel-composition-patterns skills"
-    fi
-
-    if "${_OPENCODE_SKILL_CMD_EMIL[@]}" &>/dev/null; then
-      installed "emil-design-eng"
-    else
-      warn "Failed to install emil-design-eng skill"
-    fi
-  fi
-
-  _stale_skills=(
-    "react-best-practices:vercel-react-best-practices"
-    "composition-patterns:vercel-composition-patterns"
-  )
-  for _entry in "${_stale_skills[@]}"; do
-    _dir="${_entry%%:*}"
-    _skill="${_entry#*:}"
-    _path="$HOME/.config/opencode/skills/$_dir"
-    if [ -f "$_path/SKILL.md" ] && grep -Fxq "name: $_skill" "$_path/SKILL.md"; then
-      read -r -p "  Remove stale OpenCode skill $_dir? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
-        ok "Stale OpenCode skill $_dir unchanged"
-      else
-        rm -rf "$_path"
-        ok "Removed stale OpenCode skill $_dir"
-      fi
-    fi
-  done
-  unset _stale_skills _entry _dir _skill _path
-else
-  warn "npx not found, skipping external skills"
-fi
-unset _OPENCODE_SKILL_CMD_VERCEL _OPENCODE_SKILL_CMD_EMIL
+install_external_opencode_skills
 
 # 6. VS Code extensions and settings
 step "Setting up VS Code"
@@ -791,19 +1380,23 @@ else
 
   VSCODE_EXT_OK=0
   VSCODE_EXT_NEW=0
+  installed_exts=$(code --list-extensions 2>/dev/null || true)
+  exts_missing=()
+  for ext in "${extensions[@]}"; do
+    echo "$installed_exts" | grep -Fqix "$ext" || exts_missing+=("$ext")
+  done
+  VSCODE_EXT_OK=$(( ${#extensions[@]} - ${#exts_missing[@]} ))
 
   if $DRY_RUN; then
-    for ext in "${extensions[@]}"; do
+    if [ ${#exts_missing[@]} -eq 0 ]; then
+      ok "All ${#extensions[@]} extensions already installed"
+    else
+      would "Would ask to install ${#exts_missing[@]} VS Code extension(s)"
+    fi
+    for ext in "${exts_missing[@]}"; do
       would "code --install-extension $ext"
     done
   else
-    installed_exts=$(code --list-extensions 2>/dev/null)
-    exts_missing=()
-    for ext in "${extensions[@]}"; do
-      echo "$installed_exts" | grep -Fqix "$ext" || exts_missing+=("$ext")
-    done
-    VSCODE_EXT_OK=$(( ${#extensions[@]} - ${#exts_missing[@]} ))
-
     if [ ${#exts_missing[@]} -eq 0 ]; then
       ok "All ${#extensions[@]} extensions already installed"
     else
@@ -830,7 +1423,16 @@ else
   VSCODE_SETTINGS_NEW=()
 
   if $DRY_RUN; then
-    would "cp settings.json and keybindings.json to VS Code"
+    for config_file in settings.json keybindings.json; do
+      if [ -f "$VSCODE_DIR/$config_file" ] && diff -q "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file" &>/dev/null; then
+        ok "$config_file already up to date"
+        VSCODE_SETTINGS_OK+=("$config_file")
+      elif [ -f "$VSCODE_DIR/$config_file" ]; then
+        would "Ask to overwrite VS Code $config_file"
+      else
+        would "cp $config_file to VS Code"
+      fi
+    done
   else
     mkdir -p "$VSCODE_DIR"
     for config_file in settings.json keybindings.json; do
@@ -880,10 +1482,23 @@ APP_OK=()
 install_app() {
   local name=$1 cask=$2 app=$3 r
   if $DRY_RUN; then
-    would "brew install --cask $cask (or upgrade if outdated)"
-  elif command -v brew &>/dev/null && brew list --cask "$cask" &>/dev/null; then
-    if [ -d "$app" ]; then
-      if brew_cask "$cask"; then
+    if brew_cask_registered "$cask"; then
+      if app_bundle_exists "$app"; then
+        brew_cask "$cask" --install-consent-granted
+      else
+        reinstall_missing_cask_app "$name" "$cask" "$app"
+      fi
+    elif app_bundle_exists "$app"; then
+      ok "$name already installed (not Homebrew-managed)"
+      APP_OK+=("$name")
+    elif brew_available; then
+      would "Would ask to install $name via Homebrew"
+    else
+      would "Would ask to install $name via Homebrew (requires Homebrew)"
+    fi
+  elif brew_cask_registered "$cask"; then
+    if app_bundle_exists "$app"; then
+      if brew_cask "$cask" --install-consent-granted; then
         APP_OK+=("$name")
       else
         return 1
@@ -896,10 +1511,10 @@ install_app() {
         2) ;;
       esac
     fi
-  elif [ -d "$app" ]; then
+  elif app_bundle_exists "$app"; then
     ok "$name already installed (not Homebrew-managed)"
     APP_OK+=("$name")
-  elif ! command -v brew &>/dev/null; then
+  elif ! brew_available; then
     warn "Homebrew not found, skipping $name"
     return 1
   else
@@ -907,7 +1522,7 @@ install_app() {
     if [[ "$r" =~ ^[nN] ]]; then
       ok "$name skipped"
     else
-      if brew_cask "$cask"; then
+      if brew_cask "$cask" --install-consent-granted; then
         APP_OK+=("$name")
       else
         return 1
@@ -944,10 +1559,16 @@ dst.update(src)
 with open(os.environ["ISTATMENUS_PLIST"], "wb") as f: plistlib.dump(dst, f)
 PYEOF
 }
-if $DRY_RUN; then
-  would "merge istatmenus.menubar.plist into $ISTATMENUS_PLIST"
-elif [ ! -f "/Applications/iStat Menus.app/Contents/Info.plist" ]; then
+if ! app_bundle_exists "/Applications/iStat Menus.app"; then
+  $DRY_RUN && ok "iStat Menus settings skipped (app not installed)"
   : # app not installed, skip
+elif $DRY_RUN; then
+  if istatmenus_settings_current; then
+    ok "iStat Menus settings already up to date"
+    APP_OK+=("iStat Menus settings")
+  else
+    would "Ask to apply iStat Menus settings (merge istatmenus.menubar.plist into $ISTATMENUS_PLIST)"
+  fi
 elif istatmenus_settings_current; then
   ok "iStat Menus settings already up to date"
   APP_OK+=("iStat Menus settings")
@@ -967,27 +1588,37 @@ fi
 # 8. Ghostty
 step "Setting up Ghostty"
 
-if [ -d "/Applications/Ghostty.app" ]; then
-  if command -v brew &>/dev/null && brew list --cask ghostty &>/dev/null; then
-    brew_cask "ghostty" && SUM_GHOSTTY="${GREEN}✔${RESET} installed"
+if app_bundle_exists "/Applications/Ghostty.app"; then
+  if brew_cask_registered ghostty; then
+    brew_cask "ghostty" --install-consent-granted
   else
     ok "Ghostty installed outside Homebrew, skipping"
-    SUM_GHOSTTY="${GREEN}✔${RESET} installed"
   fi
-elif $DRY_RUN; then
-  would "brew install --cask ghostty"
-elif command -v brew &>/dev/null && brew list --cask ghostty &>/dev/null; then
+  SUM_GHOSTTY="${GREEN}✔${RESET} installed"
+elif brew_cask_registered ghostty; then
   reinstall_missing_cask_app "Ghostty" "ghostty" "/Applications/Ghostty.app"
-  case $? in
-    0) SUM_GHOSTTY="${GREEN}✔${RESET} installed" ;;
-    1|2) ;;
-  esac
+  _ghostty_reinstall_status=$?
+  if ! $DRY_RUN; then
+    case $_ghostty_reinstall_status in
+      0) SUM_GHOSTTY="${GREEN}✔${RESET} installed" ;;
+      1|2) ;;
+    esac
+  fi
+  unset _ghostty_reinstall_status
+elif $DRY_RUN; then
+  if brew_available; then
+    would "Would ask to install Ghostty via Homebrew"
+  else
+    would "Would ask to install Ghostty via Homebrew (requires Homebrew)"
+  fi
+elif ! brew_available; then
+  warn "Homebrew not found, skipping Ghostty"
 else
   read -r -p "  Install Ghostty? [Y/n] " r
   if [[ "$r" =~ ^[nN] ]]; then
     ok "Ghostty skipped"
   else
-    brew_cask "ghostty" && SUM_GHOSTTY="${GREEN}✔${RESET} installed"
+    brew_cask "ghostty" --install-consent-granted && SUM_GHOSTTY="${GREEN}✔${RESET} installed"
   fi
 fi
 # Ghostty config
@@ -997,6 +1628,17 @@ if [ -f "$_ghostty_src" ]; then
   deploy_prompted_file "$_ghostty_src" "$_ghostty_dest" "ghostty/config" "ghostty/config" "cp .config/ghostty/config to $_ghostty_dest" "$HOME/.config/ghostty"
 fi
 unset _ghostty_src _ghostty_dest
+
+# Ghostty themes
+if [ -d "$DOTFILES_DIR/.config/ghostty/themes" ]; then
+  for _ghostty_theme_src in "$DOTFILES_DIR/.config/ghostty/themes"/*; do
+    [ -f "$_ghostty_theme_src" ] || continue
+    _ghostty_theme_name=$(basename "$_ghostty_theme_src")
+    _ghostty_theme_dest="$HOME/.config/ghostty/themes/$_ghostty_theme_name"
+    deploy_prompted_file "$_ghostty_theme_src" "$_ghostty_theme_dest" "ghostty/themes/$_ghostty_theme_name" "ghostty/themes/$_ghostty_theme_name" "cp .config/ghostty/themes/$_ghostty_theme_name to $_ghostty_theme_dest" "$HOME/.config/ghostty/themes"
+  done
+fi
+unset _ghostty_theme_src _ghostty_theme_name _ghostty_theme_dest
 
 # 9. macOS Preferences
 step "Applying macOS preferences"
@@ -1091,8 +1733,8 @@ system_current=true
   _pref_matches NSGlobalDomain InitialKeyRepeat 25 &&
   _pref_matches NSGlobalDomain com.apple.sound.beep.feedback 0 &&
   _pref_matches NSGlobalDomain AppleEnableMenuBarTransparency false &&
-  _pref_matches -g EnableTilingByEdgeDrag false &&
-  _pref_matches -g EnableTilingByMenuBar false; } || system_current=false
+  _pref_matches NSGlobalDomain EnableTilingByEdgeDrag false &&
+  _pref_matches NSGlobalDomain EnableTilingByMenuBar false; } || system_current=false
 
 screenshot_current=true
 { _pref_matches com.apple.screencapture show-thumbnail false; } || screenshot_current=false
@@ -1144,11 +1786,20 @@ else
       _pref_write com.apple.dock wvous-br-corner -int 1
       if command -v dockutil &>/dev/null; then
         dockutil --remove all --no-restart &>/dev/null
-        [[ -d "/Applications/Google Chrome.app" ]]             && dockutil --add "/Applications/Google Chrome.app" --no-restart &>/dev/null
-        [[ -d "/Applications/Visual Studio Code.app" ]]        && dockutil --add "/Applications/Visual Studio Code.app" --no-restart &>/dev/null
-        [[ -d "/Applications/Ghostty.app" ]]                   && dockutil --add "/Applications/Ghostty.app" --no-restart &>/dev/null
-        [[ -d "/Applications/1Password.app" ]]                 && dockutil --add "/Applications/1Password.app" --no-restart &>/dev/null
-        [[ -d "/Applications/Spotify.app" ]]                   && dockutil --add "/Applications/Spotify.app" --no-restart &>/dev/null
+        _dock_add_app() {
+          local name=$1 app=$2 resolved_app
+          if resolved_app=$(app_bundle_path "$app"); then
+            dockutil --add "$resolved_app" --no-restart &>/dev/null
+          else
+            ok "$name not found, skipping Dock item"
+          fi
+        }
+        _dock_add_app "Google Chrome" "/Applications/Google Chrome.app"
+        _dock_add_app "Visual Studio Code" "/Applications/Visual Studio Code.app"
+        _dock_add_app "Ghostty" "/Applications/Ghostty.app"
+        _dock_add_app "1Password" "/Applications/1Password.app"
+        _dock_add_app "Spotify" "/Applications/Spotify.app"
+        unset -f _dock_add_app
         ok "Dock apps set: Finder, Google Chrome, VS Code, Ghostty, 1Password, Spotify, Trash"
       fi
       updated "Dock"; MACOS_UPDATED+=("Dock"); NEEDS_RESTART=true
@@ -1198,8 +1849,8 @@ else
     _pref_diff "Reduce initial key repeat" NSGlobalDomain InitialKeyRepeat                     25
     _pref_diff "Mute volume feedback sound" NSGlobalDomain com.apple.sound.beep.feedback       0
     _pref_diff "Disable translucent menu bar" NSGlobalDomain AppleEnableMenuBarTransparency    false
-    _pref_diff "Disable tiling on edge drag" -g EnableTilingByEdgeDrag                         false
-    _pref_diff "Disable tiling on menu bar" -g EnableTilingByMenuBar                           false
+    _pref_diff "Disable tiling on edge drag" NSGlobalDomain EnableTilingByEdgeDrag              false
+    _pref_diff "Disable tiling on menu bar" NSGlobalDomain EnableTilingByMenuBar               false
     read -r -p "  Apply System settings? [Y/n] " r
     if [[ "$r" =~ ^[nN] ]]; then
       ok "System settings unchanged"
@@ -1217,8 +1868,8 @@ else
       _pref_write NSGlobalDomain InitialKeyRepeat -int 25
       _pref_write NSGlobalDomain com.apple.sound.beep.feedback -int 0
       _pref_write NSGlobalDomain AppleEnableMenuBarTransparency -bool false
-      _pref_write -g EnableTilingByEdgeDrag -bool false
-      _pref_write -g EnableTilingByMenuBar -bool false
+      _pref_write NSGlobalDomain EnableTilingByEdgeDrag -bool false
+      _pref_write NSGlobalDomain EnableTilingByMenuBar -bool false
       updated "System settings"; MACOS_UPDATED+=("System settings"); NEEDS_RESTART=true
     fi
   fi
@@ -1273,7 +1924,22 @@ PERIPH_OK=()
 
 deploy_peripheral_config() {
   local src="$DOTFILES_DIR/$1" dst="$2" name="$3" r
-  $DRY_RUN && { would "deploy $1 to $dst"; return 0; }
+  if $DRY_RUN; then
+    if [ -e "$dst" ] && [ ! -f "$dst" ]; then
+      warn "$name config destination exists and is not a file: $dst"
+      return 1
+    fi
+    if [ -f "$dst" ]; then
+      if diff -q "$dst" "$src" &>/dev/null; then
+        ok "$name config already up to date"
+      else
+        would "Ask to overwrite $name config at $dst"
+      fi
+    else
+      would "deploy $1 to $dst"
+    fi
+    return 0
+  fi
   mkdir -p "$(dirname "$dst")"
   if [ -e "$dst" ] && [ ! -f "$dst" ]; then
     warn "$name config destination exists and is not a file: $dst"
@@ -1302,32 +1968,47 @@ deploy_peripheral_config() {
 setup_peripheral() {
   local name=$1 cask=$2 app=$3 config_src=$4 config_dst=$5 r
   if $DRY_RUN; then
-    would "brew install --cask $cask && deploy $config_src to $config_dst"
+    if brew_cask_registered "$cask"; then
+      if app_bundle_exists "$app"; then
+        ok "$name already installed"
+        deploy_peripheral_config "$config_src" "$config_dst" "$name" && PERIPH_OK+=("$name")
+      else
+        reinstall_missing_cask_app "$name" "$cask" "$app"
+        would "deploy $config_src to $config_dst if $name is reinstalled"
+      fi
+    elif app_bundle_exists "$app"; then
+      ok "$name already installed (not Homebrew-managed)"
+      deploy_peripheral_config "$config_src" "$config_dst" "$name" && PERIPH_OK+=("$name")
+    elif ! brew_available; then
+      warn "Homebrew not found, skipping $name"
+    else
+      would "Ask to set up $name via Homebrew"
+      would "deploy $config_src to $config_dst if $name is installed"
+    fi
     return
   fi
-  if ! command -v brew &>/dev/null; then
-    warn "Homebrew not found, skipping $name"
-    return 1
-  fi
-  if brew list --cask "$cask" &>/dev/null; then
-    if [ -d "$app" ]; then
+  if brew_cask_registered "$cask"; then
+    if app_bundle_exists "$app"; then
       ok "$name already installed"
     else
-      warn "$name registered with Homebrew but app missing, reinstalling..."
-      if brew reinstall --cask "$cask" &>/dev/null && [ -d "$app" ]; then
-        installed "$name"
-        echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}"
-      else
-        warn "Failed to reinstall $name"
-        return 1
-      fi
+      reinstall_missing_cask_app "$name" "$cask" "$app"
+      case $? in
+        0) echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}" ;;
+        1) return 1 ;;
+        2) return 0 ;;
+      esac
     fi
+  elif app_bundle_exists "$app"; then
+    ok "$name already installed (not Homebrew-managed)"
+  elif ! brew_available; then
+    warn "Homebrew not found, skipping $name"
+    return 1
   else
     read -r -p "  Set up $name? [y/N] " r
     if [[ ! "$r" =~ ^[yY] ]]; then
       return
     fi
-    if brew install --cask "$cask" &>/dev/null && [ -d "$app" ]; then
+    if brew install --cask "$cask" &>/dev/null && app_bundle_exists "$app"; then
       installed "$name"
       echo -e "  ${YELLOW}⚠ Launch $name, then grant permissions in System Settings → Privacy & Security.${RESET}"
     else
@@ -1348,11 +2029,20 @@ setup_peripheral \
   "$HOME/.config/karabiner/karabiner.json"
 
 # Mouse settings
+mouse_settings_current() {
+  [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "0.5" ] &&
+    [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "-1" ]
+}
+
 if $DRY_RUN; then
-  would "set mouse tracking speed 0.5, disable scroll acceleration"
+  if mouse_settings_current; then
+    ok "Mouse settings already configured"
+    PERIPH_OK+=("Mouse")
+  else
+    would "Ask to apply mouse settings (tracking speed 0.5, scroll linear/no acceleration)"
+  fi
 else
-  if [ "$(defaults read .GlobalPreferences com.apple.mouse.scaling 2>/dev/null)" = "0.5" ] &&
-     [ "$(defaults read .GlobalPreferences com.apple.scrollwheel.scaling 2>/dev/null)" = "-1" ]; then
+  if mouse_settings_current; then
     ok "Mouse settings already configured"
     PERIPH_OK+=("Mouse")
   else
@@ -1365,6 +2055,7 @@ else
     fi
   fi
 fi
+unset -f mouse_settings_current
 
 [ ${#PERIPH_OK[@]} -gt 0 ] && SUM_PERIPHERALS="${GREEN}✔${RESET} $(join_arr ' · ' "${PERIPH_OK[@]}")"
 

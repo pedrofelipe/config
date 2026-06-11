@@ -13,18 +13,26 @@
     "allow": [
       "WebFetch(*)",
 
+      "Read(~/.agents/**)",
       "Read(~/.claude/**)",
       "Read(~/.config/**)",
       "Read(~/projects/**)",
+      "Edit(~/.agents/**)",
       "Edit(~/.claude/**)",
       "Edit(~/.config/**)",
       "Edit(~/projects/**)",
+      "Write(~/.agents/**)",
       "Write(~/.claude/**)",
       "Write(~/.config/**)",
       "Write(~/projects/**)",
 
-      "Bash(git status *)",
+      "Bash(ghostty *)",
+      "Bash(shellcheck *)",
+
+      "Bash(git status*)",
+      "Bash(git diff)",
       "Bash(git diff *)",
+      "Bash(git grep*)",
       "Bash(git log *)",
       "Bash(git branch *)",
       "Bash(git show *)",
@@ -107,8 +115,7 @@
       "Bash(gh repo view *)",
       "Bash(gh repo clone *)",
       "Bash(gh search *)",
-      "Bash(gh status)",
-      "Bash(gh status *)",
+      "Bash(gh status*)",
       "Bash(gh run list *)",
       "Bash(gh run view *)",
       "Bash(gh run watch *)",
@@ -179,7 +186,10 @@
       "Bash(git reset --hard*)",
       "Bash(git push *--force*)",
       "Bash(git push -f*)",
-      "Bash(git push * -f*)"
+      "Bash(git push * -f*)",
+
+      "Bash(brew install *)",
+      "Bash(brew install --cask *)"
     ],
     "additionalDirectories": [
       "~/.claude",
@@ -187,25 +197,6 @@
       "~/projects"
     ],
     "defaultMode": "auto"
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "input=$(cat); cmd=$(echo \"$input\" | jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -q 'ssh-keygen'; then echo '{\"continue\": false, \"stopReason\": \"SSH key creation requires your confirmation. To proceed, explicitly ask me to create SSH keys.\"}'; fi",
-            "statusMessage": "Checking for SSH key operations..."
-          },
-          {
-            "type": "command",
-            "command": "input=$(cat); cmd=$(echo \"$input\" | jq -r '.tool_input.command // \"\"'); if echo \"$cmd\" | grep -qE 'brew install'; then echo '{\"continue\": false, \"stopReason\": \"Package installation requires your confirmation. To proceed, explicitly ask me to install the package.\"}'; fi",
-            "statusMessage": "Checking for brew installs..."
-          }
-        ]
-      }
-    ]
   },
   "enabledPlugins": {
     "cloudflare@cloudflare": true

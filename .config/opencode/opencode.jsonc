@@ -37,41 +37,51 @@
     "webfetch": "allow",
     "doom_loop": "ask",
     "read": {
+      "~/.agents/**": "allow",
       "~/.claude/**": "allow",
       "~/.config/**": "allow",
       "~/projects/**": "allow"
     },
     "edit": {
+      "~/.agents/**": "allow",
       "~/.claude/**": "allow",
       "~/.config/**": "allow",
       "~/projects/**": "allow"
     },
     "glob": {
+      "~/.agents/**": "allow",
       "~/.claude/**": "allow",
       "~/.config/**": "allow",
       "~/projects/**": "allow"
     },
     "grep": {
+      "~/.agents/**": "allow",
       "~/.claude/**": "allow",
       "~/.config/**": "allow",
       "~/projects/**": "allow"
     },
     "list": {
+      "~/.agents/**": "allow",
       "~/.claude/**": "allow",
       "~/.config/**": "allow",
       "~/projects/**": "allow"
     },
     "external_directory": {
       "*": "ask",
+      "~/.agents/**": "allow",
       "~/.claude/**": "allow",
       "~/.config/**": "allow",
       "~/projects/**": "allow"
     },
     "bash": {
       "*": "ask",
+      "ghostty *": "allow",
+      "shellcheck *": "allow",
       // Git
-      "git status *": "allow",
+      "git status*": "allow",
+      "git diff": "allow",
       "git diff *": "allow",
+      "git grep*": "allow",
       "git log *": "allow",
       "git branch *": "allow",
       "git show *": "allow",
@@ -160,8 +170,7 @@
       "gh repo view *": "allow",
       "gh repo clone *": "allow",
       "gh search *": "allow",
-      "gh status": "allow",
-      "gh status *": "allow",
+      "gh status*": "allow",
       "gh run list *": "allow",
       "gh run view *": "allow",
       "gh run watch *": "allow",

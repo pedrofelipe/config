@@ -13,15 +13,17 @@ permission:
     "git commit *": allow
     "git config --get *": allow
     "git config user.email": allow
+    "git diff": allow
     "git diff *": allow
     "git fetch *": allow
+    "git grep*": allow
     "git log *": allow
     "git ls-remote *": allow
     "git remote get-url origin": allow
     "git push": allow
     "git push *": allow
     "git rev-list *": allow
-    "git status *": allow
+    "git status*": allow
     "git symbolic-ref *": allow
     "git reset --hard*": ask
     "git push *--force*": ask
