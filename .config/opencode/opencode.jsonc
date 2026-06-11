@@ -47,6 +47,9 @@
       "*": "ask",
       "ghostty *": "allow",
       "shellcheck *": "allow",
+      // Shell utilities/navigation
+      "atuin *": "allow",
+      "zoxide *": "allow",
       // Git
       "git status*": "allow",
       "git diff": "allow",
@@ -67,9 +70,12 @@
       "git pull *": "allow",
       "git init *": "allow",
       "git worktree *": "allow",
-      "git rebase *": "ask",
-      "git push *": "ask",
+      "git rebase": "allow",
+      "git rebase *": "allow",
+      "git push": "allow",
+      "git push *": "allow",
       "git reset --soft *": "allow",
+      // File and search utilities
       "ls *": "allow",
       "cat *": "allow",
       "head *": "allow",
@@ -91,7 +97,13 @@
       "comm *": "allow",
       "paste *": "allow",
       "column *": "allow",
+      // File operations
       "cp *": "allow",
+      "mkdir *": "allow",
+      "mv *": "allow",
+      "rm *": "ask",
+      "rm -rf *": "ask",
+      // System inspection
       "date *": "allow",
       "df *": "allow",
       "du *": "allow",
@@ -99,18 +111,16 @@
       "file *": "allow",
       "hostname": "allow",
       "id": "allow",
+      "lsof *": "allow",
       "man *": "allow",
-      "mkdir *": "allow",
-      "mv *": "allow",
       "printf *": "allow",
       "pwd": "allow",
-      "rm *": "ask",
-      "rm -rf *": "ask",
       "stat *": "allow",
       "type *": "allow",
       "uname *": "allow",
       "which *": "allow",
       "whoami": "allow",
+      // JavaScript runtime
       "node *": "allow",
       // Package scripts
       "pnpm lint*": "allow",
@@ -123,8 +133,7 @@
       "pnpm -F *": "allow",
       "pnpm -r *": "allow",
       "pnpm --recursive *": "allow",
-      "pnpm install": "ask",
-      "pnpm install *": "ask",
+      "pnpm install*": "ask",
       "pnpm i": "ask",
       "pnpm i *": "ask",
       // GitHub read
@@ -152,7 +161,6 @@
       "gh issue close *": "ask",
       "gh run cancel *": "ask",
       "gh run rerun *": "ask",
-      "lsof *": "allow",
       // Dev utilities
       "jq *": "allow",
       "bat *": "allow",
@@ -186,8 +194,6 @@
       "glab ci cancel *": "ask",
       "glab ci retry *": "ask",
       "glab ci run *": "ask",
-      "zoxide *": "allow",
-      "atuin *": "allow",
       // macOS
       "open *": "allow",
       "pbcopy": "allow",
@@ -196,7 +202,11 @@
       "git reset --hard*": "ask",
       "git push *--force*": "ask",
       "git push -f*": "ask",
-      "git push * -f*": "ask"
+      "git push * -f*": "ask",
+      "git push --mirror*": "ask",
+      "git push * --mirror*": "ask",
+      "git push +*": "ask",
+      "git push * +*": "ask"
     }
   }
 }

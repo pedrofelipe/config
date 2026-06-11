@@ -48,6 +48,10 @@
       "Bash(git pull *)",
       "Bash(git init *)",
       "Bash(git worktree *)",
+      "Bash(git rebase)",
+      "Bash(git rebase *)",
+      "Bash(git push)",
+      "Bash(git push *)",
       "Bash(git reset --soft *)",
 
       "Bash(ls *)",
@@ -160,14 +164,10 @@
       "Bash(pbpaste)"
     ],
     "ask": [
-      "Bash(git rebase *)",
-      "Bash(git push *)",
-
       "Bash(rm *)",
       "Bash(rm -rf *)",
 
-      "Bash(pnpm install)",
-      "Bash(pnpm install *)",
+      "Bash(pnpm install*)",
       "Bash(pnpm i)",
       "Bash(pnpm i *)",
 
@@ -188,6 +188,10 @@
       "Bash(git push *--force*)",
       "Bash(git push -f*)",
       "Bash(git push * -f*)",
+      "Bash(git push --mirror*)",
+      "Bash(git push * --mirror*)",
+      "Bash(git push +*)",
+      "Bash(git push * +*)",
 
       "Bash(brew install *)",
       "Bash(brew install --cask *)"
