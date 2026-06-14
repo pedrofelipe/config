@@ -14,21 +14,9 @@ permission:
     "git show *": allow
     "git status*": allow
   edit: deny
-  glob:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
-  grep:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
   list: deny
   lsp: deny
   question: allow
-  read:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
   skill: deny
   todowrite: deny
   webfetch: deny

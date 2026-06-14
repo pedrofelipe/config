@@ -56,10 +56,6 @@ permission:
   list: deny
   lsp: deny
   question: allow
-  read:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
   skill:
     "*": deny
     branch: allow

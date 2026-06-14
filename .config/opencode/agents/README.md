@@ -18,7 +18,7 @@ A human-in-the-loop agent workflow for automating software development from desc
 | `@planner`   | Explores codebase and creates todo list from the description                  |
 | `@developer` | Implements code for a single todo item                                        |
 | `@reviewer`  | Reviews code for correctness, quality, and adherence to requirements          |
-| `@publisher` | Sets up branches, creates Git commits and pull requests                       |
+| `@publisher` | Sets up branches, creates Git commits, and opens GitHub/GitLab pull requests  |
 | `@tester`    | Generates manual QA test plans for code changes                               |
 | `@learner`   | Reflects on completed work and proposes AGENTS.md updates for future sessions |
 

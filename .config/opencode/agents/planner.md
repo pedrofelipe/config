@@ -6,24 +6,8 @@ variant: high
 textVerbosity: low
 permission:
   edit: deny
-  glob:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
-  grep:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
-  list:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
   lsp: deny
   question: allow
-  read:
-    "~/.claude/**": allow
-    "~/.config/**": allow
-    "~/projects/**": allow
   skill: allow
   todowrite: deny
   webfetch: allow

@@ -15,23 +15,24 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 <video src="https://github.com/user-attachments/assets/86e67cd3-ade5-46e7-a4b6-b244670a7590" autoplay loop muted playsinline></video>
 
 ## Contents
-| File | Description |
-| --- | --- |
-| `.bash_profile` | Customizes the terminal prompt and shows the currently checked-out Git branch |
-| `.gitconfig` | Global Git configuration with my name, email, aliases, colors, and more |
-| `.inputrc` | Makes tab completion case-insensitive |
-| `ssh_config` | SSH client config. Persists keys in the macOS keychain agent across reboots |
-| `settings.json` | Custom settings for Visual Studio Code |
-| `keybindings.json` | Custom set of key bindings for Visual Studio Code |
-| `setup.sh` | Automated setup script for a fresh macOS install |
-| `karabiner.json` | Karabiner-Elements config. Remaps Ctrl↔Cmd and Alt+Tab on external keyboards |
-| `istatmenus.menubar.plist` | iStat Menus display preferences. Which modules show in the menubar and menu |
-| `.claude/settings.json` | Global Claude Code settings. Permissions, hooks, plugins |
-| `.config/ghostty/config` | Ghostty terminal settings. Theme, font, keybinds, shell integration |
-| `.config/ghostty/themes/` | Custom Ghostty themes |
-| `.config/opencode/opencode.jsonc` | OpenCode settings. Model, MCP servers, permissions, autoupdate |
-| `.config/opencode/agents/` | Global OpenCode agents (copilot workflow) |
-| `.config/opencode/skills/` | Global OpenCode skills |
+
+| File                              | Description                                                                   |
+| --------------------------------- | ----------------------------------------------------------------------------- |
+| `.bash_profile`                   | Customizes the terminal prompt and shows the currently checked-out Git branch |
+| `.gitconfig`                      | Global Git configuration with my name, email, aliases, colors, and more       |
+| `.inputrc`                        | Makes tab completion case-insensitive                                         |
+| `ssh_config`                      | SSH client config. Persists keys in the macOS keychain agent across reboots   |
+| `settings.json`                   | Custom settings for Visual Studio Code                                        |
+| `keybindings.json`                | Custom set of key bindings for Visual Studio Code                             |
+| `setup.sh`                        | Automated setup script for a fresh macOS install                              |
+| `karabiner.json`                  | Karabiner-Elements config. Remaps Ctrl↔Cmd and Alt+Tab on external keyboards  |
+| `istatmenus.menubar.plist`        | iStat Menus display preferences. Which modules show in the menubar and menu   |
+| `.claude/settings.json`           | Global Claude Code settings. Permissions, hooks, plugins                      |
+| `.config/ghostty/config`          | Ghostty terminal settings. Theme, font, keybinds, shell integration           |
+| `.config/ghostty/themes/`         | Custom Ghostty themes                                                         |
+| `.config/opencode/opencode.jsonc` | OpenCode settings. Model, MCP servers, permissions, autoupdate                |
+| `.config/opencode/agents/`        | OpenCode agents                                                               |
+| `.config/opencode/skills/`        | OpenCode skills                                                               |
 
 ## Checklist
 
@@ -44,11 +45,13 @@ xcode-select --install
 ```
 
 ### 1. Load config files
+
 - [ ] Load [`.bash_profile`](/.bash_profile)
 - [ ] Load [`.gitconfig`](/.gitconfig)
 - [ ] Load [`.inputrc`](/.inputrc)
 
 ### 2. Set up Homebrew and install packages
+
 - [ ] Install [Homebrew](http://brew.sh)
 - [ ] Install the latest Bash, Git, and other packages
 
@@ -65,6 +68,7 @@ brew install --cask font-fira-code
 ```
 
 ### 3. Copy or create SSH keys
+
 - [ ] Load [`ssh_config`](/ssh_config) to `~/.ssh/config` so keys persist in the keychain across reboots
 
 ```bash
@@ -77,6 +81,7 @@ cp ssh_config ~/.ssh/config && chmod 600 ~/.ssh/config
 If no key exists, `setup.sh` generates `~/.ssh/id_ed25519`, adds it to the macOS keychain agent, and uploads it to GitHub via `gh ssh-key add` (prompting for `gh auth login` if needed). Confirm at [github.com/settings/keys](https://github.com/settings/keys).
 
 ### 4. Switch from Zsh to Bash
+
 - [ ] Set Homebrew Bash as the default shell
 
 ```bash
@@ -85,6 +90,7 @@ chsh -s "/opt/homebrew/bin/bash"
 ```
 
 ### 5. Set up Node.js
+
 - [ ] Install [nvm](https://github.com/nvm-sh/nvm)
 - [ ] Install the latest [Node.js](https://nodejs.org/en) LTS version
 - [ ] Set as the default Node.js version
@@ -96,6 +102,7 @@ nvm alias default node
 ```
 
 ### 6. Set up VS Code
+
 - [ ] Install [Visual Studio Code](https://code.visualstudio.com) via Homebrew
 
 ```bash
@@ -135,7 +142,7 @@ After installing iStat Menus, `setup.sh` merges [`istatmenus.menubar.plist`](/is
 #### Claude Code
 
 ```bash
-brew install --cask claude-code
+curl -fsSL https://claude.ai/install.sh | bash
 ```
 
 - [ ] Copy [`.claude/settings.json`](/.claude/settings.json) to `~/.claude/`
@@ -150,10 +157,10 @@ brew install anomalyco/tap/opencode
 
 `brew trust anomalyco/tap` lets Homebrew install and upgrade OpenCode from the trusted tap when tap trust is required.
 
-- [ ] Copy [`.config/opencode/opencode.jsonc`](/.config/opencode/opencode.jsonc) to `~/.config/opencode/`
-- [ ] Copy [`.config/opencode/agents/`](/.config/opencode/agents) to `~/.config/opencode/agents/`
+- [ ] Copy [`.config/opencode/opencode.jsonc`](/.config/opencode/opencode.jsonc) to `~/.config/opencode`
+- [ ] Copy [`.config/opencode/agents/`](/.config/opencode/agents) to `~/.config/opencode/agents/` as the Copilot agent
 - [ ] Copy [`.config/opencode/skills/`](/.config/opencode/skills) to `~/.config/opencode/skills/`
-- [ ] Install external skills for OpenCode
+- [ ] Install the other skills to `~/.agents/skills/` using the commands below
 
 ```bash
 npx -y skills add https://github.com/vercel-labs/agent-skills \
@@ -182,40 +189,49 @@ npx -y skills add https://github.com/millionco/react-doctor \
   --global \
   --agent opencode \
   --yes
+
+npx -y skills add https://github.com/shadcn/improve \
+  --skill improve \
+  --global \
+  --agent opencode \
+  --yes
 ```
 
 **Agents**
 
-| Agent | Description |
-| --- | --- |
-| `@copilot` | Orchestrates the development workflow from description to pull request |
-| &nbsp;&nbsp;↳ `@planner` | Creates an implementation plan from a description |
-| &nbsp;&nbsp;↳ `@developer` | Implements code for a single todo item |
-| &nbsp;&nbsp;↳ `@reviewer` | Reviews code changes against todo requirements |
-| &nbsp;&nbsp;↳ `@publisher` | Handles branch setup, Git commits, and pull request creation |
-| &nbsp;&nbsp;↳ `@tester` | Generates manual QA test plans for code changes |
-| &nbsp;&nbsp;↳ `@learner` | Reflects on completed work and proposes updates to AGENTS.md files |
+| Agent                      | Description                                                                |
+| -------------------------- | -------------------------------------------------------------------------- |
+| `@copilot`                 | Orchestrates the development workflow from description to pull request     |
+| &nbsp;&nbsp;↳ `@planner`   | Creates an implementation plan from a description                          |
+| &nbsp;&nbsp;↳ `@developer` | Implements code for a single todo item                                     |
+| &nbsp;&nbsp;↳ `@reviewer`  | Reviews code changes against todo requirements                             |
+| &nbsp;&nbsp;↳ `@publisher` | Handles branch setup, Git commits, and GitHub/GitLab pull request creation |
+| &nbsp;&nbsp;↳ `@tester`    | Generates manual QA test plans for code changes                            |
+| &nbsp;&nbsp;↳ `@learner`   | Reflects on completed work and proposes updates to AGENTS.md files         |
 
 **Skills**
 
-| Skill | Description |
-| --- | --- |
-| **@copilot workflow** | |
-| &nbsp;&nbsp;↳ `branch` | Set up a Git branch from a work description |
-| &nbsp;&nbsp;↳ `commit` | Create a Git commit following conventional commit format |
-| &nbsp;&nbsp;↳ `pr` | Create a GitHub pull request |
-| &nbsp;&nbsp;↳ `unit-test` | Generate comprehensive unit tests with 100% coverage target |
-| &nbsp;&nbsp;↳ `manual-qa` | Generate manual QA test steps for a code change |
-| &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI |
-| **Standalone** | |
-| `vercel-composition-patterns` | Composition patterns for building flexible, maintainable React components |
-| `vercel-react-best-practices` | React performance optimization guidelines for components, data fetching, and bundle efficiency |
-| `emil-design-eng` | Design engineering principles and polished UI guidelines |
-| `baseline-ui` | Build strong baseline UI structure, spacing, and visual hierarchy |
-| `fixing-accessibility` | Find and fix common accessibility issues in interfaces |
-| `fixing-motion-performance` | Improve animation smoothness and avoid expensive motion patterns |
-| `react-doctor` | Diagnose React performance, correctness, and architecture issues |
-| `simplify` | Review changed code for reuse, quality, efficiency, and clarity |
+| Skill                                       | Description                                                                                    |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| **@copilot workflow**                       |                                                                                                |
+| &nbsp;&nbsp;↳ `branch`                      | Set up a Git branch from a work description                                                    |
+| &nbsp;&nbsp;↳ `commit`                      | Create a Git commit following conventional commit format                                       |
+| &nbsp;&nbsp;↳ `pr`                          | Create a GitHub or GitLab pull request for the current branch                                  |
+| &nbsp;&nbsp;↳ `unit-test`                   | Generate comprehensive tests for React components, utility functions, and hooks                |
+| &nbsp;&nbsp;↳ `manual-qa`                   | Generate manual QA test steps for a code change                                                |
+| &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI                                                  |
+| **Standalone local**                        |                                                                                                |
+| `aaa-testing`                               | Write clear Arrange-Act-Assert unit tests                                                      |
+| `simplify`                                  | Review changed code for reuse, quality, efficiency, and clarity, then fix issues               |
+| **Additional**                              |                                                                                                |
+| `vercel-composition-patterns`               | Composition patterns for building flexible, maintainable React components                      |
+| `vercel-react-best-practices`               | React performance optimization guidelines for components, data fetching, and bundle efficiency |
+| `emil-design-eng`                           | Design engineering principles and polished UI guidelines                                       |
+| `baseline-ui`                               | Validate UI for animation durations, typography scale, accessibility, and layout anti-patterns |
+| `fixing-accessibility`                      | Find and fix common accessibility issues in interfaces                                         |
+| `fixing-motion-performance`                 | Improve animation smoothness and avoid expensive motion patterns                               |
+| `react-doctor`                              | Diagnose React performance, correctness, and architecture issues                               |
+| `improve`                                   | Audit codebases and propose prioritized implementation plans                                   |
 
 ### 9. Set up Ghostty
 
@@ -356,6 +372,7 @@ cp .config/ghostty/themes/* ~/.config/ghostty/themes/
 #### Karabiner-Elements (keyboard remapping)
 
 Remaps modifier keys on external keyboards only (built-in keyboard unaffected):
+
 - Left Ctrl → Command; Left Windows key → Control (global, including the terminal)
 - Alt+Tab → Cmd+Tab (app switcher)
 
@@ -375,4 +392,5 @@ defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
 ```
 
 ## Use it yourself
+
 Fork this repo, or just copy-paste things you need, and make it your own. **Please be sure to change your `.gitconfig` name and email address though!**
