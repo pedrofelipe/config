@@ -7,34 +7,50 @@ textVerbosity: low
 permission:
   bash:
     "*": deny
-    "git add *": allow
-    "git branch *": allow
-    "git checkout *": allow
-    "git commit *": allow
-    "git config --get *": allow
-    "git config user.email": allow
-    "git diff": allow
-    "git diff *": allow
-    "git fetch *": allow
-    "git grep*": allow
-    "git log *": allow
-    "git ls-remote *": allow
-    "git remote get-url origin": allow
-    "git push": allow
-    "git push *": allow
-    "git rev-list *": allow
-    "git status*": allow
-    "git symbolic-ref *": allow
-    "git reset --hard*": ask
+    "git *": allow
+    "git stash": ask
+    "git stash *": ask
+    "git rebase": ask
+    "git rebase *": ask
+    "git clean": ask
+    "git clean *": ask
+    "git reset": ask
+    "git reset *": ask
+    "git restore": ask
+    "git restore *": ask
+    "git checkout": ask
+    "git checkout *": ask
+    "git diff --output*": ask
+    "git diff * --output*": ask
+    "git diff --ext-diff*": ask
+    "git diff * --ext-diff*": ask
+    "git commit --amend*": ask
+    "git commit * --amend*": ask
+    "git branch -d *": ask
+    "git branch -D *": ask
+    "git branch --delete *": ask
+    "git branch --delete --force *": ask
+    "git push --force*": ask
+    "git push * --force*": ask
     "git push *--force*": ask
     "git push -f*": ask
     "git push * -f*": ask
+    "git push --delete *": ask
+    "git push * --delete *": ask
+    "git push :*": ask
+    "git push * :*": ask
+    "git push +*": ask
+    "git push * +*": ask
+    "git push --mirror*": ask
+    "git push * --mirror*": ask
     "gh pr checks *": allow
     "gh pr create *": allow
     "gh pr diff *": allow
     "gh pr list *": allow
     "gh pr status *": allow
     "gh pr view *": allow
+    "gh pr merge *": ask
+    "gh pr close *": ask
     "gh issue view *": allow
     "gh repo view *": allow
     "glab mr list *": allow

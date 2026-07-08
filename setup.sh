@@ -195,7 +195,7 @@ OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
 
 # OpenCode install manifests. README.md is documentation and is intentionally
 # excluded from agent install manifests.
-OPENCODE_COPILOT_BUNDLE_AGENTS=(
+OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS=(
   copilot
   planner
   developer
@@ -204,16 +204,16 @@ OPENCODE_COPILOT_BUNDLE_AGENTS=(
   tester
   learner
 )
-OPENCODE_COPILOT_BUNDLE_LOCAL_SKILLS=(
+OPENCODE_COPILOT_AGENT_LOCAL_SKILLS=(
   branch
   commit
   pr
+  aaa-testing
   unit-test
   manual-qa
   make-interfaces-feel-better
 )
 OPENCODE_STANDALONE_LOCAL_SKILLS=(
-  aaa-testing
   simplify
 )
 OPENCODE_EXTERNAL_SKILL_COMMON_ARGS=(
@@ -225,6 +225,8 @@ OPENCODE_EXTERNAL_SKILL_SPECS=(
   "https://github.com/vercel-labs/agent-skills|vercel-react-best-practices vercel-composition-patterns"
   "https://github.com/emilkowalski/skill|emil-design-eng"
   "https://github.com/ibelick/ui-skills|baseline-ui fixing-accessibility fixing-motion-performance"
+  "https://github.com/addyosmani/web-quality-skills|web-quality-audit performance core-web-vitals accessibility seo best-practices"
+  "https://github.com/addyosmani/agent-skills|code-simplification"
   "https://github.com/millionco/react-doctor|react-doctor"
   "https://github.com/shadcn/improve|improve"
 )
@@ -816,6 +818,97 @@ ensure_dir_on_path() {
   hash -r 2>/dev/null || true
 }
 
+canonical_path() {
+  local path=$1 dir base
+
+  dir="$(dirname "$path")"
+  base="$(basename "$path")"
+  dir="$(cd "$dir" 2>/dev/null && pwd -P)" || return 1
+  printf '%s/%s\n' "$dir" "$base"
+}
+
+resolve_symlink_chain() {
+  local path=$1 target dir depth=0
+
+  path="$(canonical_path "$path")" || return 1
+  while [ -L "$path" ]; do
+    [ $depth -lt 20 ] || return 1
+    target="$(readlink "$path")" || return 1
+    case "$target" in
+      /*) path="$target" ;;
+      *)
+        dir="$(dirname "$path")"
+        path="$dir/$target"
+        ;;
+    esac
+    path="$(canonical_path "$path")" || return 1
+    depth=$((depth+1))
+  done
+
+  printf '%s\n' "$path"
+}
+
+claude_code_homebrew_managed() {
+  local cmd_path=$1 canonical_cmd_path real_cmd_path list_kind package brew_file real_brew_file
+
+  [ -n "$cmd_path" ] || return 1
+  brew_available || return 1
+
+  canonical_cmd_path="$(canonical_path "$cmd_path" 2>/dev/null || printf '%s\n' "$cmd_path")"
+  real_cmd_path="$(resolve_symlink_chain "$cmd_path" 2>/dev/null || true)"
+
+  if brew which-formula "$canonical_cmd_path" >/dev/null 2>&1; then
+    return 0
+  fi
+  if [ -n "$real_cmd_path" ] && brew which-formula "$real_cmd_path" >/dev/null 2>&1; then
+    return 0
+  fi
+
+  for list_kind in --formula --cask; do
+    for package in claude-code claude; do
+      while IFS= read -r brew_file; do
+        [ -n "$brew_file" ] || continue
+
+        brew_file="$(canonical_path "$brew_file" 2>/dev/null || printf '%s\n' "$brew_file")"
+        if [ "$brew_file" = "$canonical_cmd_path" ] || { [ -n "$real_cmd_path" ] && [ "$brew_file" = "$real_cmd_path" ]; }; then
+          return 0
+        fi
+
+        real_brew_file="$(resolve_symlink_chain "$brew_file" 2>/dev/null || true)"
+        if [ -n "$real_brew_file" ] && { [ "$real_brew_file" = "$canonical_cmd_path" ] || [ "$real_brew_file" = "$real_cmd_path" ]; }; then
+          return 0
+        fi
+      done <<EOF
+$(brew list "$list_kind" "$package" 2>/dev/null)
+EOF
+    done
+  done
+
+  return 1
+}
+
+update_claude_code() {
+  local cmd_path=$1
+
+  if $DRY_RUN; then
+    would "Would ask to update Claude Code with claude update"
+    return 0
+  fi
+
+  if ! install_consent "Upgrade Claude Code?" y; then
+    ok "Claude Code update skipped"
+    return 0
+  fi
+
+  if "$cmd_path" update &>/dev/null; then
+    updated "Claude Code"
+    return 0
+  fi
+
+  warn "Failed to update Claude Code"
+  return 1
+}
+
 install_claude_code() {
   local cmd="claude" install_dir="$HOME/.local/bin" direct_cmd cmd_path
   direct_cmd="$install_dir/$cmd"
@@ -829,7 +922,12 @@ install_claude_code() {
   if [ -n "$cmd_path" ]; then
     mark_installer_detected claude_code "$cmd_path"
     ok "Claude Code found at $cmd_path, skipping installation"
-    return 0
+    if claude_code_homebrew_managed "$cmd_path"; then
+      ok "Claude Code updates managed by Homebrew"
+      return 0
+    fi
+    update_claude_code "$cmd_path"
+    return $?
   fi
 
   if $DRY_RUN; then
@@ -943,7 +1041,7 @@ install_opencode_local_skill() {
   return 0
 }
 
-# Classifies a target without installing it so bundle prompts can group missing and changed files.
+# Classifies a target without installing it so Copilot agent prompts can group missing and changed files.
 # Missing targets return nonzero but still set _opencode_target_status for callers that expect that state.
 opencode_install_target_status() {
   local path_type=$1 src=$2 dst=$3 display=$4 dest_dir=${5:-}
@@ -992,78 +1090,78 @@ opencode_install_target_status() {
   fi
 }
 
-# Classifies one bundle target, records its status in _bundle_target_status,
+# Classifies one Copilot agent target, records its status in _copilot_agent_target_status,
 # and folds it into the shared counters. match is the no-op case (no counter).
-_count_bundle_target_status() {
+_count_copilot_agent_target_status() {
   opencode_install_target_status "$@" || true
-  _bundle_target_status=$_opencode_target_status
-  case "$_bundle_target_status" in
+  _copilot_agent_target_status=$_opencode_target_status
+  case "$_copilot_agent_target_status" in
     match) ;;
-    missing) _bundle_missing_count=$((_bundle_missing_count+1)) ;;
-    changed) _bundle_changed_count=$((_bundle_changed_count+1)) ;;
-    blocked) _bundle_blocked_count=$((_bundle_blocked_count+1)) ;;
-    *) _bundle_failed_count=$((_bundle_failed_count+1)) ;;
+    missing) _copilot_agent_missing_count=$((_copilot_agent_missing_count+1)) ;;
+    changed) _copilot_agent_changed_count=$((_copilot_agent_changed_count+1)) ;;
+    blocked) _copilot_agent_blocked_count=$((_copilot_agent_blocked_count+1)) ;;
+    *) _copilot_agent_failed_count=$((_copilot_agent_failed_count+1)) ;;
   esac
 }
 
-opencode_copilot_bundle_status_counts() {
+opencode_copilot_agent_status_counts() {
   local agent skill src dest
-  _bundle_missing_count=0
-  _bundle_changed_count=0
-  _bundle_blocked_count=0
-  _bundle_failed_count=0
-  _bundle_agent_statuses=()
-  _bundle_skill_statuses=()
+  _copilot_agent_missing_count=0
+  _copilot_agent_changed_count=0
+  _copilot_agent_blocked_count=0
+  _copilot_agent_failed_count=0
+  _copilot_agent_file_statuses=()
+  _copilot_agent_skill_statuses=()
 
-  for agent in "${OPENCODE_COPILOT_BUNDLE_AGENTS[@]}"; do
+  for agent in "${OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[@]}"; do
     src="$DOTFILES_DIR/.config/opencode/agents/$agent.md"
     dest="$OPENCODE_CONFIG_DIR/agents/$agent.md"
-    _count_bundle_target_status file "$src" "$dest" "Agent $agent" "$OPENCODE_CONFIG_DIR/agents"
-    _bundle_agent_statuses+=("$_bundle_target_status")
+    _count_copilot_agent_target_status file "$src" "$dest" "Agent $agent" "$OPENCODE_CONFIG_DIR/agents"
+    _copilot_agent_file_statuses+=("$_copilot_agent_target_status")
   done
 
-  for skill in "${OPENCODE_COPILOT_BUNDLE_LOCAL_SKILLS[@]}"; do
+  for skill in "${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
     src="$DOTFILES_DIR/.config/opencode/skills/$skill"
     dest="$OPENCODE_CONFIG_DIR/skills/$skill"
-    _count_bundle_target_status dir "$src" "$dest" "Skill $skill" "$OPENCODE_CONFIG_DIR/skills"
-    _bundle_skill_statuses+=("$_bundle_target_status")
+    _count_copilot_agent_target_status dir "$src" "$dest" "Skill $skill" "$OPENCODE_CONFIG_DIR/skills"
+    _copilot_agent_skill_statuses+=("$_copilot_agent_target_status")
   done
 }
 
-install_opencode_copilot_bundle_targets_with_status() {
+install_opencode_copilot_agent_targets_with_status() {
   local desired_status=$1 install_consent_granted=${2:-false}
   local _i agent skill
 
-  for _i in "${!OPENCODE_COPILOT_BUNDLE_AGENTS[@]}"; do
-    agent="${OPENCODE_COPILOT_BUNDLE_AGENTS[$_i]}"
-    [ "${_bundle_agent_statuses[$_i]:-}" = "$desired_status" ] || continue
-    install_opencode_agent_file "$agent" "$install_consent_granted" || _bundle_targets_had_failures=true
+  for _i in "${!OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[@]}"; do
+    agent="${OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[$_i]}"
+    [ "${_copilot_agent_file_statuses[$_i]:-}" = "$desired_status" ] || continue
+    install_opencode_agent_file "$agent" "$install_consent_granted" || _copilot_agent_targets_had_failures=true
   done
 
-  for _i in "${!OPENCODE_COPILOT_BUNDLE_LOCAL_SKILLS[@]}"; do
-    skill="${OPENCODE_COPILOT_BUNDLE_LOCAL_SKILLS[$_i]}"
-    [ "${_bundle_skill_statuses[$_i]:-}" = "$desired_status" ] || continue
-    install_opencode_local_skill "$skill" "$install_consent_granted" || _bundle_targets_had_failures=true
+  for _i in "${!OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
+    skill="${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[$_i]}"
+    [ "${_copilot_agent_skill_statuses[$_i]:-}" = "$desired_status" ] || continue
+    install_opencode_local_skill "$skill" "$install_consent_granted" || _copilot_agent_targets_had_failures=true
   done
 }
 
-install_opencode_copilot_bundle_files() {
+install_opencode_copilot_agent_files() {
   local agent skill
 
-  for agent in "${OPENCODE_COPILOT_BUNDLE_AGENTS[@]}"; do
+  for agent in "${OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[@]}"; do
     install_opencode_agent_file "$agent"
   done
 
-  for skill in "${OPENCODE_COPILOT_BUNDLE_LOCAL_SKILLS[@]}"; do
+  for skill in "${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
     install_opencode_local_skill "$skill"
   done
 }
 
-opencode_local_skill_in_copilot_bundle() {
-  local skill=$1 bundle_skill
+opencode_local_skill_in_copilot_agent() {
+  local skill=$1 copilot_agent_skill
 
-  for bundle_skill in "${OPENCODE_COPILOT_BUNDLE_LOCAL_SKILLS[@]}"; do
-    [ "$skill" = "$bundle_skill" ] && return 0
+  for copilot_agent_skill in "${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
+    [ "$skill" = "$copilot_agent_skill" ] && return 0
   done
 
   return 1
@@ -1085,7 +1183,7 @@ setup_opencode_standalone_local_skill_installs() {
   step "Installing standalone skills"
 
   for skill in "${OPENCODE_STANDALONE_LOCAL_SKILLS[@]}"; do
-    if opencode_local_skill_in_copilot_bundle "$skill"; then
+    if opencode_local_skill_in_copilot_agent "$skill"; then
       ok "Skill $skill is part of the Copilot agent. Standalone prompt skipped"
       continue
     fi
@@ -1137,36 +1235,36 @@ setup_targeted_opencode_agent_and_skill_installs() {
   step "Installing Copilot agent"
 
   if $DRY_RUN; then
-    install_opencode_copilot_bundle_files
+    install_opencode_copilot_agent_files
     setup_opencode_standalone_local_skill_installs
     return 0
   fi
 
   local _cf_ok=true
-  opencode_copilot_bundle_status_counts
+  opencode_copilot_agent_status_counts
 
-  if [ $_bundle_missing_count -eq 0 ] && [ $_bundle_changed_count -eq 0 ] && [ $_bundle_blocked_count -eq 0 ] && [ $_bundle_failed_count -eq 0 ]; then
+  if [ $_copilot_agent_missing_count -eq 0 ] && [ $_copilot_agent_changed_count -eq 0 ] && [ $_copilot_agent_blocked_count -eq 0 ] && [ $_copilot_agent_failed_count -eq 0 ]; then
     ok "Copilot agent already up to date"
   else
-    if [ $_bundle_missing_count -gt 0 ]; then
-      if install_consent "Install Copilot agent ($_bundle_missing_count missing item(s))?" y; then
-        _bundle_targets_had_failures=false
-        install_opencode_copilot_bundle_targets_with_status missing true
-        $_bundle_targets_had_failures && _cf_ok=false
+    if [ $_copilot_agent_missing_count -gt 0 ]; then
+      if install_consent "Install Copilot agent ($_copilot_agent_missing_count missing item(s))?" y; then
+        _copilot_agent_targets_had_failures=false
+        install_opencode_copilot_agent_targets_with_status missing true
+        $_copilot_agent_targets_had_failures && _cf_ok=false
       else
         ok "Copilot agent missing items skipped"
         _cf_ok=false
       fi
     fi
 
-    if [ $_bundle_changed_count -gt 0 ]; then
-      _bundle_targets_had_failures=false
-      install_opencode_copilot_bundle_targets_with_status changed false
-      $_bundle_targets_had_failures && _cf_ok=false
+    if [ $_copilot_agent_changed_count -gt 0 ]; then
+      _copilot_agent_targets_had_failures=false
+      install_opencode_copilot_agent_targets_with_status changed false
+      $_copilot_agent_targets_had_failures && _cf_ok=false
     fi
 
-    if [ $_bundle_blocked_count -gt 0 ] || [ $_bundle_failed_count -gt 0 ]; then
-      warn "Copilot agent has $_bundle_blocked_count blocked and $_bundle_failed_count failed target(s)"
+    if [ $_copilot_agent_blocked_count -gt 0 ] || [ $_copilot_agent_failed_count -gt 0 ]; then
+      warn "Copilot agent has $_copilot_agent_blocked_count blocked and $_copilot_agent_failed_count failed target(s)"
       _cf_ok=false
     fi
   fi

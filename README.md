@@ -145,7 +145,7 @@ After installing iStat Menus, `setup.sh` merges [`istatmenus.menubar.plist`](/is
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
-- [ ] Copy [`.claude/settings.json`](/.claude/settings.json) to `~/.claude/`
+- [ ] Copy [`.claude/settings.json`](/.claude/settings.json) to `~/.claude`
 
 #### OpenCode
 
@@ -158,9 +158,9 @@ brew install anomalyco/tap/opencode
 `brew trust anomalyco/tap` lets Homebrew install and upgrade OpenCode from the trusted tap when tap trust is required.
 
 - [ ] Copy [`.config/opencode/opencode.jsonc`](/.config/opencode/opencode.jsonc) to `~/.config/opencode`
-- [ ] Copy [`.config/opencode/agents/`](/.config/opencode/agents) to `~/.config/opencode/agents/` as the Copilot agent
-- [ ] Copy [`.config/opencode/skills/`](/.config/opencode/skills) to `~/.config/opencode/skills/`
-- [ ] Install the other skills to `~/.agents/skills/` using the commands below
+- [ ] Copy [`.config/opencode/agents`](/.config/opencode/agents) to `~/.config/opencode/agents` as the Copilot agent
+- [ ] Copy [`.config/opencode/skills`](/.config/opencode/skills) to `~/.config/opencode/skills`
+- [ ] Install the other skills to `~/.agents/skills` using the commands below
 
 ```bash
 npx -y skills add https://github.com/vercel-labs/agent-skills \
@@ -180,6 +180,23 @@ npx -y skills add https://github.com/ibelick/ui-skills \
   --skill baseline-ui \
   --skill fixing-accessibility \
   --skill fixing-motion-performance \
+  --global \
+  --agent opencode \
+  --yes
+
+npx -y skills add https://github.com/addyosmani/web-quality-skills \
+  --skill web-quality-audit \
+  --skill performance \
+  --skill core-web-vitals \
+  --skill accessibility \
+  --skill seo \
+  --skill best-practices \
+  --global \
+  --agent opencode \
+  --yes
+
+npx -y skills add https://github.com/addyosmani/agent-skills \
+  --skill code-simplification \
   --global \
   --agent opencode \
   --yes
@@ -213,24 +230,36 @@ npx -y skills add https://github.com/shadcn/improve \
 
 | Skill                                       | Description                                                                                    |
 | ------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| **@copilot workflow**                       |                                                                                                |
+| **Copilot agent**                           |                                                                                                |
 | &nbsp;&nbsp;↳ `branch`                      | Set up a Git branch from a work description                                                    |
 | &nbsp;&nbsp;↳ `commit`                      | Create a Git commit following conventional commit format                                       |
 | &nbsp;&nbsp;↳ `pr`                          | Create a GitHub or GitLab pull request for the current branch                                  |
+| &nbsp;&nbsp;↳ `aaa-testing`                 | Write clear Arrange-Act-Assert unit tests                                                      |
 | &nbsp;&nbsp;↳ `unit-test`                   | Generate comprehensive tests for React components, utility functions, and hooks                |
 | &nbsp;&nbsp;↳ `manual-qa`                   | Generate manual QA test steps for a code change                                                |
 | &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI                                                  |
-| **Standalone local**                        |                                                                                                |
-| `aaa-testing`                               | Write clear Arrange-Act-Assert unit tests                                                      |
+| **Standalone repo-local**                   |                                                                                                |
 | `simplify`                                  | Review changed code for reuse, quality, efficiency, and clarity, then fix issues               |
-| **Additional**                              |                                                                                                |
+| **addyosmani**                              |                                                                                                |
+| `web-quality-audit`                         | Audit performance, accessibility, SEO, and best practices                                      |
+| `performance`                               | Optimize web performance for faster loading and better user experience                         |
+| `core-web-vitals`                           | Optimize Core Web Vitals for better page experience                                            |
+| `accessibility`                             | Audit and improve web accessibility against WCAG guidelines                                    |
+| `seo`                                       | Optimize search engine visibility, metadata, and structured data                               |
+| `best-practices`                            | Apply web security, compatibility, and code quality best practices                             |
+| `code-simplification`                       | Simplify code while preserving behavior and reducing complexity                                |
+| **vercel-labs**                             |                                                                                                |
 | `vercel-composition-patterns`               | Composition patterns for building flexible, maintainable React components                      |
 | `vercel-react-best-practices`               | React performance optimization guidelines for components, data fetching, and bundle efficiency |
-| `emil-design-eng`                           | Design engineering principles and polished UI guidelines                                       |
+| **ibelick**                                 |                                                                                                |
 | `baseline-ui`                               | Validate UI for animation durations, typography scale, accessibility, and layout anti-patterns |
 | `fixing-accessibility`                      | Find and fix common accessibility issues in interfaces                                         |
 | `fixing-motion-performance`                 | Improve animation smoothness and avoid expensive motion patterns                               |
+| **emilkowalski**                            |                                                                                                |
+| `emil-design-eng`                           | Design engineering principles and polished UI guidelines                                       |
+| **millionco**                               |                                                                                                |
 | `react-doctor`                              | Diagnose React performance, correctness, and architecture issues                               |
+| **shadcn**                                  |                                                                                                |
 | `improve`                                   | Audit codebases and propose prioritized implementation plans                                   |
 
 ### 9. Set up Ghostty
@@ -239,13 +268,13 @@ npx -y skills add https://github.com/shadcn/improve \
 brew install --cask ghostty
 ```
 
-- [ ] Copy [`.config/ghostty/config`](/.config/ghostty/config) to `~/.config/ghostty/`
-- [ ] Copy [`.config/ghostty/themes/`](/.config/ghostty/themes) to `~/.config/ghostty/themes/`
+- [ ] Copy [`.config/ghostty/config`](/.config/ghostty/config) to `~/.config/ghostty`
+- [ ] Copy [`.config/ghostty/themes`](/.config/ghostty/themes) to `~/.config/ghostty/themes`
 
 ```bash
 mkdir -p ~/.config/ghostty/themes
 cp .config/ghostty/config ~/.config/ghostty/config
-cp .config/ghostty/themes/* ~/.config/ghostty/themes/
+cp .config/ghostty/themes/* ~/.config/ghostty/themes
 ```
 
 ### 10. macOS Preferences
