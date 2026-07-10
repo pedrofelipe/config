@@ -1,7 +1,7 @@
 ---
 description: Reviews code changes against todo requirements
 mode: subagent
-model: openai/gpt-5.5
+model: openai/gpt-5.6-sol
 variant: high
 textVerbosity: low
 permission:

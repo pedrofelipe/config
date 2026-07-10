@@ -68,18 +68,13 @@ SUM_PERIPHERALS=""
 BREW_OK=0
 BREW_UPDATED=0
 BREW_INSTALLED=0
+BREW_SKIPPED=0
 
 # Tool config is deployed only after the matching installer is present or accepted.
 OPENCODE_AVAILABLE=false
-OPENCODE_DETECTED=false
-OPENCODE_INSTALLED=false
 OPENCODE_INSTALL_DECLINED=false
-OPENCODE_DETECTED_PATH=""
 CLAUDE_CODE_AVAILABLE=false
-CLAUDE_CODE_DETECTED=false
-CLAUDE_CODE_INSTALLED=false
 CLAUDE_CODE_INSTALL_DECLINED=false
-CLAUDE_CODE_DETECTED_PATH=""
 GIT_COMMIT_AUTHOR_IDENTITY_CONFIGURE=false
 
 step()      { echo -e "\n${BLUE}${BOLD}▶ $1${RESET}"; }
@@ -98,7 +93,10 @@ install_consent() {
     *) suffix="[y/N]" ;;
   esac
 
-  read -r -p "  $prompt $suffix " r
+  if ! read -r -p "  $prompt $suffix " r; then
+    echo ""
+    return 1
+  fi
   if [[ "$default" =~ ^[yY] ]]; then
     [[ ! "$r" =~ ^[nN] ]]
   else
@@ -107,30 +105,20 @@ install_consent() {
 }
 
 mark_installer_detected() {
-  local target=$1 path=${2:-}
+  local target=$1
 
   case "$target" in
     opencode)
       OPENCODE_AVAILABLE=true
-      OPENCODE_DETECTED=true
-      OPENCODE_DETECTED_PATH=$path
       ;;
     claude_code)
       CLAUDE_CODE_AVAILABLE=true
-      CLAUDE_CODE_DETECTED=true
-      CLAUDE_CODE_DETECTED_PATH=$path
       ;;
   esac
 }
 
 mark_installer_installed() {
-  local target=$1 path=${2:-}
-
-  mark_installer_detected "$target" "$path"
-  case "$target" in
-    opencode) OPENCODE_INSTALLED=true ;;
-    claude_code) CLAUDE_CODE_INSTALLED=true ;;
-  esac
+  mark_installer_detected "$1"
 }
 
 mark_installer_declined() {
@@ -148,34 +136,10 @@ installer_available() {
   esac
 }
 
-installer_detected() {
-  case "$1" in
-    opencode) $OPENCODE_DETECTED ;;
-    claude_code) $CLAUDE_CODE_DETECTED ;;
-    *) return 1 ;;
-  esac
-}
-
-installer_installed() {
-  case "$1" in
-    opencode) $OPENCODE_INSTALLED ;;
-    claude_code) $CLAUDE_CODE_INSTALLED ;;
-    *) return 1 ;;
-  esac
-}
-
 installer_declined() {
   case "$1" in
     opencode) $OPENCODE_INSTALL_DECLINED ;;
     claude_code) $CLAUDE_CODE_INSTALL_DECLINED ;;
-    *) return 1 ;;
-  esac
-}
-
-installer_detected_path() {
-  case "$1" in
-    opencode) printf '%s\n' "$OPENCODE_DETECTED_PATH" ;;
-    claude_code) printf '%s\n' "$CLAUDE_CODE_DETECTED_PATH" ;;
     *) return 1 ;;
   esac
 }
@@ -264,20 +228,6 @@ brew_cask_registered() {
   brew_available && brew list --cask "$1" &>/dev/null
 }
 
-# Mirrors the upgrade command used by brew_upgrade_formula_command_run for dry-run output.
-brew_upgrade_formula_command() {
-  local pkg=$1 help
-
-  help="$(brew upgrade --help 2>/dev/null || true)"
-  if [[ "$help" == *"--no-ask"* ]]; then
-    printf 'HOMEBREW_NO_ASK=1 brew upgrade --no-ask %s\n' "$pkg"
-  elif [[ "$help" == *"HOMEBREW_NO_ASK"* ]]; then
-    printf 'HOMEBREW_NO_ASK=1 brew upgrade %s\n' "$pkg"
-  else
-    printf 'brew upgrade %s (non-interactive confirmation unavailable)\n' "$pkg"
-  fi
-}
-
 brew_upgrade_formula_command_run() {
   local pkg=$1 display=$2 non_interactive=${3:-false} help
 
@@ -340,10 +290,16 @@ prepare_opencode_homebrew_tap() {
 # Sets _deploy_result so callers can distinguish installed, unchanged, and dry-run paths.
 deploy_prompted_file() {
   local src=$1 dst=$2 display=$3 prompt_label=$4 dry_run_message=$5
-  local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-} r
+  local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-} overwrite_default=${9:-y}
   _deploy_result=""
 
   if $DRY_RUN; then
+    if [ -n "$dest_dir" ] && [ -e "$dest_dir" ] && [ ! -d "$dest_dir" ]; then
+      warn "$display destination directory exists and is not a directory: $dest_dir"
+      _deploy_result="blocked"
+      return 1
+    fi
+
     if [ -e "$dst" ] && [ ! -f "$dst" ]; then
       warn "$display destination exists and is not a file: $dst"
       _deploy_result="blocked"
@@ -389,8 +345,7 @@ deploy_prompted_file() {
       return 0
     fi
     git --no-pager diff --no-index --color "$dst" "$src"
-    read -r -p "  $prompt_label already exists. Overwrite? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "$prompt_label already exists. Overwrite?" "$overwrite_default"; then
       ok "$display unchanged"
       _deploy_result="unchanged"
       return 0
@@ -462,7 +417,7 @@ deploy_diff_safe_path() {
   local src=$1 dst=$2 display=$3 prompt_label=$4 path_type=$5
   local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-}
   local install_consent_granted=${9:-false}
-  local install_parent r
+  local install_parent
   _deploy_result=""
 
   if [ "$path_type" != "file" ] && [ "$path_type" != "dir" ]; then
@@ -529,8 +484,7 @@ deploy_diff_safe_path() {
     fi
 
     deploy_diff_safe_show_diff "$src" "$dst"
-    read -r -p "  $prompt_label already exists. Overwrite? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "$prompt_label already exists. Overwrite?" y; then
       ok "$display unchanged"
       _deploy_result="unchanged"
       return 0
@@ -588,10 +542,8 @@ deploy_diff_safe_dir() {
 
 # Installs or upgrades a Homebrew formula.
 # Pass --install-consent-granted when the caller already asked about first-time install.
-# Pass --cmd=<name> to skip when a matching command exists outside Homebrew.
 brew_formula() {
-  local pkg=$1 display=$1 external_cmd="" install_consent_granted=false install_prompt_default="y"
-  local upgrade_no_ask=false arg cmd_path r
+  local pkg=$1 display=$1 install_consent_granted=false upgrade_no_ask=false arg
   shift || true
 
   case "$pkg" in
@@ -601,28 +553,19 @@ brew_formula() {
   for arg in "$@"; do
     case "$arg" in
       --install-consent-granted) install_consent_granted=true ;;
-      --install-default=*) install_prompt_default=${arg#*=} ;;
       --upgrade-no-ask) upgrade_no_ask=true ;;
-      --cmd=*) external_cmd=${arg#*=} ;;
-      *)
-        if [ -z "$external_cmd" ]; then
-          external_cmd=$arg
-        else
-          warn "Ignoring unknown brew_formula option: $arg"
-        fi
-        ;;
+      *) warn "Ignoring unknown brew_formula option: $arg" ;;
     esac
   done
 
-  if command -v brew &>/dev/null && brew list --formula "$pkg" &>/dev/null; then
+  if brew_available && brew list --formula "$pkg" &>/dev/null; then
     if $DRY_RUN; then
       would "Would update $display if outdated"
     else
       if brew outdated --formula "$pkg" | grep -q .; then
-        read -r -p "  Upgrade $display? [Y/n] " r
-        if [[ "$r" =~ ^[nN] ]]; then
+        if ! install_consent "Upgrade $display?" y; then
           ok "$display upgrade skipped"
-          BREW_OK=$((BREW_OK+1))
+          BREW_SKIPPED=$((BREW_SKIPPED+1))
         else
           if brew_upgrade_formula_command_run "$pkg" "$display" "$upgrade_no_ask"; then
             updated "$display"
@@ -637,13 +580,7 @@ brew_formula() {
         BREW_OK=$((BREW_OK+1))
       fi
     fi
-  elif [ -n "$external_cmd" ] && cmd_path="$(command -v "$external_cmd" 2>/dev/null)"; then
-    if command -v brew &>/dev/null; then
-      ok "$display found at $cmd_path, skipping installation"
-    else
-      ok "$display found at $cmd_path, skipping installation"
-    fi
-  elif ! command -v brew &>/dev/null; then
+  elif ! brew_available; then
     if $DRY_RUN; then
       would "Would ask to install $display"
       return 0
@@ -658,7 +595,7 @@ brew_formula() {
         would "Would ask to install $display"
       fi
     else
-      if ! $install_consent_granted && ! install_consent "Install $display?" "$install_prompt_default"; then
+      if ! $install_consent_granted && ! install_consent "Install $display?" y; then
         ok "$display skipped"
         return 2
       fi
@@ -674,38 +611,27 @@ brew_formula() {
 }
 
 # Installs or upgrades a Homebrew cask.
-# Pass a second argument or --cmd=<name> to detect installs outside Homebrew.
 # Pass --install-consent-granted when the caller already asked about first-time install.
 brew_cask() {
   local cask=$1
-  local cmd="" install_consent_granted=false install_prompt_default="y"
-  local arg cmd_path r
+  local install_consent_granted=false arg
   shift || true
 
   for arg in "$@"; do
     case "$arg" in
       --install-consent-granted) install_consent_granted=true ;;
-      --install-default=*) install_prompt_default=${arg#*=} ;;
-      --cmd=*) cmd=${arg#*=} ;;
-      *)
-        if [ -z "$cmd" ]; then
-          cmd=$arg
-        else
-          warn "Ignoring unknown brew_cask option: $arg"
-        fi
-        ;;
+      *) warn "Ignoring unknown brew_cask option: $arg" ;;
     esac
   done
 
-  if command -v brew &>/dev/null && brew list --cask "$cask" &>/dev/null; then
+  if brew_available && brew list --cask "$cask" &>/dev/null; then
     if $DRY_RUN; then
       would "Would update $cask if outdated"
     else
       if brew outdated --cask | grep -Fxq "$cask"; then
-        read -r -p "  Upgrade $cask? [Y/n] " r
-        if [[ "$r" =~ ^[nN] ]]; then
+        if ! install_consent "Upgrade $cask?" y; then
           ok "$cask upgrade skipped"
-          BREW_OK=$((BREW_OK+1))
+          BREW_SKIPPED=$((BREW_SKIPPED+1))
         else
           if brew upgrade --cask "$cask" &>/dev/null; then
             updated "$cask"
@@ -720,13 +646,7 @@ brew_cask() {
         BREW_OK=$((BREW_OK+1))
       fi
     fi
-  elif [ -n "$cmd" ] && cmd_path="$(command -v "$cmd" 2>/dev/null)"; then
-    if command -v brew &>/dev/null; then
-      ok "$cask found at $cmd_path, skipping installation"
-    else
-      ok "$cask found at $cmd_path, skipping installation"
-    fi
-  elif ! command -v brew &>/dev/null; then
+  elif ! brew_available; then
     if $DRY_RUN; then
       would "Would ask to install $cask"
       return 0
@@ -741,7 +661,7 @@ brew_cask() {
         would "Would ask to install $cask"
       fi
     else
-      if ! $install_consent_granted && ! install_consent "Install $cask?" "$install_prompt_default"; then
+      if ! $install_consent_granted && ! install_consent "Install $cask?" y; then
         ok "$cask skipped"
         return 2
       fi
@@ -761,7 +681,7 @@ install_opencode() {
   cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
 
   if command -v brew &>/dev/null && brew list --formula "$formula" &>/dev/null; then
-    mark_installer_detected opencode "$cmd_path"
+    mark_installer_detected opencode
     if ! prepare_opencode_homebrew_tap "$tap"; then
       return 1
     fi
@@ -770,12 +690,8 @@ install_opencode() {
   fi
 
   if [ -n "$cmd_path" ]; then
-    mark_installer_detected opencode "$cmd_path"
-    if command -v brew &>/dev/null; then
-      ok "OpenCode found at $cmd_path, skipping installation"
-    else
-      ok "OpenCode found at $cmd_path, skipping installation"
-    fi
+    mark_installer_detected opencode
+    ok "OpenCode found at $cmd_path, skipping installation"
     return 0
   fi
 
@@ -800,8 +716,7 @@ install_opencode() {
   fi
 
   if brew_formula "$formula" --install-consent-granted; then
-    cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
-    mark_installer_installed opencode "$cmd_path"
+    mark_installer_installed opencode
     return 0
   fi
 
@@ -920,7 +835,7 @@ install_claude_code() {
   fi
 
   if [ -n "$cmd_path" ]; then
-    mark_installer_detected claude_code "$cmd_path"
+    mark_installer_detected claude_code
     ok "Claude Code found at $cmd_path, skipping installation"
     if claude_code_homebrew_managed "$cmd_path"; then
       ok "Claude Code updates managed by Homebrew"
@@ -941,7 +856,7 @@ install_claude_code() {
     return 0
   fi
 
-  if (set -o pipefail; curl -fsSL https://claude.ai/install.sh | bash); then
+  if (set -o pipefail; curl -fsSL --connect-timeout 10 --max-time 300 https://claude.ai/install.sh | bash); then
     ensure_dir_on_path "$install_dir"
     cmd_path="$(type -P "$cmd" 2>/dev/null || true)"
     if [ -z "$cmd_path" ]; then
@@ -949,7 +864,7 @@ install_claude_code() {
       return 1
     fi
 
-    mark_installer_installed claude_code "$cmd_path"
+    mark_installer_installed claude_code
     installed "Claude Code"
     return 0
   fi
@@ -1280,7 +1195,7 @@ setup_targeted_opencode_agent_and_skill_installs() {
 }
 
 install_external_opencode_skills() {
-  local _entry _skill _source _skills_str _status _path r
+  local _entry _skill _source _skills_str _status _path
   local _external_had_failures=false
   local _opencode_external_skill_status _opencode_external_skill_path
   local -a _skill_roots _cmd _stale_skills _missing_skills _missing_skill_args
@@ -1372,8 +1287,7 @@ install_external_opencode_skills() {
           if $DRY_RUN; then
             would "Would ask to remove stale skill $stale_dir at $stale_path (replaced by $replacement_skill at $replacement_path)"
           else
-            read -r -p "  Remove stale skill $stale_dir? [Y/n] " r
-            if [[ "$r" =~ ^[nN] ]]; then
+            if ! install_consent "Remove stale skill $stale_dir?" y; then
               ok "Stale skill $stale_dir unchanged"
             else
               rm -rf "$stale_path"
@@ -1465,7 +1379,7 @@ install_external_opencode_skills() {
 }
 
 reinstall_missing_cask_app() {
-  local name=$1 cask=$2 app=$3 r
+  local name=$1 cask=$2 app=$3
 
   warn "$name Homebrew cask is registered, but $app is missing"
   if $DRY_RUN; then
@@ -1473,8 +1387,7 @@ reinstall_missing_cask_app() {
     return 0
   fi
 
-  read -r -p "  Reinstall $name? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
+  if ! install_consent "Reinstall $name?" y; then
     ok "$name reinstall skipped"
     return 2
   fi
@@ -1515,7 +1428,11 @@ collect_git_commit_author_identity() {
   GIT_COMMIT_AUTHOR_NAME="${GIT_COMMIT_AUTHOR_NAME:-Pedro Menezes}"
 
   while true; do
-    read -r -p "  Git commit author email: " GIT_COMMIT_AUTHOR_EMAIL
+    if ! read -r -p "  Git commit author email: " GIT_COMMIT_AUTHOR_EMAIL; then
+      warn "No input for Git commit author email. Skipping identity configuration"
+      GIT_COMMIT_AUTHOR_IDENTITY_CONFIGURE=false
+      break
+    fi
     [ -n "$GIT_COMMIT_AUTHOR_EMAIL" ] && break
     echo "  Git commit author email cannot be empty."
   done
@@ -1576,8 +1493,9 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
           rm -rf "$_diff_dir"
         fi
         unset _diff_dir
-        read -r -p "  .gitconfig already exists. Overwrite? [Y/n] " r
-        [[ "$r" =~ ^[nN] ]] && _gitconfig_needs_copy=false
+        if ! install_consent ".gitconfig already exists. Overwrite?" y; then
+          _gitconfig_needs_copy=false
+        fi
       fi
     fi
     if $_gitconfig_needs_copy; then
@@ -1587,19 +1505,19 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
       ok ".gitconfig template unchanged"
     fi
     if $GIT_COMMIT_AUTHOR_IDENTITY_CONFIGURE; then
-      _current_name=$(git config --global user.name 2>/dev/null)
-      if [ "$_current_name" != "$GIT_COMMIT_AUTHOR_NAME" ] || [ "$_current_email" != "$GIT_COMMIT_AUTHOR_EMAIL" ]; then
-        git config --global user.name "$GIT_COMMIT_AUTHOR_NAME"
-        git config --global user.email "$GIT_COMMIT_AUTHOR_EMAIL"
+      if git config --global user.name "$GIT_COMMIT_AUTHOR_NAME" && git config --global user.email "$GIT_COMMIT_AUTHOR_EMAIL"; then
         ok "Git commit author identity configured ($GIT_COMMIT_AUTHOR_NAME <$GIT_COMMIT_AUTHOR_EMAIL>)"
       else
-        ok "Git commit author identity already configured"
+        warn "Failed to configure Git commit author identity"
       fi
     else
+      if [ "$(git config --global user.email 2>/dev/null)" = "email_here" ]; then
+        warn "Git user.email is the placeholder 'email_here'. Set it: git config --global user.email you@example.com"
+      fi
       ok "Git commit author identity skipped"
     fi
     CF_OK+=(".gitconfig")
-    unset _gitconfig_needs_copy _current_email _current_name _files_match
+    unset _gitconfig_needs_copy _current_email _files_match
     unset -f _strip_identity
   fi
 fi
@@ -1620,12 +1538,11 @@ if ! command -v brew &>/dev/null; then
   if $DRY_RUN; then
     would "Would ask to install Homebrew"
   else
-    read -r -p "  Install Homebrew? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Install Homebrew?" y; then
       ok "Homebrew skipped"
     else
       _brew_install_script=$(mktemp) || { warn "Failed to create temporary Homebrew installer file"; _brew_install_script=""; }
-      if [ -n "$_brew_install_script" ] && curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$_brew_install_script" && /bin/bash "$_brew_install_script"; then
+      if [ -n "$_brew_install_script" ] && curl -fsSL --connect-timeout 10 --max-time 300 https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$_brew_install_script" && /bin/bash "$_brew_install_script"; then
         if [ -x /opt/homebrew/bin/brew ]; then
           eval "$(/opt/homebrew/bin/brew shellenv)"
         elif [ -x /usr/local/bin/brew ]; then
@@ -1669,16 +1586,11 @@ if app_bundle_exists "/Applications/Visual Studio Code.app"; then
 elif brew_cask_registered visual-studio-code; then
   reinstall_missing_cask_app "VS Code" "visual-studio-code" "/Applications/Visual Studio Code.app"
 elif $DRY_RUN; then
-  if brew_available; then
-    would "Would ask to install VS Code"
-  else
-    would "Would ask to install VS Code"
-  fi
+  would "Would ask to install VS Code"
 elif ! brew_available; then
   warn "Homebrew not found, skipping VS Code"
 else
-  read -r -p "  Install VS Code? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
+  if ! install_consent "Install VS Code?" y; then
     ok "VS Code skipped"
   else
     brew_cask "visual-studio-code" --install-consent-granted
@@ -1696,6 +1608,7 @@ refresh_dotfiles_summary
 HB_PARTS=()
 [ $BREW_INSTALLED -gt 0 ] && HB_PARTS+=("${BREW_INSTALLED} installed")
 [ $BREW_UPDATED -gt 0 ]   && HB_PARTS+=("${BREW_UPDATED} updated")
+[ $BREW_SKIPPED -gt 0 ]   && HB_PARTS+=("${BREW_SKIPPED} upgrade(s) skipped")
 [ $BREW_OK -gt 0 ]        && HB_PARTS+=("${BREW_OK} up to date")
 [ ${#HB_PARTS[@]} -gt 0 ] && SUM_HOMEBREW="${GREEN}✔${RESET} $(join_arr ' · ' "${HB_PARTS[@]}")"
 
@@ -1711,8 +1624,7 @@ else
   if $DRY_RUN; then
     would "generate SSH key, add to GitHub with title $(hostname | sed 's/\.local$//')"
   else
-    read -r -p "  Generate SSH key (~/.ssh/id_ed25519)? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Generate SSH key (~/.ssh/id_ed25519)?" y; then
       ok "SSH key generation skipped"
     else
       SSH_KEY_TITLE="$(hostname)"
@@ -1733,8 +1645,7 @@ else
             warn "Failed to add SSH key to GitHub. Run manually: gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
           fi
         else
-          read -r -p "  Not authenticated with GitHub. Run gh auth login now? [Y/n] " r
-          if [[ "$r" =~ ^[nN] ]]; then
+          if ! install_consent "Not authenticated with GitHub. Run gh auth login now?" y; then
             warn "Skipped GitHub login. Run manually: gh auth login && gh ssh-key add ~/.ssh/id_ed25519.pub --title \"$SSH_KEY_TITLE\""
           else
             gh auth login
@@ -1837,8 +1748,7 @@ else
         would "chsh -s $HOMEBREW_BASH (if Homebrew bash exists after install)"
       fi
     else
-      read -r -p "  Switch default shell to Homebrew bash? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
+      if ! install_consent "Switch default shell to Homebrew bash?" y; then
         ok "Shell unchanged"
         SUM_SHELL="${GREEN}✔${RESET} unchanged"
       else
@@ -1868,11 +1778,10 @@ if [ -d "$HOME/.nvm" ]; then
     if $DRY_RUN; then
       would "update nvm $current_nvm → $NVM_VERSION"
     else
-      read -r -p "  Upgrade nvm $current_nvm → $NVM_VERSION? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
+      if ! install_consent "Upgrade nvm $current_nvm → $NVM_VERSION?" y; then
         ok "nvm upgrade skipped"
       else
-        if (set -o pipefail; curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
+        if (set -o pipefail; curl -fsSL --connect-timeout 10 --max-time 300 "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           updated "nvm $current_nvm → $NVM_VERSION"
         else
@@ -1885,11 +1794,10 @@ else
   if $DRY_RUN; then
     would "Would ask to install nvm $NVM_VERSION"
   else
-    read -r -p "  Install nvm $NVM_VERSION? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Install nvm $NVM_VERSION?" y; then
       ok "nvm install skipped"
     else
-      if (set -o pipefail; curl -fsSL "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
+      if (set -o pipefail; curl -fsSL --connect-timeout 10 --max-time 300 "https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh" | bash) &>/dev/null; then
         [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
         installed "nvm $NVM_VERSION"
       else
@@ -1907,33 +1815,42 @@ elif ! command -v nvm &>/dev/null; then
 else
   prev_node=$(node --version 2>/dev/null || echo "none")
   latest_lts=$(nvm version-remote --lts 2>/dev/null)
+  if [ "$latest_lts" = "N/A" ]; then
+    latest_lts=
+  fi
   if [ "$prev_node" = "$latest_lts" ]; then
     ok "Node.js LTS ($prev_node)"
     SUM_NODE="${GREEN}✔${RESET} $prev_node"
+  elif [ -z "$latest_lts" ] && [ "$prev_node" != "none" ]; then
+    warn "Could not determine the latest Node.js LTS (offline?). Keeping $prev_node"
+    SUM_NODE="${GREEN}✔${RESET} $prev_node"
   elif [ -n "$latest_lts" ] && [ "$prev_node" != "none" ]; then
-    read -r -p "  Upgrade Node.js $prev_node → $latest_lts? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
-      ok "Node.js upgrade skipped"
+    if ! install_consent "Set Node.js LTS ($latest_lts) as default?" y; then
+      ok "Node.js unchanged"
       SUM_NODE="${GREEN}✔${RESET} $prev_node"
     else
-      if nvm install "$latest_lts" >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
-        updated "Node.js LTS $prev_node → $latest_lts"
+      if nvm install "$latest_lts" >/dev/null 2>&1 && nvm alias default "$latest_lts" >/dev/null 2>&1; then
+        updated "Node.js LTS default → $latest_lts"
         SUM_NODE="${BLUE}↑${RESET} $latest_lts"
       else
-        warn "Failed to upgrade Node.js LTS"
-        SUM_NODE="${YELLOW}⚠${RESET} upgrade failed"
+        warn "Failed to set Node.js LTS default"
+        SUM_NODE="${YELLOW}⚠${RESET} failed"
       fi
     fi
   else
-    read -r -p "  Install Node.js LTS? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Install Node.js LTS?" y; then
       ok "Node.js install skipped"
       SUM_NODE="${GREEN}✔${RESET} skipped"
     else
-      if nvm install --lts >/dev/null 2>&1 && nvm alias default node >/dev/null 2>&1; then
+      if nvm install --lts >/dev/null 2>&1; then
         NODE_VERSION=$(node --version 2>/dev/null || echo 'unknown')
-        installed "Node.js LTS ($NODE_VERSION)"
-        SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
+        if nvm alias default "$NODE_VERSION" >/dev/null 2>&1; then
+          installed "Node.js LTS ($NODE_VERSION)"
+          SUM_NODE="${GREEN}✔${RESET} $NODE_VERSION"
+        else
+          warn "Failed to set Node.js LTS default"
+          SUM_NODE="${YELLOW}⚠${RESET} default alias failed"
+        fi
       else
         warn "Failed to install Node.js LTS"
         SUM_NODE="${YELLOW}⚠${RESET} install failed"
@@ -1944,6 +1861,7 @@ fi
 
 # Skills installed with npx run after Node is available.
 install_external_opencode_skills
+refresh_dotfiles_summary
 
 # 6. VS Code extensions and settings
 step "Setting up VS Code"
@@ -1988,8 +1906,7 @@ else
     if [ ${#exts_missing[@]} -eq 0 ]; then
       ok "All ${#extensions[@]} extensions already installed"
     else
-      read -r -p "  Install ${#exts_missing[@]} VS Code extension(s)? [Y/n] " r
-      if [[ "$r" =~ ^[nN] ]]; then
+      if ! install_consent "Install ${#exts_missing[@]} VS Code extension(s)?" y; then
         ok "Extensions unchanged"
       else
         for ext in "${extensions[@]}"; do
@@ -2031,15 +1948,18 @@ else
           continue
         fi
         git --no-pager diff --no-index --color "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
-        read -r -p "  $config_file already exists. Overwrite? [Y/n] " r
-        if [[ "$r" =~ ^[nN] ]]; then
+        if ! install_consent "$config_file already exists. Overwrite?" y; then
           ok "$config_file unchanged"
           VSCODE_SETTINGS_OK+=("$config_file")
           continue
         fi
       fi
-      cp "$DOTFILES_DIR/$config_file" "$VSCODE_DIR/$config_file" && installed "$config_file"
-      VSCODE_SETTINGS_NEW+=("$config_file")
+      if cp "$DOTFILES_DIR/$config_file" "$VSCODE_DIR/$config_file"; then
+        installed "$config_file"
+        VSCODE_SETTINGS_NEW+=("$config_file")
+      else
+        warn "Failed to copy $config_file to $VSCODE_DIR"
+      fi
     done
   fi
 
@@ -2067,7 +1987,7 @@ step "Installing apps"
 APP_OK=()
 
 install_app() {
-  local name=$1 cask=$2 app=$3 r
+  local name=$1 cask=$2 app=$3
   if $DRY_RUN; then
     if brew_cask_registered "$cask"; then
       if app_bundle_exists "$app"; then
@@ -2078,8 +1998,6 @@ install_app() {
     elif app_bundle_exists "$app"; then
       ok "$name already installed, skipping installation"
       APP_OK+=("$name")
-    elif brew_available; then
-      would "Would ask to install $name"
     else
       would "Would ask to install $name"
     fi
@@ -2105,8 +2023,7 @@ install_app() {
     warn "Homebrew not found, skipping $name"
     return 1
   else
-    read -r -p "  Install $name? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Install $name?" y; then
       ok "$name skipped"
     else
       if brew_cask "$cask" --install-consent-granted; then
@@ -2134,7 +2051,12 @@ with open(os.environ["ISTATMENUS_PLIST"], "rb") as f: dst = plistlib.load(f)
 sys.exit(0 if all(dst.get(k) == v for k, v in src.items()) else 1)
 PYEOF
 }
+istatmenus_state_check_available() {
+  command -v python3 >/dev/null && xcode-select -p >/dev/null 2>&1
+}
 istatmenus_settings_apply() {
+  # cfprefsd can overwrite direct plist writes with a cached copy of this domain.
+  killall cfprefsd 2>/dev/null || true
   DOTFILES_DIR="$DOTFILES_DIR" ISTATMENUS_PLIST="$ISTATMENUS_PLIST" python3 - <<'PYEOF'
 import os, plistlib
 with open(os.path.join(os.environ["DOTFILES_DIR"], "istatmenus.menubar.plist"), "rb") as f: src = plistlib.load(f)
@@ -2147,10 +2069,11 @@ with open(os.environ["ISTATMENUS_PLIST"], "wb") as f: plistlib.dump(dst, f)
 PYEOF
 }
 if ! app_bundle_exists "/Applications/iStat Menus.app"; then
-  $DRY_RUN && ok "iStat Menus settings skipped (app not installed)"
-  :
+  ok "iStat Menus settings skipped (app not installed)"
 elif $DRY_RUN; then
-  if istatmenus_settings_current; then
+  if ! istatmenus_state_check_available; then
+    would "Ask to apply iStat Menus settings (skipped state check: python3 or Xcode CLT unavailable)"
+  elif istatmenus_settings_current; then
     ok "iStat Menus settings already up to date"
     APP_OK+=("iStat Menus settings")
   else
@@ -2160,13 +2083,15 @@ elif istatmenus_settings_current; then
   ok "iStat Menus settings already up to date"
   APP_OK+=("iStat Menus settings")
 else
-  read -r -p "  Apply iStat Menus settings? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
+  if ! install_consent "Apply iStat Menus settings?" y; then
     ok "iStat Menus settings skipped"
   else
-    istatmenus_settings_apply
-    ok "iStat Menus settings applied (restart iStat Menus to take effect)"
-    APP_OK+=("iStat Menus settings")
+    if istatmenus_settings_apply; then
+      ok "iStat Menus settings applied (restart iStat Menus to take effect)"
+      APP_OK+=("iStat Menus settings")
+    else
+      warn "Failed to apply iStat Menus settings"
+    fi
   fi
 fi
 
@@ -2193,16 +2118,11 @@ elif brew_cask_registered ghostty; then
   fi
   unset _ghostty_reinstall_status
 elif $DRY_RUN; then
-  if brew_available; then
-    would "Would ask to install Ghostty"
-  else
-    would "Would ask to install Ghostty"
-  fi
+  would "Would ask to install Ghostty"
 elif ! brew_available; then
   warn "Homebrew not found, skipping Ghostty"
 else
-  read -r -p "  Install Ghostty? [Y/n] " r
-  if [[ "$r" =~ ^[nN] ]]; then
+  if ! install_consent "Install Ghostty?" y; then
     ok "Ghostty skipped"
   else
     brew_cask "ghostty" --install-consent-granted && SUM_GHOSTTY="${GREEN}✔${RESET} installed"
@@ -2359,8 +2279,7 @@ else
     _pref_diff "Disable top-right corner"   com.apple.dock wvous-tr-corner      1
     _pref_diff "Disable bottom-left corner" com.apple.dock wvous-bl-corner      1
     _pref_diff "Disable bottom-right corner" com.apple.dock wvous-br-corner     1
-    read -r -p "  Apply Dock settings? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Apply Dock settings?" y; then
       ok "Dock unchanged"
     else
       _pref_write com.apple.dock orientation -string left
@@ -2372,12 +2291,20 @@ else
       _pref_write com.apple.dock wvous-tr-corner -int 1
       _pref_write com.apple.dock wvous-bl-corner -int 1
       _pref_write com.apple.dock wvous-br-corner -int 1
+      _dock_rebuild_failed=false
       if command -v dockutil &>/dev/null; then
-        dockutil --remove all --no-restart &>/dev/null
+        _dock_fail=0
+        if ! dockutil --remove all --no-restart &>/dev/null; then
+          warn "Failed to clear Dock before rebuilding"
+          _dock_fail=1
+        fi
         _dock_add_app() {
           local name=$1 app=$2 resolved_app
           if resolved_app=$(app_bundle_path "$app"); then
-            dockutil --add "$resolved_app" --no-restart &>/dev/null
+            if ! dockutil --add "$resolved_app" --no-restart &>/dev/null; then
+              warn "Failed to add $name to Dock"
+              _dock_fail=1
+            fi
           else
             ok "$name not found, skipping Dock item"
           fi
@@ -2388,9 +2315,23 @@ else
         _dock_add_app "1Password" "/Applications/1Password.app"
         _dock_add_app "Spotify" "/Applications/Spotify.app"
         unset -f _dock_add_app
-        ok "Dock apps set: Finder, Google Chrome, VS Code, Ghostty, 1Password, Spotify, Trash"
+        if [ "$_dock_fail" -eq 0 ]; then
+          ok "Dock apps set: Finder, Google Chrome, VS Code, Ghostty, 1Password, Spotify, Trash"
+        else
+          warn "Dock rebuild had failures; check the Dock manually"
+          _dock_rebuild_failed=true
+        fi
+        unset _dock_fail
       fi
-      updated "Dock"; MACOS_UPDATED+=("Dock"); NEEDS_RESTART=true
+      if $_dock_rebuild_failed; then
+        updated "Dock preferences"
+        MACOS_UPDATED+=("Dock preferences")
+      else
+        updated "Dock"
+        MACOS_UPDATED+=("Dock")
+      fi
+      NEEDS_RESTART=true
+      unset _dock_rebuild_failed
     fi
   fi
 
@@ -2405,8 +2346,7 @@ else
     _pref_diff "Search current folder"     com.apple.finder FXDefaultSearchScope           SCcf
     _pref_diff "Prevent .DS_Store on network" com.apple.desktopservices DSDontWriteNetworkStores true
     _pref_diff "Disable extension warning" com.apple.finder FXEnableExtensionChangeWarning false
-    read -r -p "  Apply Finder settings? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Apply Finder settings?" y; then
       ok "Finder unchanged"
     else
       _pref_write com.apple.finder AppleShowAllFiles -bool true
@@ -2439,8 +2379,7 @@ else
     _pref_diff "Disable translucent menu bar" NSGlobalDomain AppleEnableMenuBarTransparency    false
     _pref_diff "Disable tiling on edge drag" NSGlobalDomain EnableTilingByEdgeDrag              false
     _pref_diff "Disable tiling on menu bar" NSGlobalDomain EnableTilingByMenuBar               false
-    read -r -p "  Apply System settings? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Apply System settings?" y; then
       ok "System settings unchanged"
     else
       _pref_write com.apple.driver.AppleBluetoothMultitouch.trackpad Clicking -bool true
@@ -2467,8 +2406,7 @@ else
     ok "Screenshots already configured"
   else
     _pref_diff "Disable thumbnail preview"  com.apple.screencapture show-thumbnail false
-    read -r -p "  Apply Screenshots settings? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Apply Screenshots settings?" y; then
       ok "Screenshots unchanged"
     else
       _pref_write com.apple.screencapture show-thumbnail -bool false
@@ -2481,8 +2419,7 @@ else
     ok "Menu bar already configured"
   else
     _pref_diff "Pin Weather to menu bar"  com.apple.controlcenter Weather                             18 host
-    read -r -p "  Apply menu bar settings? [Y/n] " r
-    if [[ "$r" =~ ^[nN] ]]; then
+    if ! install_consent "Apply menu bar settings?" y; then
       ok "Menu bar unchanged"
     else
       _pref_write com.apple.controlcenter Weather -int 18 host
@@ -2510,63 +2447,22 @@ echo -e "  ${GREY}Only needed when using a Windows keyboard or mouse on a Mac.${
 
 PERIPH_OK=()
 
-deploy_peripheral_config() {
-  local src="$DOTFILES_DIR/$1" dst="$2" name="$3" r
-  if $DRY_RUN; then
-    if [ -e "$dst" ] && [ ! -f "$dst" ]; then
-      warn "$name config destination exists and is not a file: $dst"
-      return 1
-    fi
-    if [ -f "$dst" ]; then
-      if diff -q "$dst" "$src" &>/dev/null; then
-        ok "$name config already up to date"
-      else
-        would "Ask to overwrite $name config at $dst"
-      fi
-    else
-      would "deploy $1 to $dst"
-    fi
-    return 0
-  fi
-  mkdir -p "$(dirname "$dst")"
-  if [ -e "$dst" ] && [ ! -f "$dst" ]; then
-    warn "$name config destination exists and is not a file: $dst"
-    return 1
-  fi
-  if [ -f "$dst" ]; then
-    if diff -q "$dst" "$src" &>/dev/null; then
-      ok "$name config already up to date"
-      return 0
-    fi
-    git --no-pager diff --no-index --color "$dst" "$src"
-    read -r -p "  $name config already exists. Overwrite? [y/N] " r
-    if [[ ! "$r" =~ ^[yY] ]]; then
-      ok "$name config unchanged"
-      return 0
-    fi
-  fi
-  if cp "$src" "$dst"; then
-    ok "$name config deployed"
-  else
-    warn "Failed to deploy $name config"
-    return 1
-  fi
-}
-
 setup_peripheral() {
-  local name=$1 cask=$2 app=$3 config_src=$4 config_dst=$5 r
+  local name=$1 cask=$2 app=$3 config_src=$4 config_dst=$5
   if $DRY_RUN; then
     if brew_cask_registered "$cask"; then
       if app_bundle_exists "$app"; then
         ok "$name already installed"
-        deploy_peripheral_config "$config_src" "$config_dst" "$name" && PERIPH_OK+=("$name")
+        deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
+          "deploy $config_src to $config_dst" "$(dirname "$config_dst")" "" "" n && PERIPH_OK+=("$name")
       else
         reinstall_missing_cask_app "$name" "$cask" "$app"
         would "deploy $config_src to $config_dst if $name is reinstalled"
       fi
     elif app_bundle_exists "$app"; then
       ok "$name already installed, skipping installation"
-      deploy_peripheral_config "$config_src" "$config_dst" "$name" && PERIPH_OK+=("$name")
+      deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
+        "deploy $config_src to $config_dst" "$(dirname "$config_dst")" "" "" n && PERIPH_OK+=("$name")
     elif ! brew_available; then
       warn "Homebrew not found, skipping $name"
     else
@@ -2592,8 +2488,7 @@ setup_peripheral() {
     warn "Homebrew not found, skipping $name"
     return 1
   else
-    read -r -p "  Set up $name? [y/N] " r
-    if [[ ! "$r" =~ ^[yY] ]]; then
+    if ! install_consent "Set up $name?" n; then
       return
     fi
     if brew install --cask "$cask" &>/dev/null && app_bundle_exists "$app"; then
@@ -2604,7 +2499,8 @@ setup_peripheral() {
       return 1
     fi
   fi
-  if deploy_peripheral_config "$config_src" "$config_dst" "$name"; then
+  if deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
+    "deploy $config_src to $config_dst" "$(dirname "$config_dst")" "" "" n; then
     PERIPH_OK+=("$name")
   fi
 }
@@ -2634,8 +2530,7 @@ else
     ok "Mouse settings already configured"
     PERIPH_OK+=("Mouse")
   else
-    read -r -p "  Apply mouse settings (tracking speed 0.5, scroll linear/no acceleration)? [y/N] " r
-    if [[ "$r" =~ ^[yY] ]]; then
+    if install_consent "Apply mouse settings (tracking speed 0.5, scroll linear/no acceleration)?" n; then
       defaults write .GlobalPreferences com.apple.mouse.scaling 0.5
       defaults write .GlobalPreferences com.apple.scrollwheel.scaling -1
       ok "Mouse: tracking speed set to 0.5, scroll acceleration disabled"
@@ -2650,9 +2545,9 @@ unset -f mouse_settings_current
 # Summary
 echo ""
 echo -e "${BOLD}Summary${RESET}"
-[ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET}  $(printf '%s, ' "${INSTALLED[@]}" | sed 's/, $//')"
-[ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET}    $(printf '%s, ' "${UPDATED[@]}" | sed 's/, $//')"
-[ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET}   $(printf '%s, ' "${WARNINGS[@]}" | sed 's/, $//')"
+[ ${#INSTALLED[@]} -gt 0 ] && echo -e "${GREEN}✔ Installed (${#INSTALLED[@]}):${RESET}  $(join_arr ', ' "${INSTALLED[@]}")"
+[ ${#UPDATED[@]} -gt 0 ]   && echo -e "${BLUE}↑ Updated (${#UPDATED[@]}):${RESET}    $(join_arr ', ' "${UPDATED[@]}")"
+[ ${#WARNINGS[@]} -gt 0 ]  && echo -e "${YELLOW}⚠ Warnings (${#WARNINGS[@]}):${RESET}   $(join_arr ', ' "${WARNINGS[@]}")"
 
 section_line() {
   local label=$1 value=$2 pad

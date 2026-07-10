@@ -1,6 +1,6 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "openai/gpt-5.5",
+  "model": "openai/gpt-5.6-sol",
   "autoupdate": "notify",
   "experimental": {
     "openTelemetry": false
@@ -18,7 +18,7 @@
     },
     "chrome-devtools": {
       "type": "local",
-      "command": ["npx", "-y", "chrome-devtools-mcp@latest", "--autoConnect", "--no-usage-statistics"]
+      "command": ["npx", "-y", "chrome-devtools-mcp@1.5.0", "--autoConnect", "--no-usage-statistics"]
     },
     "cloudflare-api": {
       "type": "remote",
@@ -45,13 +45,14 @@
     },
     "bash": {
       "*": "ask",
-      // Shell utilities/navigation
+      // BEGIN generated permissions (scripts/generate-permissions.mjs)
+      // Shell utilities/navigation (allow)
       "atuin *": "allow",
       "exit *": "allow",
       "zoxide *": "allow",
-      // Git
+      // Git (allow)
       "git *": "allow",
-      // File and search utilities
+      // File and search utilities (allow)
       "cat *": "allow",
       "find *": "allow",
       "grep *": "allow",
@@ -59,7 +60,7 @@
       "ls *": "allow",
       "rg *": "allow",
       "tail *": "allow",
-      // Text processing
+      // Text processing (allow)
       "awk *": "allow",
       "column *": "allow",
       "comm *": "allow",
@@ -72,15 +73,12 @@
       "tr *": "allow",
       "uniq *": "allow",
       "wc *": "allow",
-      "xargs *": "allow",
-      // File operations
+      // File operations (allow)
       "cp *": "allow",
       "mkdir *": "allow",
       "mktemp *": "allow",
       "mv *": "allow",
-      "rm *": "ask",
-      "rm -rf *": "ask",
-      // System inspection
+      // System inspection (allow)
       "date *": "allow",
       "df *": "allow",
       "du *": "allow",
@@ -102,17 +100,98 @@
       "uname *": "allow",
       "which *": "allow",
       "whoami": "allow",
-      // Process control
+      // Process control (allow)
       "kill *": "allow",
       "killall *": "allow",
       "pkill *": "allow",
-      // JavaScript runtime
+      // JavaScript runtime (allow)
       "node *": "allow",
-      // Package manager
+      // Package manager (allow)
       "pnpm *": "allow",
+      // GitHub read (allow)
+      "gh issue list *": "allow",
+      "gh issue status *": "allow",
+      "gh issue view *": "allow",
+      "gh pr checkout *": "allow",
+      "gh pr checks *": "allow",
+      "gh pr diff *": "allow",
+      "gh pr list *": "allow",
+      "gh pr status *": "allow",
+      "gh pr view *": "allow",
+      "gh repo clone *": "allow",
+      "gh repo view *": "allow",
+      "gh run list *": "allow",
+      "gh run view *": "allow",
+      "gh run watch *": "allow",
+      "gh search *": "allow",
+      "gh status*": "allow",
+      // GitHub writes (allow)
+      "gh issue create *": "allow",
+      "gh pr create *": "allow",
+      // Dev utilities (allow)
+      "bat *": "allow",
+      "curl *": "allow",
+      "delta *": "allow",
+      "fd *": "allow",
+      "fzf *": "allow",
+      "jq *": "allow",
+      "make *": "allow",
+      "shellcheck *": "allow",
+      "tree *": "allow",
+      "wget *": "allow",
+      // GitLab CLI (allow)
+      "glab auth *": "allow",
+      "glab ci list *": "allow",
+      "glab ci status *": "allow",
+      "glab ci trace *": "allow",
+      "glab ci view *": "allow",
+      "glab issue create *": "allow",
+      "glab issue list *": "allow",
+      "glab issue view *": "allow",
+      "glab mr checkout *": "allow",
+      "glab mr create *": "allow",
+      "glab mr diff *": "allow",
+      "glab mr list *": "allow",
+      "glab mr view *": "allow",
+      "glab repo clone *": "allow",
+      "glab repo view *": "allow",
+      "glab search *": "allow",
+      // macOS (allow)
+      "ghostty *": "allow",
+      "open *": "allow",
+      "pbcopy": "allow",
+      "pbpaste": "allow",
+      // File and search utilities (ask)
+      "find * -delete*": "ask",
+      "find * -exec*": "ask",
+      "find * -execdir*": "ask",
+      "find * -ok*": "ask",
+      "find * -okdir*": "ask",
+      // Text processing (ask)
+      "sed -i*": "ask",
+      "sed * -i*": "ask",
+      "sed --in-place*": "ask",
+      "sed * --in-place*": "ask",
+      "xargs *": "ask",
+      // File operations (ask)
+      "rm *": "ask",
+      "rm -rf *": "ask",
+      // Package manager (ask)
+      "pnpm add*": "ask",
       "pnpm install*": "ask",
       "pnpm i": "ask",
       "pnpm i *": "ask",
+      "pnpm remove*": "ask",
+      "pnpm rm*": "ask",
+      "pnpm uninstall*": "ask",
+      "pnpm un*": "ask",
+      "pnpm exec*": "ask",
+      "pnpm link*": "ask",
+      "pnpm unlink*": "ask",
+      "pnpm patch*": "ask",
+      "pnpm import*": "ask",
+      "pnpm rebuild*": "ask",
+      "pnpm patch-commit*": "ask",
       "pnpm install-test*": "ask",
       "pnpm it*": "ask",
       "pnpm update*": "ask",
@@ -140,71 +219,20 @@
       "pnpm rt add*": "ask",
       "pnpm rt remove*": "ask",
       "pnpm rt use*": "ask",
-      // GitHub read
-      "gh issue list *": "allow",
-      "gh issue status *": "allow",
-      "gh issue view *": "allow",
-      "gh pr checkout *": "allow",
-      "gh pr checks *": "allow",
-      "gh pr diff *": "allow",
-      "gh pr list *": "allow",
-      "gh pr status *": "allow",
-      "gh pr view *": "allow",
-      "gh repo clone *": "allow",
-      "gh repo view *": "allow",
-      "gh run list *": "allow",
-      "gh run view *": "allow",
-      "gh run watch *": "allow",
-      "gh search *": "allow",
-      "gh status*": "allow",
-      // GitHub writes
+      // GitHub writes (ask)
       "gh issue close *": "ask",
-      "gh issue create *": "allow",
       "gh pr close *": "ask",
-      "gh pr create *": "allow",
       "gh pr merge *": "ask",
       "gh run cancel *": "ask",
       "gh run rerun *": "ask",
-      // Dev utilities
-      "bat *": "allow",
-      "curl *": "allow",
-      "delta *": "allow",
-      "fd *": "allow",
-      "fzf *": "allow",
-      "jq *": "allow",
-      "make *": "allow",
-      "shellcheck *": "allow",
-      "tree *": "allow",
-      "wget *": "allow",
-      // GitLab CLI
-      "glab auth *": "allow",
+      // GitLab CLI (ask)
       "glab ci cancel *": "ask",
-      "glab ci list *": "allow",
       "glab ci retry *": "ask",
       "glab ci run *": "ask",
-      "glab ci status *": "allow",
-      "glab ci trace *": "allow",
-      "glab ci view *": "allow",
       "glab issue close *": "ask",
-      "glab issue create *": "allow",
-      "glab issue list *": "allow",
-      "glab issue view *": "allow",
-      "glab mr checkout *": "allow",
       "glab mr close *": "ask",
-      "glab mr create *": "allow",
-      "glab mr diff *": "allow",
-      "glab mr list *": "allow",
       "glab mr merge *": "ask",
-      "glab mr view *": "allow",
-      "glab repo clone *": "allow",
-      "glab repo view *": "allow",
-      "glab search *": "allow",
-      // macOS
-      "ghostty *": "allow",
-      "open *": "allow",
-      "pbcopy": "allow",
-      "pbpaste": "allow",
-      // Risky Git operations
+      // Risky Git operations (ask)
       "git stash": "ask",
       "git stash *": "ask",
       "git rebase": "ask",
@@ -215,12 +243,19 @@
       "git reset *": "ask",
       "git restore": "ask",
       "git restore *": "ask",
+      "git switch --discard-changes*": "ask",
+      "git switch * --discard-changes*": "ask",
+      "git switch --force*": "ask",
+      "git switch * --force*": "ask",
       "git checkout": "ask",
       "git checkout *": "ask",
       "git branch -d *": "ask",
       "git branch -D *": "ask",
+      "git branch -f*": "ask",
+      "git branch -M *": "ask",
       "git branch --delete *": "ask",
       "git branch --delete --force *": "ask",
+      "git branch --force*": "ask",
       "git commit --amend*": "ask",
       "git commit * --amend*": "ask",
       "git diff --output*": "ask",
@@ -234,11 +269,22 @@
       "git push * --force*": "ask",
       "git push *--force*": "ask",
       "git push * :*": "ask",
+      "git push :*": "ask",
       "git push +*": "ask",
       "git push --delete *": "ask",
       "git push --mirror*": "ask",
       "git push --force*": "ask",
-      "git push -f*": "ask"
+      "git push -f*": "ask",
+      "git reflog expire*": "ask",
+      "git gc --prune*": "ask",
+      "git filter-branch*": "ask",
+      "git update-ref -d*": "ask",
+      "git update-ref --stdin*": "ask",
+      "git prune*": "ask",
+      // Homebrew (ask)
+      "brew install *": "ask",
+      "brew install --cask *": "ask"
+      // END generated permissions
     }
   }
 }

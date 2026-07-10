@@ -1,7 +1,7 @@
 ---
 description: Implements code for a single todo item
 mode: subagent
-model: openai/gpt-5.5
+model: openai/gpt-5.6-sol
 variant: high
 textVerbosity: low
 permission:

@@ -1,13 +1,15 @@
 ---
 description: Handles branch setup, Git commits, and PR creation on GitHub or GitLab using the branch, commit, and pr skills
 mode: subagent
-model: openai/gpt-5.5
+model: openai/gpt-5.6-sol
 variant: high
 textVerbosity: low
 permission:
   bash:
     "*": deny
     "git *": allow
+    "git remote *": ask
+    "git config *": ask
     "git stash": ask
     "git stash *": ask
     "git rebase": ask

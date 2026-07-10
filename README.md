@@ -3,7 +3,7 @@
 My personal setup for a new Mac. Run the script or follow the checklist below.
 
 ```bash
-git clone git@github.com:pedrofelipe/config.git && cd config && ./setup.sh
+git clone https://github.com/pedrofelipe/config.git && cd config && ./setup.sh
 ```
 
 Pass `--dry-run` to preview what the script would do without making any changes.
@@ -27,12 +27,13 @@ Pass `--dry-run` to preview what the script would do without making any changes.
 | `setup.sh`                        | Automated setup script for a fresh macOS install                              |
 | `karabiner.json`                  | Karabiner-Elements config. Remaps Ctrl↔Cmd and Alt+Tab on external keyboards  |
 | `istatmenus.menubar.plist`        | iStat Menus display preferences. Which modules show in the menubar and menu   |
-| `.claude/settings.json`           | Global Claude Code settings. Permissions, hooks, plugins                      |
-| `.config/ghostty/config`          | Ghostty terminal settings. Theme, font, keybinds, shell integration           |
+| `.claude/settings.json`           | Global Claude Code settings. Permissions, plugins, environment                |
+| `.config/ghostty/config`          | Ghostty terminal settings. Theme, font, shell integration                     |
 | `.config/ghostty/themes/`         | Custom Ghostty themes                                                         |
 | `.config/opencode/opencode.jsonc` | OpenCode settings. Model, MCP servers, permissions, autoupdate                |
 | `.config/opencode/agents/`        | OpenCode agents                                                               |
 | `.config/opencode/skills/`        | OpenCode skills                                                               |
+| `scripts/`                        | Permission rule source of truth and generator for the agent configs          |
 
 ## Checklist
 

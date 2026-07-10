@@ -1,7 +1,7 @@
 ---
 description: Orchestrates the development workflow from description to PR on GitHub or GitLab
 mode: primary
-model: openai/gpt-5.5
+model: openai/gpt-5.6-sol
 variant: high
 textVerbosity: low
 color: "#a684ff"
