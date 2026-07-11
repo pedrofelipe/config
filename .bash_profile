@@ -65,20 +65,11 @@ symbol="⚡ "
 export PS1="\[${BOLD}${MAGENTA}\]\u \[$WHITE\]in \[$GREEN\]\w\[$WHITE\]\$([[ -n \$(git branch 2> /dev/null) ]] && echo \" on\")\[$PURPLE\]\$(parse_git_branch)\[$WHITE\]\n$symbol\[$RESET\]"
 export PS2="\[$ORANGE\]→ \[$RESET\]"
 
-# bash-completion: derive the prefix from brew's own path when brew is on
-# PATH; otherwise fall back to the standard install locations, since fresh
-# machines may not have Homebrew on PATH when this profile runs.
-_brew_prefix=""
-if _brew_cmd="$(command -v brew 2>/dev/null)"; then
-	_brew_prefix="${_brew_cmd%/bin/brew}"
-fi
-for _p in "$_brew_prefix" /opt/homebrew /usr/local; do
-	if [[ -n "$_p" && -r "$_p/etc/profile.d/bash_completion.sh" ]]; then
-		. "$_p/etc/profile.d/bash_completion.sh"
-		break
-	fi
-done
-unset _brew_cmd _brew_prefix _p
+# Homebrew (https://brew.sh)
+eval "$(/opt/homebrew/bin/brew shellenv)"
+
+# bash-completion (line from `brew info bash-completion@2` caveats)
+[[ -r "$HOMEBREW_PREFIX/etc/profile.d/bash_completion.sh" ]] && . "$HOMEBREW_PREFIX/etc/profile.d/bash_completion.sh"
 
 # nvm
 export NVM_DIR="$HOME/.nvm"
