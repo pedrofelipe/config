@@ -159,7 +159,7 @@ OPENCODE_CONFIG_DIR="$HOME/.config/opencode"
 
 # OpenCode install manifests. README.md is documentation and is intentionally
 # excluded from agent install manifests.
-OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS=(
+OPENCODE_WORKFLOW_AGENTS=(
   copilot
   planner
   developer
@@ -167,15 +167,22 @@ OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS=(
   publisher
   tester
   learner
+  copilot-lite
+  planner-lite
+  developer-lite
+  reviewer-lite
+  publisher-lite
+  tester-lite
+  learner-lite
 )
-OPENCODE_COPILOT_AGENT_LOCAL_SKILLS=(
+# Both workflows share these local skills, so deploy each directory once.
+OPENCODE_WORKFLOW_LOCAL_SKILLS=(
   branch
   commit
   pr
   aaa-testing
   unit-test
   manual-qa
-  make-interfaces-feel-better
 )
 OPENCODE_STANDALONE_LOCAL_SKILLS=(
   simplify
@@ -956,7 +963,7 @@ install_opencode_local_skill() {
   return 0
 }
 
-# Classifies a target without installing it so Copilot agent prompts can group missing and changed files.
+# Classifies a target without installing it so workflow prompts can group missing and changed files.
 # Missing targets return nonzero but still set _opencode_target_status for callers that expect that state.
 opencode_install_target_status() {
   local path_type=$1 src=$2 dst=$3 display=$4 dest_dir=${5:-}
@@ -1005,78 +1012,78 @@ opencode_install_target_status() {
   fi
 }
 
-# Classifies one Copilot agent target, records its status in _copilot_agent_target_status,
+# Classifies one workflow target, records its status in _workflow_target_status,
 # and folds it into the shared counters. match is the no-op case (no counter).
-_count_copilot_agent_target_status() {
+_count_workflow_target_status() {
   opencode_install_target_status "$@" || true
-  _copilot_agent_target_status=$_opencode_target_status
-  case "$_copilot_agent_target_status" in
+  _workflow_target_status=$_opencode_target_status
+  case "$_workflow_target_status" in
     match) ;;
-    missing) _copilot_agent_missing_count=$((_copilot_agent_missing_count+1)) ;;
-    changed) _copilot_agent_changed_count=$((_copilot_agent_changed_count+1)) ;;
-    blocked) _copilot_agent_blocked_count=$((_copilot_agent_blocked_count+1)) ;;
-    *) _copilot_agent_failed_count=$((_copilot_agent_failed_count+1)) ;;
+    missing) _workflow_missing_count=$((_workflow_missing_count+1)) ;;
+    changed) _workflow_changed_count=$((_workflow_changed_count+1)) ;;
+    blocked) _workflow_blocked_count=$((_workflow_blocked_count+1)) ;;
+    *) _workflow_failed_count=$((_workflow_failed_count+1)) ;;
   esac
 }
 
-opencode_copilot_agent_status_counts() {
+opencode_workflow_status_counts() {
   local agent skill src dest
-  _copilot_agent_missing_count=0
-  _copilot_agent_changed_count=0
-  _copilot_agent_blocked_count=0
-  _copilot_agent_failed_count=0
-  _copilot_agent_file_statuses=()
-  _copilot_agent_skill_statuses=()
+  _workflow_missing_count=0
+  _workflow_changed_count=0
+  _workflow_blocked_count=0
+  _workflow_failed_count=0
+  _workflow_file_statuses=()
+  _workflow_skill_statuses=()
 
-  for agent in "${OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[@]}"; do
+  for agent in "${OPENCODE_WORKFLOW_AGENTS[@]}"; do
     src="$DOTFILES_DIR/.config/opencode/agents/$agent.md"
     dest="$OPENCODE_CONFIG_DIR/agents/$agent.md"
-    _count_copilot_agent_target_status file "$src" "$dest" "Agent $agent" "$OPENCODE_CONFIG_DIR/agents"
-    _copilot_agent_file_statuses+=("$_copilot_agent_target_status")
+    _count_workflow_target_status file "$src" "$dest" "Agent $agent" "$OPENCODE_CONFIG_DIR/agents"
+    _workflow_file_statuses+=("$_workflow_target_status")
   done
 
-  for skill in "${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
+  for skill in "${OPENCODE_WORKFLOW_LOCAL_SKILLS[@]}"; do
     src="$DOTFILES_DIR/.config/opencode/skills/$skill"
     dest="$OPENCODE_CONFIG_DIR/skills/$skill"
-    _count_copilot_agent_target_status dir "$src" "$dest" "Skill $skill" "$OPENCODE_CONFIG_DIR/skills"
-    _copilot_agent_skill_statuses+=("$_copilot_agent_target_status")
+    _count_workflow_target_status dir "$src" "$dest" "Skill $skill" "$OPENCODE_CONFIG_DIR/skills"
+    _workflow_skill_statuses+=("$_workflow_target_status")
   done
 }
 
-install_opencode_copilot_agent_targets_with_status() {
+install_opencode_workflow_targets_with_status() {
   local desired_status=$1 install_consent_granted=${2:-false}
   local _i agent skill
 
-  for _i in "${!OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[@]}"; do
-    agent="${OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[$_i]}"
-    [ "${_copilot_agent_file_statuses[$_i]:-}" = "$desired_status" ] || continue
-    install_opencode_agent_file "$agent" "$install_consent_granted" || _copilot_agent_targets_had_failures=true
+  for _i in "${!OPENCODE_WORKFLOW_AGENTS[@]}"; do
+    agent="${OPENCODE_WORKFLOW_AGENTS[$_i]}"
+    [ "${_workflow_file_statuses[$_i]:-}" = "$desired_status" ] || continue
+    install_opencode_agent_file "$agent" "$install_consent_granted" || _workflow_targets_had_failures=true
   done
 
-  for _i in "${!OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
-    skill="${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[$_i]}"
-    [ "${_copilot_agent_skill_statuses[$_i]:-}" = "$desired_status" ] || continue
-    install_opencode_local_skill "$skill" "$install_consent_granted" || _copilot_agent_targets_had_failures=true
+  for _i in "${!OPENCODE_WORKFLOW_LOCAL_SKILLS[@]}"; do
+    skill="${OPENCODE_WORKFLOW_LOCAL_SKILLS[$_i]}"
+    [ "${_workflow_skill_statuses[$_i]:-}" = "$desired_status" ] || continue
+    install_opencode_local_skill "$skill" "$install_consent_granted" || _workflow_targets_had_failures=true
   done
 }
 
-install_opencode_copilot_agent_files() {
+install_opencode_workflow_files() {
   local agent skill
 
-  for agent in "${OPENCODE_COPILOT_AGENT_WORKFLOW_AGENTS[@]}"; do
+  for agent in "${OPENCODE_WORKFLOW_AGENTS[@]}"; do
     install_opencode_agent_file "$agent"
   done
 
-  for skill in "${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
+  for skill in "${OPENCODE_WORKFLOW_LOCAL_SKILLS[@]}"; do
     install_opencode_local_skill "$skill"
   done
 }
 
-opencode_local_skill_in_copilot_agent() {
-  local skill=$1 copilot_agent_skill
+opencode_local_skill_in_workflows() {
+  local skill=$1 workflow_skill
 
-  for copilot_agent_skill in "${OPENCODE_COPILOT_AGENT_LOCAL_SKILLS[@]}"; do
-    [ "$skill" = "$copilot_agent_skill" ] && return 0
+  for workflow_skill in "${OPENCODE_WORKFLOW_LOCAL_SKILLS[@]}"; do
+    [ "$skill" = "$workflow_skill" ] && return 0
   done
 
   return 1
@@ -1098,8 +1105,8 @@ setup_opencode_standalone_local_skill_installs() {
   step "Installing standalone skills"
 
   for skill in "${OPENCODE_STANDALONE_LOCAL_SKILLS[@]}"; do
-    if opencode_local_skill_in_copilot_agent "$skill"; then
-      ok "Skill $skill is part of the Copilot agent. Standalone prompt skipped"
+    if opencode_local_skill_in_workflows "$skill"; then
+      ok "Skill $skill is shared by the OpenCode workflows. Standalone prompt skipped"
       continue
     fi
 
@@ -1137,49 +1144,49 @@ setup_opencode_standalone_local_skill_installs() {
   done
 }
 
-setup_targeted_opencode_agent_and_skill_installs() {
+setup_opencode_workflow_installs() {
   if ! installer_available opencode; then
     if $DRY_RUN; then
-      ok "OpenCode install not completed. Showing Copilot agent file plan anyway"
+      ok "OpenCode install not completed. Showing workflow file plan anyway"
     else
-      skip_installer_setup opencode "Copilot agent" "setup"
+      skip_installer_setup opencode "OpenCode workflows" "setup"
       return 0
     fi
   fi
 
-  step "Installing Copilot agent"
+  step "Installing OpenCode workflows"
 
   if $DRY_RUN; then
-    install_opencode_copilot_agent_files
+    install_opencode_workflow_files
     setup_opencode_standalone_local_skill_installs
     return 0
   fi
 
   local _cf_ok=true
-  opencode_copilot_agent_status_counts
+  opencode_workflow_status_counts
 
-  if [ $_copilot_agent_missing_count -eq 0 ] && [ $_copilot_agent_changed_count -eq 0 ] && [ $_copilot_agent_blocked_count -eq 0 ] && [ $_copilot_agent_failed_count -eq 0 ]; then
-    ok "Copilot agent already up to date"
+  if [ $_workflow_missing_count -eq 0 ] && [ $_workflow_changed_count -eq 0 ] && [ $_workflow_blocked_count -eq 0 ] && [ $_workflow_failed_count -eq 0 ]; then
+    ok "OpenCode workflows already up to date"
   else
-    if [ $_copilot_agent_missing_count -gt 0 ]; then
-      if install_consent "Install Copilot agent ($_copilot_agent_missing_count missing item(s))?" y; then
-        _copilot_agent_targets_had_failures=false
-        install_opencode_copilot_agent_targets_with_status missing true
-        $_copilot_agent_targets_had_failures && _cf_ok=false
+    if [ $_workflow_missing_count -gt 0 ]; then
+      if install_consent "Install OpenCode workflows ($_workflow_missing_count missing item(s))?" y; then
+        _workflow_targets_had_failures=false
+        install_opencode_workflow_targets_with_status missing true
+        $_workflow_targets_had_failures && _cf_ok=false
       else
-        ok "Copilot agent missing items skipped"
+        ok "OpenCode workflow missing items skipped"
         _cf_ok=false
       fi
     fi
 
-    if [ $_copilot_agent_changed_count -gt 0 ]; then
-      _copilot_agent_targets_had_failures=false
-      install_opencode_copilot_agent_targets_with_status changed false
-      $_copilot_agent_targets_had_failures && _cf_ok=false
+    if [ $_workflow_changed_count -gt 0 ]; then
+      _workflow_targets_had_failures=false
+      install_opencode_workflow_targets_with_status changed false
+      $_workflow_targets_had_failures && _cf_ok=false
     fi
 
-    if [ $_copilot_agent_blocked_count -gt 0 ] || [ $_copilot_agent_failed_count -gt 0 ]; then
-      warn "Copilot agent has $_copilot_agent_blocked_count blocked and $_copilot_agent_failed_count failed target(s)"
+    if [ $_workflow_blocked_count -gt 0 ] || [ $_workflow_failed_count -gt 0 ]; then
+      warn "OpenCode workflows have $_workflow_blocked_count blocked and $_workflow_failed_count failed target(s)"
       _cf_ok=false
     fi
   fi
@@ -1601,7 +1608,7 @@ install_claude_code
 brew_cask "font-fira-code"
 
 deploy_claude_code_config
-setup_targeted_opencode_agent_and_skill_installs
+setup_opencode_workflow_installs
 deploy_opencode_config
 refresh_dotfiles_summary
 

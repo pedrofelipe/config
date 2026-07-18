@@ -238,7 +238,6 @@ npx -y skills add https://github.com/shadcn/improve \
 | &nbsp;&nbsp;↳ `aaa-testing`                 | Write clear Arrange-Act-Assert unit tests                                                      |
 | &nbsp;&nbsp;↳ `unit-test`                   | Generate comprehensive tests for React components, utility functions, and hooks                |
 | &nbsp;&nbsp;↳ `manual-qa`                   | Generate manual QA test steps for a code change                                                |
-| &nbsp;&nbsp;↳ `make-interfaces-feel-better` | Design engineering principles for polished UI                                                  |
 | **Standalone repo-local**                   |                                                                                                |
 | `simplify`                                  | Review changed code for reuse, quality, efficiency, and clarity, then fix issues               |
 | **addyosmani**                              |                                                                                                |
