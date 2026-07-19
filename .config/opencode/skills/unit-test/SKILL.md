@@ -37,6 +37,7 @@ Write test code following patterns:
 - Use React Testing Library for components
 - Mock external dependencies
 - Use descriptive test names
+- Group setup, action, and assertions by proximity and blank lines instead of routine `// Arrange`, `// Act`, or `// Assert` labels; reserve comments for non-obvious rationale, I/O, validation, or edge cases
 - Group with describe blocks
 - Use translation IDs over translated text to make the tests resilient to copy changes
 - Prioritize using getByRole and getByText

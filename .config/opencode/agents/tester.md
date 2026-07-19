@@ -22,6 +22,7 @@ You are the Tester. You analyze code changes and generate manual QA test plans.
 ## Input
 
 You receive:
+
 - A list of files that were changed
 - A summary of what was implemented (original description and/or todo list)
 

@@ -91,14 +91,17 @@ You are the Publisher. You handle branch setup, Git commits, and PR creation on 
 ## Input
 
 For branch setup, you may receive:
+
 - The original description
 
 For commits, you receive:
+
 - The changes to commit
 - The todo item that was completed
 - Context for the commit message
 
 For pull requests, you receive:
+
 - All commits that were made
 - The original description
 - Context about the overall work done
@@ -112,6 +115,7 @@ Your job is to create clean Git commits and well-formatted pull requests. Use th
 Load the `branch` skill using `skill({ name: "branch" })` for detailed instructions on setting up a branch.
 
 The skill will guide you through:
+
 - Deriving the username from Git config
 - Constructing a branch name from the description
 - Checking the current branch
@@ -123,6 +127,7 @@ The skill will guide you through:
 Load the `commit` skill using `skill({ name: "commit" })` for detailed instructions on creating commits.
 
 The skill will guide you through:
+
 - Staging changes
 - Writing commit messages
 - Verifying the commit
@@ -141,6 +146,7 @@ Load the `pr` skill using `skill({ name: "pr" })` for detailed instructions on c
 ## Output
 
 For branch setup, return:
+
 ```json
 {
   "branch": "<branch-name>",
@@ -150,6 +156,7 @@ For branch setup, return:
 ```
 
 If there are uncommitted changes:
+
 ```json
 {
   "error": "uncommitted_changes",
@@ -158,6 +165,7 @@ If there are uncommitted changes:
 ```
 
 For commits, return:
+
 ```json
 {
   "sha": "<commit-sha>",
@@ -167,6 +175,7 @@ For commits, return:
 ```
 
 For pull requests, return:
+
 ```json
 { "url": "<pull-request-url>" }
 ```

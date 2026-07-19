@@ -1,113 +1,111 @@
 {
   "groups": [
     {
-      "comment": "Shell utilities/navigation",
+      "comment": "Default",
       "rules": [
-        { "pattern": "atuin *", "action": "allow" },
-        { "pattern": "exit *", "action": "allow" },
-        { "pattern": "zoxide *", "action": "allow" }
+        { "pattern": "*", "action": "allow" }
       ]
     },
     {
-      "comment": "Git",
+      "comment": "File deletion",
       "rules": [
-        { "pattern": "git *", "action": "allow" }
-      ]
-    },
-    {
-      "comment": "File and search utilities",
-      "rules": [
-        { "pattern": "cat *", "action": "allow" },
-        { "pattern": "find *", "action": "allow" },
+        { "pattern": "rm *", "action": "ask" },
+        { "pattern": "rm -rf *", "action": "ask" },
+        { "pattern": "rsync --del*", "action": "ask" },
+        { "pattern": "rsync * --del*", "action": "ask" },
         { "pattern": "find * -delete*", "action": "ask" },
         { "pattern": "find * -exec*", "action": "ask" },
         { "pattern": "find * -execdir*", "action": "ask" },
         { "pattern": "find * -ok*", "action": "ask" },
-        { "pattern": "find * -okdir*", "action": "ask" },
-        { "pattern": "grep *", "action": "allow" },
-        { "pattern": "head *", "action": "allow" },
-        { "pattern": "ls *", "action": "allow" },
-        { "pattern": "rg *", "action": "allow" },
-        { "pattern": "tail *", "action": "allow" }
+        { "pattern": "find * -okdir*", "action": "ask" }
       ]
     },
     {
-      "comment": "Text processing",
+      "comment": "In-place/bulk edits",
       "rules": [
-        { "pattern": "awk *", "action": "allow" },
-        { "pattern": "column *", "action": "allow" },
-        { "pattern": "comm *", "action": "allow" },
-        { "pattern": "cut *", "action": "allow" },
-        { "pattern": "diff *", "action": "allow" },
-        { "pattern": "paste *", "action": "allow" },
-        { "pattern": "sed *", "action": "allow" },
         { "pattern": "sed -i*", "action": "ask" },
         { "pattern": "sed * -i*", "action": "ask" },
         { "pattern": "sed --in-place*", "action": "ask" },
         { "pattern": "sed * --in-place*", "action": "ask" },
-        { "pattern": "sort *", "action": "allow" },
-        { "pattern": "tee *", "action": "allow" },
-        { "pattern": "tr *", "action": "allow" },
-        { "pattern": "uniq *", "action": "allow" },
-        { "pattern": "wc *", "action": "allow" },
         { "pattern": "xargs *", "action": "ask" }
       ]
     },
     {
-      "comment": "File operations",
+      "comment": "Git working-tree discards",
       "rules": [
-        { "pattern": "cp *", "action": "allow" },
-        { "pattern": "mkdir *", "action": "allow" },
-        { "pattern": "mktemp *", "action": "allow" },
-        { "pattern": "mv *", "action": "allow" },
-        { "pattern": "rm *", "action": "ask" },
-        { "pattern": "rm -rf *", "action": "ask" }
+        { "pattern": "git checkout", "action": "ask" },
+        { "pattern": "git checkout *", "action": "ask" },
+        { "pattern": "git restore", "action": "ask" },
+        { "pattern": "git restore *", "action": "ask" },
+        { "pattern": "git switch --discard-changes*", "action": "ask" },
+        { "pattern": "git switch * --discard-changes*", "action": "ask" },
+        { "pattern": "git switch --force*", "action": "ask" },
+        { "pattern": "git switch * --force*", "action": "ask" },
+        { "pattern": "git clean", "action": "ask" },
+        { "pattern": "git clean *", "action": "ask" },
+        { "pattern": "git reset", "action": "ask" },
+        { "pattern": "git reset *", "action": "ask" },
+        { "pattern": "git stash drop*", "action": "ask" },
+        { "pattern": "git stash clear*", "action": "ask" },
+        { "pattern": "git worktree remove -f*", "action": "ask" },
+        { "pattern": "git worktree remove --force*", "action": "ask" },
+        { "pattern": "git worktree remove * -f*", "action": "ask" },
+        { "pattern": "git worktree remove * --force*", "action": "ask" }
       ]
     },
     {
-      "comment": "System inspection",
+      "comment": "Git history rewriting",
       "rules": [
-        { "pattern": "date *", "action": "allow" },
-        { "pattern": "df *", "action": "allow" },
-        { "pattern": "du *", "action": "allow" },
-        { "pattern": "echo *", "action": "allow" },
-        { "pattern": "file *", "action": "allow" },
-        { "pattern": "hostname", "action": "allow" },
-        { "pattern": "id", "action": "allow" },
-        { "pattern": "lsof", "action": "allow" },
-        { "pattern": "lsof *", "action": "allow" },
-        { "pattern": "man *", "action": "allow" },
-        { "pattern": "pgrep", "action": "allow" },
-        { "pattern": "pgrep *", "action": "allow" },
-        { "pattern": "printf *", "action": "allow" },
-        { "pattern": "ps", "action": "allow" },
-        { "pattern": "ps *", "action": "allow" },
-        { "pattern": "pwd", "action": "allow" },
-        { "pattern": "stat *", "action": "allow" },
-        { "pattern": "type *", "action": "allow" },
-        { "pattern": "uname *", "action": "allow" },
-        { "pattern": "which *", "action": "allow" },
-        { "pattern": "whoami", "action": "allow" }
+        { "pattern": "git rebase", "action": "ask" },
+        { "pattern": "git rebase *", "action": "ask" },
+        { "pattern": "git commit --amend*", "action": "ask" },
+        { "pattern": "git commit * --amend*", "action": "ask" },
+        { "pattern": "git filter-branch*", "action": "ask" },
+        { "pattern": "git reflog expire*", "action": "ask" },
+        { "pattern": "git gc --prune*", "action": "ask" },
+        { "pattern": "git update-ref -d*", "action": "ask" },
+        { "pattern": "git update-ref --stdin*", "action": "ask" },
+        { "pattern": "git prune*", "action": "ask" }
       ]
     },
     {
-      "comment": "Process control",
+      "comment": "Git branch/tag deletion",
       "rules": [
-        { "pattern": "kill *", "action": "allow" },
-        { "pattern": "killall *", "action": "allow" },
-        { "pattern": "pkill *", "action": "allow" }
+        { "pattern": "git branch -d *", "action": "ask" },
+        { "pattern": "git branch -D *", "action": "ask" },
+        { "pattern": "git branch -f*", "action": "ask" },
+        { "pattern": "git branch -M *", "action": "ask" },
+        { "pattern": "git branch --delete *", "action": "ask" },
+        { "pattern": "git branch --delete --force *", "action": "ask" },
+        { "pattern": "git branch --force*", "action": "ask" },
+        { "pattern": "git tag -d *", "action": "ask" },
+        { "pattern": "git tag --delete *", "action": "ask" },
+        { "pattern": "git tag -f*", "action": "ask" }
       ]
     },
     {
-      "comment": "JavaScript runtime",
+      "comment": "Git push",
       "rules": [
-        { "pattern": "node *", "action": "allow" }
+        { "pattern": "git push", "action": "ask" },
+        { "pattern": "git push *", "action": "ask" },
+        { "pattern": "git -C * push*", "action": "ask" },
+        { "pattern": "git -c * push*", "action": "ask" }
       ]
     },
     {
-      "comment": "Package manager",
+      "comment": "Git side effects",
       "rules": [
-        { "pattern": "pnpm *", "action": "allow" },
+        { "pattern": "git diff --output*", "action": "ask" },
+        { "pattern": "git diff * --output*", "action": "ask" },
+        { "pattern": "git diff --ext-diff*", "action": "ask" },
+        { "pattern": "git diff * --ext-diff*", "action": "ask" },
+        { "pattern": "git config alias.*", "action": "ask" },
+        { "pattern": "git config * alias.*", "action": "ask" }
+      ]
+    },
+    {
+      "comment": "Dependency changes (pnpm)",
+      "rules": [
         { "pattern": "pnpm add*", "action": "ask" },
         { "pattern": "pnpm install*", "action": "ask" },
         { "pattern": "pnpm i", "action": "ask" },
@@ -116,13 +114,12 @@
         { "pattern": "pnpm rm*", "action": "ask" },
         { "pattern": "pnpm uninstall*", "action": "ask" },
         { "pattern": "pnpm un*", "action": "ask" },
-        { "pattern": "pnpm exec*", "action": "ask" },
         { "pattern": "pnpm link*", "action": "ask" },
         { "pattern": "pnpm unlink*", "action": "ask" },
         { "pattern": "pnpm patch*", "action": "ask" },
+        { "pattern": "pnpm patch-commit*", "action": "ask" },
         { "pattern": "pnpm import*", "action": "ask" },
         { "pattern": "pnpm rebuild*", "action": "ask" },
-        { "pattern": "pnpm patch-commit*", "action": "ask" },
         { "pattern": "pnpm install-test*", "action": "ask" },
         { "pattern": "pnpm it*", "action": "ask" },
         { "pattern": "pnpm update*", "action": "ask" },
@@ -153,147 +150,171 @@
       ]
     },
     {
-      "comment": "GitHub read",
+      "comment": "Dependency changes (npm)",
       "rules": [
-        { "pattern": "gh issue list *", "action": "allow" },
-        { "pattern": "gh issue status *", "action": "allow" },
-        { "pattern": "gh issue view *", "action": "allow" },
-        { "pattern": "gh pr checkout *", "action": "allow" },
-        { "pattern": "gh pr checks *", "action": "allow" },
-        { "pattern": "gh pr diff *", "action": "allow" },
-        { "pattern": "gh pr list *", "action": "allow" },
-        { "pattern": "gh pr status *", "action": "allow" },
-        { "pattern": "gh pr view *", "action": "allow" },
-        { "pattern": "gh repo clone *", "action": "allow" },
-        { "pattern": "gh repo view *", "action": "allow" },
-        { "pattern": "gh run list *", "action": "allow" },
-        { "pattern": "gh run view *", "action": "allow" },
-        { "pattern": "gh run watch *", "action": "allow" },
-        { "pattern": "gh search *", "action": "allow" },
-        { "pattern": "gh status*", "action": "allow" }
+        { "pattern": "npm install*", "action": "ask" },
+        { "pattern": "npm i", "action": "ask" },
+        { "pattern": "npm i *", "action": "ask" },
+        { "pattern": "npm add*", "action": "ask" },
+        { "pattern": "npm ci*", "action": "ask" },
+        { "pattern": "npm it*", "action": "ask" },
+        { "pattern": "npm init *", "action": "ask" },
+        { "pattern": "npm create*", "action": "ask" },
+        { "pattern": "npm uninstall*", "action": "ask" },
+        { "pattern": "npm remove*", "action": "ask" },
+        { "pattern": "npm rm*", "action": "ask" },
+        { "pattern": "npm un*", "action": "ask" },
+        { "pattern": "npm update*", "action": "ask" },
+        { "pattern": "npm up*", "action": "ask" },
+        { "pattern": "npm link*", "action": "ask" },
+        { "pattern": "npm unlink*", "action": "ask" },
+        { "pattern": "npm publish*", "action": "ask" },
+        { "pattern": "npm audit fix*", "action": "ask" },
+        { "pattern": "npm exec*", "action": "ask" },
+        { "pattern": "npx *", "action": "ask" }
       ]
     },
     {
-      "comment": "GitHub writes",
+      "comment": "Dependency changes (yarn)",
+      "rules": [
+        { "pattern": "yarn", "action": "ask" },
+        { "pattern": "yarn install*", "action": "ask" },
+        { "pattern": "yarn add*", "action": "ask" },
+        { "pattern": "yarn create*", "action": "ask" },
+        { "pattern": "yarn remove*", "action": "ask" },
+        { "pattern": "yarn up*", "action": "ask" },
+        { "pattern": "yarn dlx*", "action": "ask" },
+        { "pattern": "yarn global*", "action": "ask" },
+        { "pattern": "yarn link*", "action": "ask" },
+        { "pattern": "yarn unlink*", "action": "ask" },
+        { "pattern": "yarn publish*", "action": "ask" },
+        { "pattern": "yarn npm publish*", "action": "ask" },
+        { "pattern": "yarn set version*", "action": "ask" }
+      ]
+    },
+    {
+      "comment": "Dependency changes (Python/Ruby)",
+      "rules": [
+        { "pattern": "pip install*", "action": "ask" },
+        { "pattern": "pip uninstall*", "action": "ask" },
+        { "pattern": "pip3 install*", "action": "ask" },
+        { "pattern": "pip3 uninstall*", "action": "ask" },
+        { "pattern": "gem install*", "action": "ask" },
+        { "pattern": "gem uninstall*", "action": "ask" },
+        { "pattern": "gem update*", "action": "ask" }
+      ]
+    },
+    {
+      "comment": "Cloudflare Wrangler CLI",
+      "rules": [
+        { "pattern": "wrangler", "action": "ask" },
+        { "pattern": "wrangler *", "action": "ask" },
+        { "pattern": "pnpm exec wrangler*", "action": "ask" }
+      ]
+    },
+    {
+      "comment": "Remote state (GitHub)",
       "rules": [
         { "pattern": "gh issue close *", "action": "ask" },
-        { "pattern": "gh issue create *", "action": "allow" },
         { "pattern": "gh pr close *", "action": "ask" },
-        { "pattern": "gh pr create *", "action": "allow" },
+        { "pattern": "gh pr create *", "action": "ask" },
+        { "pattern": "gh pr edit *", "action": "ask" },
+        { "pattern": "gh pr comment *", "action": "ask" },
+        { "pattern": "gh pr review *", "action": "ask" },
+        { "pattern": "gh pr ready *", "action": "ask" },
+        { "pattern": "gh pr reopen *", "action": "ask" },
         { "pattern": "gh pr merge *", "action": "ask" },
+        { "pattern": "gh repo delete *", "action": "ask" },
+        { "pattern": "gh release delete*", "action": "ask" },
         { "pattern": "gh run cancel *", "action": "ask" },
-        { "pattern": "gh run rerun *", "action": "ask" }
+        { "pattern": "gh run rerun *", "action": "ask" },
+        { "pattern": "gh workflow run *", "action": "ask" },
+        { "pattern": "gh workflow enable *", "action": "ask" },
+        { "pattern": "gh workflow disable *", "action": "ask" },
+        { "pattern": "gh api -X*", "action": "ask" },
+        { "pattern": "gh api * -X*", "action": "ask" },
+        { "pattern": "gh api --method*", "action": "ask" },
+        { "pattern": "gh api * --method*", "action": "ask" },
+        { "pattern": "gh api * -f*", "action": "ask" },
+        { "pattern": "gh api * -F*", "action": "ask" },
+        { "pattern": "gh api * --field*", "action": "ask" },
+        { "pattern": "gh api * --raw-field*", "action": "ask" },
+        { "pattern": "gh api * --input*", "action": "ask" }
       ]
     },
     {
-      "comment": "Dev utilities",
+      "comment": "Remote state (GitLab)",
       "rules": [
-        { "pattern": "bat *", "action": "allow" },
-        { "pattern": "curl *", "action": "allow" },
-        { "pattern": "delta *", "action": "allow" },
-        { "pattern": "fd *", "action": "allow" },
-        { "pattern": "fzf *", "action": "allow" },
-        { "pattern": "jq *", "action": "allow" },
-        { "pattern": "make *", "action": "allow" },
-        { "pattern": "shellcheck *", "action": "allow" },
-        { "pattern": "tree *", "action": "allow" },
-        { "pattern": "wget *", "action": "allow" }
-      ]
-    },
-    {
-      "comment": "GitLab CLI",
-      "rules": [
-        { "pattern": "glab auth *", "action": "allow" },
         { "pattern": "glab ci cancel *", "action": "ask" },
-        { "pattern": "glab ci list *", "action": "allow" },
         { "pattern": "glab ci retry *", "action": "ask" },
         { "pattern": "glab ci run *", "action": "ask" },
-        { "pattern": "glab ci status *", "action": "allow" },
-        { "pattern": "glab ci trace *", "action": "allow" },
-        { "pattern": "glab ci view *", "action": "allow" },
         { "pattern": "glab issue close *", "action": "ask" },
-        { "pattern": "glab issue create *", "action": "allow" },
-        { "pattern": "glab issue list *", "action": "allow" },
-        { "pattern": "glab issue view *", "action": "allow" },
-        { "pattern": "glab mr checkout *", "action": "allow" },
         { "pattern": "glab mr close *", "action": "ask" },
-        { "pattern": "glab mr create *", "action": "allow" },
-        { "pattern": "glab mr diff *", "action": "allow" },
-        { "pattern": "glab mr list *", "action": "allow" },
+        { "pattern": "glab mr create *", "action": "ask" },
+        { "pattern": "glab mr update *", "action": "ask" },
+        { "pattern": "glab mr note *", "action": "ask" },
+        { "pattern": "glab mr approve *", "action": "ask" },
+        { "pattern": "glab mr reopen *", "action": "ask" },
         { "pattern": "glab mr merge *", "action": "ask" },
-        { "pattern": "glab mr view *", "action": "allow" },
-        { "pattern": "glab repo clone *", "action": "allow" },
-        { "pattern": "glab repo view *", "action": "allow" },
-        { "pattern": "glab search *", "action": "allow" }
-      ]
-    },
-    {
-      "comment": "macOS",
-      "rules": [
-        { "pattern": "ghostty *", "action": "allow" },
-        { "pattern": "open *", "action": "allow" },
-        { "pattern": "pbcopy", "action": "allow" },
-        { "pattern": "pbpaste", "action": "allow" }
-      ]
-    },
-    {
-      "comment": "Risky Git operations",
-      "rules": [
-        { "pattern": "git stash", "action": "ask" },
-        { "pattern": "git stash *", "action": "ask" },
-        { "pattern": "git rebase", "action": "ask" },
-        { "pattern": "git rebase *", "action": "ask" },
-        { "pattern": "git clean", "action": "ask" },
-        { "pattern": "git clean *", "action": "ask" },
-        { "pattern": "git reset", "action": "ask" },
-        { "pattern": "git reset *", "action": "ask" },
-        { "pattern": "git restore", "action": "ask" },
-        { "pattern": "git restore *", "action": "ask" },
-        { "pattern": "git switch --discard-changes*", "action": "ask" },
-        { "pattern": "git switch * --discard-changes*", "action": "ask" },
-        { "pattern": "git switch --force*", "action": "ask" },
-        { "pattern": "git switch * --force*", "action": "ask" },
-        { "pattern": "git checkout", "action": "ask" },
-        { "pattern": "git checkout *", "action": "ask" },
-        { "pattern": "git branch -d *", "action": "ask" },
-        { "pattern": "git branch -D *", "action": "ask" },
-        { "pattern": "git branch -f*", "action": "ask" },
-        { "pattern": "git branch -M *", "action": "ask" },
-        { "pattern": "git branch --delete *", "action": "ask" },
-        { "pattern": "git branch --delete --force *", "action": "ask" },
-        { "pattern": "git branch --force*", "action": "ask" },
-        { "pattern": "git commit --amend*", "action": "ask" },
-        { "pattern": "git commit * --amend*", "action": "ask" },
-        { "pattern": "git diff --output*", "action": "ask" },
-        { "pattern": "git diff * --output*", "action": "ask" },
-        { "pattern": "git diff --ext-diff*", "action": "ask" },
-        { "pattern": "git diff * --ext-diff*", "action": "ask" },
-        { "pattern": "git push * +*", "action": "ask" },
-        { "pattern": "git push * --delete *", "action": "ask" },
-        { "pattern": "git push * --mirror*", "action": "ask" },
-        { "pattern": "git push * -f*", "action": "ask" },
-        { "pattern": "git push * --force*", "action": "ask" },
-        { "pattern": "git push *--force*", "action": "ask" },
-        { "pattern": "git push * :*", "action": "ask" },
-        { "pattern": "git push :*", "action": "ask" },
-        { "pattern": "git push +*", "action": "ask" },
-        { "pattern": "git push --delete *", "action": "ask" },
-        { "pattern": "git push --mirror*", "action": "ask" },
-        { "pattern": "git push --force*", "action": "ask" },
-        { "pattern": "git push -f*", "action": "ask" },
-        { "pattern": "git reflog expire*", "action": "ask" },
-        { "pattern": "git gc --prune*", "action": "ask" },
-        { "pattern": "git filter-branch*", "action": "ask" },
-        { "pattern": "git update-ref -d*", "action": "ask" },
-        { "pattern": "git update-ref --stdin*", "action": "ask" },
-        { "pattern": "git prune*", "action": "ask" }
+        { "pattern": "glab repo delete *", "action": "ask" },
+        { "pattern": "glab api -X*", "action": "ask" },
+        { "pattern": "glab api * -X*", "action": "ask" },
+        { "pattern": "glab api --method*", "action": "ask" },
+        { "pattern": "glab api * --method*", "action": "ask" }
       ]
     },
     {
       "comment": "Homebrew",
       "rules": [
         { "pattern": "brew install *", "action": "ask" },
-        { "pattern": "brew install --cask *", "action": "ask" }
+        { "pattern": "brew install --cask *", "action": "ask" },
+        { "pattern": "brew reinstall *", "action": "ask" },
+        { "pattern": "brew upgrade*", "action": "ask" },
+        { "pattern": "brew tap *", "action": "ask" },
+        { "pattern": "brew uninstall *", "action": "ask" },
+        { "pattern": "brew remove *", "action": "ask" },
+        { "pattern": "brew rm *", "action": "ask" }
+      ]
+    },
+    {
+      "comment": "System",
+      "rules": [
+        { "pattern": "sudo *", "action": "ask" },
+        { "pattern": "dd *", "action": "ask" },
+        { "pattern": "diskutil *", "action": "ask" },
+        { "pattern": "shutdown*", "action": "ask" },
+        { "pattern": "reboot*", "action": "ask" },
+        { "pattern": "halt*", "action": "ask" },
+        { "pattern": "crontab", "action": "ask" },
+        { "pattern": "crontab *", "action": "ask" },
+        { "pattern": "defaults delete *", "action": "ask" },
+        { "pattern": "security", "action": "ask" },
+        { "pattern": "security delete*", "action": "ask" }
+      ]
+    },
+    {
+      "comment": "Interpreter escape hatches",
+      "rules": [
+        { "pattern": "bash -c*", "action": "ask" },
+        { "pattern": "bash * -c*", "action": "ask" },
+        { "pattern": "sh -c*", "action": "ask" },
+        { "pattern": "sh * -c*", "action": "ask" },
+        { "pattern": "zsh -c*", "action": "ask" },
+        { "pattern": "zsh * -c*", "action": "ask" },
+        { "pattern": "eval *", "action": "ask" },
+        { "pattern": "node -e*", "action": "ask" },
+        { "pattern": "node --eval*", "action": "ask" },
+        { "pattern": "node -p*", "action": "ask" },
+        { "pattern": "node --print*", "action": "ask" },
+        { "pattern": "python -c*", "action": "ask" },
+        { "pattern": "python * -c*", "action": "ask" },
+        { "pattern": "python3 -c*", "action": "ask" },
+        { "pattern": "python3 * -c*", "action": "ask" },
+        { "pattern": "ruby -e*", "action": "ask" },
+        { "pattern": "perl -e*", "action": "ask" },
+        { "pattern": "perl -E*", "action": "ask" },
+        { "pattern": "swift -e*", "action": "ask" },
+        { "pattern": "osascript*", "action": "ask" }
       ]
     }
   ]

@@ -122,12 +122,14 @@ Your sole responsibility is to move the workflow forward. You do not implement, 
 ### Handling Rejection
 
 When a human rejects with feedback:
+
 - At the reviewed-change checkpoint: Interpret which todo(s) the feedback applies to and route to `@developer`
 - At commit or PR stage: Interpret which todo(s) the feedback applies to and restart from `@developer` for those todos
 
 ### Task Tracking
 
 Use `todowrite` to manage todos throughout the workflow:
+
 - After receiving todos from `@planner` (step 4), create all todos with status `pending`
 - When starting a todo, update its status to `in_progress` — only **one** todo should be `in_progress` at a time
 - Mark each todo `completed` after `@developer` implements it

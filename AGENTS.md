@@ -29,6 +29,8 @@ per-file prompts and diffs. This repo is the source of truth.
 
 - Route yes/no prompts in `setup.sh` through `install_consent`; preserve
   existing prompt defaults when converting or adding prompts.
+- As an explicit exception, route overwrite prompts through
+  `overwrite_consent`; they default to No.
 - Keep the README checklist in sync with `setup.sh`: Homebrew packages, VS Code
   extensions, and macOS `defaults` commands must match.
 - Never edit deployed copies (`~/.claude/settings.json`,
@@ -36,9 +38,18 @@ per-file prompts and diffs. This repo is the source of truth.
 
 ## Permission policy
 
-- Broad read-only and exploratory Bash rules are intentionally allowed,
-  including `find`, `grep`, `git`, `node`, `make`, `awk`, `curl`/`wget`, and
-  `cp`/`mv`/`tee`.
-- Keep destructive patterns ask-gated, including `rm`, force-push,
-  `find -delete`, `sed -i`, `xargs`, and risky package-manager operations.
+- Bash defaults to allow (`*`): exploratory and routine commands run without
+  prompts in both Claude Code and OpenCode.
+- Destructive operations stay ask-gated: file deletion (`rm`,
+  `find -delete/-exec`, `rsync --del`), in-place bulk edits (`sed -i`,
+  `xargs`), git operations that discard work or rewrite history
+  (`checkout`, `reset`, `clean`, `rebase`, `--amend`, `restore`,
+  `stash drop/clear`, branch/tag deletion), every `git push` (including
+  `git -C` forms and alias creation), interpreter one-liners (`bash -c`,
+  `node -e`, `python3 -c`, `osascript`), dependency changes (every
+  `pnpm`/`npm`/`yarn`/`pip`/`gem` install/add/remove/update,
+  `dlx`/`npx`), remote state (PR/MR create/edit/comment/merge/close, CI
+  runs, `gh api` mutations, repo/release delete), Homebrew
+  install/upgrade/tap/uninstall, and system-level commands (`sudo`,
+  `dd`, `diskutil`, `shutdown`, `crontab`, `security delete`).
 - Do not tighten this policy without the operator asking.

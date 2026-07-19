@@ -17,8 +17,10 @@ Use this when writing or reviewing unit tests in Vitest (or similar). Ask clarif
 ## Core rules (firm)
 
 - Tests must read like a spec: setup, do the thing, check the outcome.
+- Express setup, action, and assertions through proximity and blank lines: setup first, one action after a blank line, then assertions after another blank line.
 - Prefer observable behavior over implementation details.
 - Avoid "comment-driven" tests. If it needs lots of comments, the test is too complex—extract helpers.
+- Do not add routine `// Arrange`, `// Act`, or `// Assert` labels. Comments are only for non-obvious rationale, I/O, validation, or edge cases.
 
 ## AAA template
 
@@ -70,14 +72,11 @@ it('applies hover class', () => {
 Good (behavior; stable):
 ```ts
 it('shows column controls when hovering the header', async () => {
-  // Arrange
   const table = new TablePageModel();
   render(<Table enableColumnControls />);
 
-  // Act
   await table.hoverHeader('name');
 
-  // Assert
   expect(table.areHeaderControlsVisible('name')).toBe(true);
   expect(table.dragHandle('name')).toBeInTheDocument();
   expect(table.removeButton('name')).toBeInTheDocument();

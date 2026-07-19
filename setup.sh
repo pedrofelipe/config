@@ -104,6 +104,19 @@ install_consent() {
   fi
 }
 
+overwrite_prompt_text() {
+  printf '%s already exists. Overwrite?' "$1"
+}
+
+# Replacing an existing file always requires an explicit affirmative response.
+overwrite_consent() {
+  install_consent "$(overwrite_prompt_text "$1")" n
+}
+
+would_overwrite_prompt() {
+  printf '%s [y/N]' "$(overwrite_prompt_text "$1")"
+}
+
 mark_installer_detected() {
   local target=$1
 
@@ -231,8 +244,35 @@ brew_available() {
   command -v brew &>/dev/null
 }
 
+# Homebrew read commands populate caches, so dry runs inspect its registry directories instead.
+homebrew_prefix_from_command() {
+  local brew_path
+
+  brew_path=$(command -v brew 2>/dev/null) || return 1
+  case "$brew_path" in
+    */bin/brew) printf '%s\n' "${brew_path%/bin/brew}" ;;
+    *) return 1 ;;
+  esac
+}
+
+brew_package_registered() {
+  local dir=$1 name=$2 prefix
+
+  if ! $DRY_RUN; then
+    brew_available && brew list "$3" "$name" &>/dev/null
+    return $?
+  fi
+
+  prefix=$(homebrew_prefix_from_command) || return 1
+  [ -d "$prefix/$dir/${name##*/}" ]
+}
+
+brew_formula_registered() {
+  brew_package_registered Cellar "$1" --formula
+}
+
 brew_cask_registered() {
-  brew_available && brew list --cask "$1" &>/dev/null
+  brew_package_registered Caskroom "$1" --cask
 }
 
 brew_upgrade_formula_command_run() {
@@ -297,7 +337,7 @@ prepare_opencode_homebrew_tap() {
 # Sets _deploy_result so callers can distinguish installed, unchanged, and dry-run paths.
 deploy_prompted_file() {
   local src=$1 dst=$2 display=$3 prompt_label=$4 dry_run_message=$5
-  local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-} overwrite_default=${9:-y}
+  local dest_dir=${6:-} dir_mode=${7:-} file_mode=${8:-}
   _deploy_result=""
 
   if $DRY_RUN; then
@@ -317,7 +357,7 @@ deploy_prompted_file() {
       if diff -q "$dst" "$src" &>/dev/null; then
         ok "$display already up to date"
       else
-        would "Ask to overwrite $prompt_label at $dst"
+        would "Would prompt: $(would_overwrite_prompt "$prompt_label") ($dst)"
       fi
     else
       would "$dry_run_message"
@@ -352,7 +392,7 @@ deploy_prompted_file() {
       return 0
     fi
     git --no-pager diff --no-index --color "$dst" "$src"
-    if ! install_consent "$prompt_label already exists. Overwrite?" "$overwrite_default"; then
+    if ! overwrite_consent "$prompt_label"; then
       ok "$display unchanged"
       _deploy_result="unchanged"
       return 0
@@ -382,6 +422,11 @@ deploy_diff_safe_paths_match() {
     dir) diff -rq "$dst" "$src" &>/dev/null ;;
     *) return 1 ;;
   esac
+}
+
+# True only when the destination now matches the source.
+deploy_result_synced() {
+  [ "$_deploy_result" = "ok" ] || [ "$_deploy_result" = "installed" ]
 }
 
 deploy_diff_safe_show_diff() {
@@ -485,13 +530,13 @@ deploy_diff_safe_path() {
     fi
 
     if $DRY_RUN; then
-      would "Diff needed for $display at $dst. Would ask to overwrite"
+      would "Diff needed for $display at $dst. Would show diff, then prompt: $(would_overwrite_prompt "$prompt_label")"
       _deploy_result="dry-run"
       return 0
     fi
 
     deploy_diff_safe_show_diff "$src" "$dst"
-    if ! install_consent "$prompt_label already exists. Overwrite?" y; then
+    if ! overwrite_consent "$prompt_label"; then
       ok "$display unchanged"
       _deploy_result="unchanged"
       return 0
@@ -565,7 +610,7 @@ brew_formula() {
     esac
   done
 
-  if brew_available && brew list --formula "$pkg" &>/dev/null; then
+  if brew_formula_registered "$pkg"; then
     if $DRY_RUN; then
       would "Would update $display if outdated"
     else
@@ -631,7 +676,7 @@ brew_cask() {
     esac
   done
 
-  if brew_available && brew list --cask "$cask" &>/dev/null; then
+  if brew_cask_registered "$cask"; then
     if $DRY_RUN; then
       would "Would update $cask if outdated"
     else
@@ -687,7 +732,7 @@ install_opencode() {
   local pkg="opencode" tap="anomalyco/tap" formula="anomalyco/tap/opencode" cmd_path
   cmd_path="$(command -v "$pkg" 2>/dev/null || true)"
 
-  if command -v brew &>/dev/null && brew list --formula "$formula" &>/dev/null; then
+  if brew_formula_registered "$formula"; then
     mark_installer_detected opencode
     if ! prepare_opencode_homebrew_tap "$tap"; then
       return 1
@@ -775,6 +820,24 @@ claude_code_homebrew_managed() {
 
   [ -n "$cmd_path" ] || return 1
   brew_available || return 1
+
+  if $DRY_RUN; then
+    local prefix
+
+    prefix=$(homebrew_prefix_from_command) || return 1
+    # resolve_symlink_chain canonicalizes macOS /var paths, so compare it with
+    # an equally canonical Homebrew prefix.
+    prefix=$(canonical_path "$prefix" 2>/dev/null || printf '%s\n' "$prefix")
+    canonical_cmd_path="$(canonical_path "$cmd_path" 2>/dev/null || printf '%s\n' "$cmd_path")"
+    real_cmd_path="$(resolve_symlink_chain "$canonical_cmd_path" 2>/dev/null || printf '%s\n' "$canonical_cmd_path")"
+
+    for package in claude-code claude; do
+      case "$real_cmd_path" in
+        "$prefix/Cellar/$package/"*|"$prefix/Caskroom/$package/"*) return 0 ;;
+      esac
+    done
+    return 1
+  fi
 
   canonical_cmd_path="$(canonical_path "$cmd_path" 2>/dev/null || printf '%s\n' "$cmd_path")"
   real_cmd_path="$(resolve_symlink_chain "$cmd_path" 2>/dev/null || true)"
@@ -908,7 +971,7 @@ deploy_claude_code_config() {
   _claude_settings_dest="$HOME/.claude/settings.json"
   if [ -f "$_claude_settings_src" ]; then
     if deploy_prompted_file "$_claude_settings_src" "$_claude_settings_dest" "Claude Code/settings.json" "claude/settings.json" "cp claude/settings.json to $_claude_settings_dest" "$HOME/.claude"; then
-      [ "$_deploy_result" != "dry-run" ] && CF_OK+=("Claude Code/settings.json")
+      deploy_result_synced && CF_OK+=("Claude Code/settings.json")
     fi
   fi
 }
@@ -928,7 +991,7 @@ deploy_opencode_config() {
   _oc_dest="$OPENCODE_CONFIG_DIR/$_oc_file"
   if [ -f "$_oc_src" ]; then
     if deploy_prompted_file "$_oc_src" "$_oc_dest" "OpenCode/$_oc_file" "OpenCode/$_oc_file" "cp .config/opencode/$_oc_file to $_oc_dest" "$OPENCODE_CONFIG_DIR"; then
-      [ "$_deploy_result" != "dry-run" ] && CF_OK+=("OpenCode/$_oc_file")
+      deploy_result_synced && CF_OK+=("OpenCode/$_oc_file")
     fi
   fi
 }
@@ -1127,7 +1190,7 @@ setup_opencode_standalone_local_skill_installs() {
         ;;
       changed)
         if $DRY_RUN; then
-          would "Diff needed for standalone skill $skill at $dest. Would show diff and ask before replacing"
+          would "Diff needed for standalone skill $skill at $dest. Would show diff, then prompt: $(would_overwrite_prompt "Skill $skill")"
         else
           install_opencode_local_skill "$skill" || _standalone_skills_had_failures=true
         fi
@@ -1472,7 +1535,7 @@ _deploy_result=""
 for file in .bash_profile .inputrc; do
   if [ -f "$DOTFILES_DIR/$file" ]; then
     if deploy_prompted_file "$DOTFILES_DIR/$file" "$HOME/$file" "$file" "$file" "cp $file to $HOME/$file"; then
-      [ "$_deploy_result" != "dry-run" ] && CF_OK+=("$file")
+      deploy_result_synced && CF_OK+=("$file")
     fi
   else
     warn "$file not found, skipping"
@@ -1481,7 +1544,7 @@ done
 # Keep template deployment separate from author identity so local name/email are not overwritten silently.
 if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
   if $DRY_RUN; then
-    would "cp .gitconfig to ~/.gitconfig (independent of Git commit author identity)"
+    would "Would copy .gitconfig to ~/.gitconfig if needed (if replacement is needed, prompt: $(would_overwrite_prompt ".gitconfig"))"
   else
     _gitconfig_needs_copy=true
     _current_email=$(git config --global user.email 2>/dev/null)
@@ -1500,7 +1563,7 @@ if [ -f "$DOTFILES_DIR/.gitconfig" ]; then
           rm -rf "$_diff_dir"
         fi
         unset _diff_dir
-        if ! install_consent ".gitconfig already exists. Overwrite?" y; then
+        if ! overwrite_consent ".gitconfig"; then
           _gitconfig_needs_copy=false
         fi
       fi
@@ -1531,7 +1594,7 @@ fi
 # The repo stores ssh_config flat, but OpenSSH reads it from ~/.ssh/config.
 if [ -f "$DOTFILES_DIR/ssh_config" ]; then
   if deploy_prompted_file "$DOTFILES_DIR/ssh_config" "$HOME/.ssh/config" "$HOME/.ssh/config" \~/.ssh/config "cp ssh_config to ~/.ssh/config" "$HOME/.ssh" 700 600; then
-    [ "$_deploy_result" != "dry-run" ] && CF_OK+=("ssh_config")
+    deploy_result_synced && CF_OK+=("ssh_config")
   fi
 else
   warn "ssh_config not found, skipping"
@@ -1681,10 +1744,22 @@ step "Setting Homebrew bash as default shell"
 resolve_homebrew_bash() {
   local brew_prefix bash_prefix candidate arch
 
-  if command -v brew &>/dev/null; then
+  if $DRY_RUN; then
+    # Mirror the brew --prefix lookups below without invoking brew (dry runs
+    # must not populate Homebrew caches); brew --prefix bash resolves to
+    # <prefix>/opt/bash.
+    if brew_prefix=$(homebrew_prefix_from_command); then
+      for candidate in "$brew_prefix/opt/bash/bin/bash" "$brew_prefix/bin/bash"; do
+        if [ -x "$candidate" ]; then
+          printf '%s\n' "$candidate"
+          return 0
+        fi
+      done
+    fi
+  elif command -v brew &>/dev/null; then
     if bash_prefix=$(brew --prefix bash 2>/dev/null) && [ -n "$bash_prefix" ]; then
       candidate="$bash_prefix/bin/bash"
-      if $DRY_RUN || [ -x "$candidate" ]; then
+      if [ -x "$candidate" ]; then
         printf '%s\n' "$candidate"
         return 0
       fi
@@ -1692,7 +1767,7 @@ resolve_homebrew_bash() {
 
     if brew_prefix=$(brew --prefix 2>/dev/null) && [ -n "$brew_prefix" ]; then
       candidate="$brew_prefix/bin/bash"
-      if $DRY_RUN || [ -x "$candidate" ]; then
+      if [ -x "$candidate" ]; then
         printf '%s\n' "$candidate"
         return 0
       fi
@@ -1893,10 +1968,29 @@ else
 
   VSCODE_EXT_OK=0
   VSCODE_EXT_NEW=0
-  installed_exts=$(code --list-extensions 2>/dev/null || true)
+  installed_exts=""
+  # The VS Code CLI initializes user data even when only listing extensions.
+  if ! $DRY_RUN; then
+    installed_exts=$(code --list-extensions 2>/dev/null || true)
+  fi
+  vscode_extension_installed() {
+    local extension=$1 extension_path base
+
+    if ! $DRY_RUN; then
+      printf '%s\n' "$installed_exts" | grep -Fqix "$extension"
+      return $?
+    fi
+
+    for extension_path in "$HOME/.vscode/extensions/$extension"-*; do
+      [ -d "$extension_path" ] || continue
+      base=$(basename "$extension_path")
+      [ "${base%-*}" = "$extension" ] && return 0
+    done
+    return 1
+  }
   exts_missing=()
   for ext in "${extensions[@]}"; do
-    echo "$installed_exts" | grep -Fqix "$ext" || exts_missing+=("$ext")
+    vscode_extension_installed "$ext" || exts_missing+=("$ext")
   done
   VSCODE_EXT_OK=$(( ${#extensions[@]} - ${#exts_missing[@]} ))
 
@@ -1917,7 +2011,7 @@ else
         ok "Extensions unchanged"
       else
         for ext in "${extensions[@]}"; do
-          if echo "$installed_exts" | grep -Fqix "$ext"; then
+          if vscode_extension_installed "$ext"; then
             ok "$ext"
           elif code --install-extension "$ext" &>/dev/null; then
             installed "$ext"
@@ -1929,6 +2023,7 @@ else
       fi
     fi
   fi
+  unset -f vscode_extension_installed
 
   VSCODE_DIR="$HOME/Library/Application Support/Code/User"
   VSCODE_SETTINGS_OK=()
@@ -1940,7 +2035,7 @@ else
         ok "$config_file already up to date"
         VSCODE_SETTINGS_OK+=("$config_file")
       elif [ -f "$VSCODE_DIR/$config_file" ]; then
-        would "Ask to overwrite VS Code $config_file"
+        would "Would prompt: $(would_overwrite_prompt "$config_file") (VS Code)"
       else
         would "cp $config_file to VS Code"
       fi
@@ -1955,9 +2050,8 @@ else
           continue
         fi
         git --no-pager diff --no-index --color "$VSCODE_DIR/$config_file" "$DOTFILES_DIR/$config_file"
-        if ! install_consent "$config_file already exists. Overwrite?" y; then
+        if ! overwrite_consent "$config_file"; then
           ok "$config_file unchanged"
-          VSCODE_SETTINGS_OK+=("$config_file")
           continue
         fi
       fi
@@ -2461,7 +2555,8 @@ setup_peripheral() {
       if app_bundle_exists "$app"; then
         ok "$name already installed"
         deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
-          "deploy $config_src to $config_dst" "$(dirname "$config_dst")" "" "" n && PERIPH_OK+=("$name")
+          "deploy $config_src to $config_dst" "$(dirname "$config_dst")"
+        deploy_result_synced && PERIPH_OK+=("$name")
       else
         reinstall_missing_cask_app "$name" "$cask" "$app"
         would "deploy $config_src to $config_dst if $name is reinstalled"
@@ -2469,7 +2564,8 @@ setup_peripheral() {
     elif app_bundle_exists "$app"; then
       ok "$name already installed, skipping installation"
       deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
-        "deploy $config_src to $config_dst" "$(dirname "$config_dst")" "" "" n && PERIPH_OK+=("$name")
+        "deploy $config_src to $config_dst" "$(dirname "$config_dst")"
+      deploy_result_synced && PERIPH_OK+=("$name")
     elif ! brew_available; then
       warn "Homebrew not found, skipping $name"
     else
@@ -2506,10 +2602,9 @@ setup_peripheral() {
       return 1
     fi
   fi
-  if deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
-    "deploy $config_src to $config_dst" "$(dirname "$config_dst")" "" "" n; then
-    PERIPH_OK+=("$name")
-  fi
+  deploy_prompted_file "$DOTFILES_DIR/$config_src" "$config_dst" "$name config" "$name config" \
+    "deploy $config_src to $config_dst" "$(dirname "$config_dst")"
+  deploy_result_synced && PERIPH_OK+=("$name")
 }
 
 setup_peripheral \
